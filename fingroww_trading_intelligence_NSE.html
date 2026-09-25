@@ -1386,7 +1386,21 @@ function renderBacktestPanel(bt){
   $("tradeHistoryBody").innerHTML=rows||'<tr><td colspan="9" style="text-align:center;color:var(--muted)">No trades in window.</td></tr>';
 }
 
+const CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
+
+async function fetchApi(path, options={}){
+  const isLocalHost=(window.location.hostname==="127.0.0.1"||window.location.hostname==="localhost");
+  const primary=isLocalHost?LOCAL_API:CLOUD_API;
+  const secondary=isLocalHost?CLOUD_API:LOCAL_API;
+  try{
+    const r=await fetch(primary+path,{cache:"no-store",...options});
+    if(r.ok)return r;
+    throw new Error("Primary API unavailable");
+  }catch(e){
+    return await fetch(secondary+path,{cache:"no-store",...options});
+  }
+}
 
 function escHtml(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
 function symbolRowHtml(row,activeSym){
@@ -1495,7 +1509,7 @@ async function fetchCustomSuggest(q){
     return;
   }
   try{
-    const r=await fetch(LOCAL_API+"/api/symbols/search?q="+encodeURIComponent(q)+"&limit=25",{cache:"no-store"});
+    const r=await fetchApi("/api/symbols/search?q="+encodeURIComponent(q)+"&limit=25");
     const d=await r.json();
     renderCustomSuggest(d.results||[]);
   }catch{renderCustomSuggest([])}
@@ -1503,7 +1517,7 @@ async function fetchCustomSuggest(q){
 
 async function loadSymbolUniverse(){
   try{
-    const r=await fetch(LOCAL_API+"/api/symbols",{cache:"no-store"});
+    const r=await fetchApi("/api/symbols");
     const d=await r.json();
     SYMBOLS=d.symbols||[];
   }catch{
@@ -1531,7 +1545,7 @@ async function loadLive(){
   setLiveStatus("loading","Scanning",sym+" • "+tf+"…");
   $("btnScan").disabled=true;
   try{
-    const r=await fetch(LOCAL_API+"/api/live?symbol="+encodeURIComponent(sym)+"&interval="+encodeURIComponent(tf),{cache:"no-store"});
+    const r=await fetchApi("/api/live?symbol="+encodeURIComponent(sym)+"&interval="+encodeURIComponent(tf));
     const payload=await r.json();
     if(!r.ok)throw new Error(payload.error||("HTTP "+r.status));
     const price=Number(payload.lastPrice);
@@ -1551,7 +1565,7 @@ async function loadLive(){
     setLiveStatus("","Live LTP",statusText);
   }catch(e){
     const hint=(e.message||"").includes("fetch")||(e.message||"").includes("Failed")
-      ?"Run: python fingroww_market_server.py":e.message;
+      ?"Connecting live Render server ("+CLOUD_API+")":e.message;
     setLiveStatus("error","Offline",hint);
     syncHero(sym,NaN);
     $("priceCard").textContent="—";$("signalCard").textContent="—";$("scoreCard").textContent="—";$("probCard").textContent="—";
