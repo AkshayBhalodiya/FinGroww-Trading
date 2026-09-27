@@ -1,5 +1,8 @@
 {
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/terminal", "destination": "/fingroww_trading_intelligence_NSE.html" },
+    { "source": "/arena", "destination": "/fingroww_trading_intelligence_NSE.html" },
+    { "source": "/app", "destination": "/fingroww_trading_intelligence_NSE.html" }
   ]
 }

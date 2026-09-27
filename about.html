@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About FinGroww — Institutional Trading Intelligence</title>
+<!-- CDNs: Font Awesome & AOS Animation -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Hero */
+.about-hero { padding: 70px 0 50px; text-align: center; }
+.badge-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 14px; border-radius: 999px; background: var(--accent-blue-dim);
+  border: 1px solid rgba(56, 189, 248, 0.35); color: var(--accent-blue);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;
+}
+.hero-title {
+  font-size: clamp(2.3rem, 4.5vw, 3.4rem); font-weight: 900;
+  letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 18px;
+  color: var(--text-main);
+}
+.hero-sub {
+  font-size: 1.15rem; color: var(--text-muted); max-width: 720px; margin: 0 auto;
+}
+
+/* Story Section */
+.story-grid {
+  display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px;
+  align-items: center; padding: 60px 0;
+}
+.story-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); padding: 36px; box-shadow: var(--shadow-card);
+}
+.story-card h3 { font-size: 1.6rem; font-weight: 800; margin-bottom: 16px; color: var(--text-main); }
+.story-card p { color: var(--text-muted); font-size: 15px; line-height: 1.7; margin-bottom: 16px; }
+
+.values-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; padding: 40px 0 80px;
+}
+.val-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); padding: 30px; transition: var(--transition);
+}
+.val-card:hover {
+  transform: translateY(-4px); border-color: var(--border-active); box-shadow: var(--shadow-card);
+}
+.val-icon {
+  width: 50px; height: 50px; border-radius: 12px; display: grid; place-items: center;
+  font-size: 22px; margin-bottom: 16px;
+}
+.val-card h4 { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; color: var(--text-main); }
+.val-card p { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+@media (max-width: 900px) {
+  .story-grid { grid-template-columns: 1fr; }
+  .values-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="bg-ambient-grid">
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <span class="brand-badge">Trading Intelligence</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> 95% Accuracy Engine</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+      <li><a href="about.html" class="active"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Launch Live Terminal">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Launch Terminal</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> 95% Accuracy Engine</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary">🚀 Launch Live Terminal</a>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+  <!-- Hero -->
+  <section class="about-hero">
+    <div class="badge-pill">⚡ Our Mission & Story</div>
+    <h1 class="hero-title">
+      Leveling the Playing Field<br>
+      for Indian Retail Traders
+    </h1>
+    <p class="hero-sub">
+      Institutional hedge funds and proprietary desks trade with algorithmic discipline. We built FinGroww to bring that exact quantitative advantage to individual traders.
+    </p>
+  </section>
+
+  <!-- Story Grid -->
+  <section class="story-grid">
+    <div>
+      <span style="font-size:12px;font-weight:800;color:var(--accent-blue);text-transform:uppercase;letter-spacing:0.1em;">Why We Started</span>
+      <h2 style="font-size:2.2rem;font-weight:900;margin:8px 0 16px;color:var(--text-main);">The SEBI Reality Check</h2>
+      <p style="color:var(--text-muted);font-size:15px;line-height:1.7;margin-bottom:14px;">
+        According to SEBI’s landmark study, over 89% of individual traders in the Equity Futures and Options (F&O) segment lose money. Why? Not because they lack enthusiasm, but because they trade on emotional impulses, social media hype, and without mathematical risk control.
+      </p>
+      <p style="color:var(--text-muted);font-size:15px;line-height:1.7;">
+        FinGroww was founded by quantitative researchers and financial engineers from Mumbai and Ahmedabad with one core premise: <strong>Markets are governed by mathematics, liquidity, and orderflow.</strong> By replacing fear and greed with rule-based algorithmic confluence, any disciplined trader can achieve consistent profitability.
+      </p>
+    </div>
+
+    <div class="story-card">
+      <h3>The FinGroww Difference</h3>
+      <p>✔ <strong>Zero Lag NSE Data:</strong> High-speed direct market feeds.</p>
+      <p>✔ <strong>Triple Confluence Rules:</strong> No signal without 3-way mathematical verification.</p>
+      <p>✔ <strong>Pre-Calculated Risk:</strong> Every trade specifies strict SL and minimum 1:3 R:R.</p>
+      <p>✔ <strong>Verified Transparency:</strong> 100% auditable historical trade performance.</p>
+
+      <div style="margin-top:24px;">
+        <a href="trades.html" class="btn btn-primary" style="width:100%">Explore Live Trade Setups →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Values -->
+  <section>
+    <div style="text-align:center;margin-bottom:24px;">
+      <h2 style="font-size:2rem;font-weight:900;color:var(--text-main);">Our Core Quant Principles</h2>
+    </div>
+
+    <div class="values-grid">
+      <div class="val-card">
+        <div class="val-icon" style="background:var(--accent-blue-dim);color:var(--accent-blue)">📐</div>
+        <h4>Mathematics Over Emotion</h4>
+        <p>No gut feelings. No speculative rumors. Every trade setup is backed by volume delta, multi-timeframe trend alignment, and momentum scoring.</p>
+      </div>
+
+      <div class="val-card">
+        <div class="val-icon" style="background:var(--accent-green-dim);color:var(--accent-green)">🛡️</div>
+        <h4>Capital Preservation First</h4>
+        <p>The first rule of trading is survival. FinGroww’s position-sizing algorithm ensures you never risk more than 1-2% of your capital on any single setup.</p>
+      </div>
+
+      <div class="val-card">
+        <div class="val-icon" style="background:var(--accent-gold-dim);color:var(--accent-gold)">🤝</div>
+        <h4>100% Trader Trust</h4>
+        <p>We do not sell miraculous overnight riches. We provide professional decision-support tools with unconditional 7-day money-back satisfaction.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <span class="brand-badge">Trading Intelligence</span>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;line-height:1.6;">Empowering Indian traders with algorithmic quantitative edge and strict risk preservation.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Quick Links</h5>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="trades.html">Possible Trades</a></li>
+          <li><a href="accuracy.html">95% Accuracy Engine</a></li>
+          <li><a href="pricing.html">Subscriptions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html">Live Terminal</a></li>
+          <li><a href="contact.html">Support Desk</a></li>
+          <li><a href="about.html">About FinGroww</a></li>
+          <li><a href="disclaimer.html">Compliance & SEBI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <ul>
+          <li><a href="https://wa.me/919876543210" target="_blank"><i class="fa-brands fa-whatsapp" style="margin-right:6px;color:#25d366;"></i>WhatsApp Desk</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="margin-right:6px;"></i>support@fingroww.com</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-shield-halved" style="margin-right:6px;color:var(--accent-green);"></i>7-Day Guarantee</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI & Regulatory Risk Disclaimer -->
+    <div style="margin-top:40px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI & Regulatory Risk Disclosure:</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created for analytical purposes. We do not provide guaranteed returns, portfolio management services (PMS), or SEBI-registered personal investment advisory.
+    </div>
+
+    <div style="border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
+      <div style="display:flex;gap:16px;">
+        <a href="https://wa.me/919876543210" target="_blank" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i></a>
+        <a href="mailto:support@fingroww.com" title="Email"><i class="fa-solid fa-envelope" style="font-size:16px;"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp Quick Help Button -->
+<a href="https://wa.me/919876543210?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20your%20company%20and%20trading%20algo!" target="_blank" class="floating-whatsapp-btn" title="Chat on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="theme.js"></script>
+<script>
+// Initialize AOS Animations
+AOS.init({
+  duration: 700,
+  once: true,
+  easing: 'ease-out-cubic'
+});
+</script>
+
+</body>
+</html>
