@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact & Trader Support Desk — FinGroww</title>
+<!-- CDNs: Font Awesome & AOS Animation -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Page Hero */
+.contact-hero { padding: 60px 0 40px; text-align: center; }
+.tag-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: 999px; background: var(--accent-blue-dim);
+  border: 1px solid rgba(56, 189, 248, 0.3); color: var(--accent-blue);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;
+}
+.hero-title {
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem); font-weight: 900;
+  letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 14px;
+  color: var(--text-main);
+}
+.hero-sub {
+  font-size: 1.1rem; color: var(--text-muted); max-width: 650px; margin: 0 auto;
+}
+
+/* Layout */
+.contact-grid {
+  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px;
+  margin-bottom: 70px;
+}
+.contact-info-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); padding: 36px 32px;
+  display: flex; flex-direction: column; gap: 26px; box-shadow: var(--shadow-card);
+}
+.c-method { display: flex; align-items: flex-start; gap: 16px; }
+.cm-icon {
+  width: 46px; height: 46px; border-radius: 12px; background: var(--accent-blue-dim);
+  border: 1px solid rgba(56, 189, 248, 0.3); display: grid; place-items: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.cm-text h4 { font-size: 1rem; font-weight: 800; margin-bottom: 4px; color: var(--text-main); }
+.cm-text p { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+.cm-text a { color: var(--accent-blue); font-weight: 700; }
+
+.form-box {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); padding: 36px 32px; box-shadow: var(--shadow-card);
+}
+.form-box h3 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: var(--text-main); }
+.form-box p { color: var(--text-muted); font-size: 13px; margin-bottom: 24px; }
+
+.form-grid-2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;
+}
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block; font-size: 12px; font-weight: 700; color: var(--text-dim);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.form-control {
+  width: 100%; background: var(--bg-surface); border: 1px solid var(--border-card);
+  border-radius: 8px; padding: 12px 14px; color: var(--text-main); font-family: inherit;
+  font-size: 14px; outline: none; transition: border-color 0.2s;
+}
+.form-control:focus { border-color: var(--accent-blue); }
+textarea.form-control { resize: vertical; min-height: 110px; }
+
+/* FAQ */
+.faq-box { margin-bottom: 80px; }
+.faq-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.faq-item {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-md); padding: 18px 22px; cursor: pointer;
+  transition: var(--transition);
+}
+.faq-item:hover { border-color: var(--border-active); }
+.faq-q {
+  display: flex; align-items: center; justify-content: space-between;
+  font-weight: 700; font-size: 15px; color: var(--text-main);
+}
+.faq-a {
+  font-size: 13px; color: var(--text-muted); margin-top: 10px; line-height: 1.6;
+  display: none;
+}
+.faq-item.active .faq-a { display: block; }
+.faq-chevron { color: var(--text-dim); transition: transform 0.2s; }
+.faq-item.active .faq-chevron { transform: rotate(180deg); }
+
+@media (max-width: 900px) {
+  .contact-grid { grid-template-columns: 1fr; }
+  .faq-grid { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body class="bg-ambient-grid">
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <span class="brand-badge">Trading Intelligence</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> 95% Accuracy Engine</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html" class="active"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Launch Live Terminal">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Launch Terminal</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> 95% Accuracy Engine</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary">🚀 Launch Live Terminal</a>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+  <!-- Hero -->
+  <section class="contact-hero">
+    <div class="tag-badge">Trader Support Desk</div>
+    <h1 class="hero-title">We Are Here to Help You Succeed</h1>
+    <p class="hero-sub">
+      Have a question regarding our 95% accuracy model, subscription plans, broker integration, or terminal setup? Connect directly with our market analyst desk.
+    </p>
+  </section>
+
+  <!-- Grid -->
+  <section class="contact-grid">
+    <!-- Info -->
+    <div class="contact-info-card">
+      <div class="c-method">
+        <div class="cm-icon">💬</div>
+        <div class="cm-text">
+          <h4>WhatsApp Trading Hotline</h4>
+          <p>Instant chat with our senior quantitative analysts during full Indian market hours.</p>
+          <p><a href="https://wa.me/919876543210?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20the%20platform." target="_blank">+91 98765 43210 (Chat on WhatsApp) →</a></p>
+        </div>
+      </div>
+
+      <div class="c-method">
+        <div class="cm-icon">✉️</div>
+        <div class="cm-text">
+          <h4>Email Support Desk</h4>
+          <p>For broker API integrations, institutional accounts, and general queries.</p>
+          <p><a href="mailto:support@fingroww.com">support@fingroww.com</a></p>
+        </div>
+      </div>
+
+      <div class="c-method">
+        <div class="cm-icon">📍</div>
+        <div class="cm-text">
+          <h4>Office Locations</h4>
+          <p>FinGroww Technologies Pvt Ltd<br>Bandra-Kurla Complex (BKC), Mumbai & SG Highway, Ahmedabad, India</p>
+        </div>
+      </div>
+
+      <div class="c-method">
+        <div class="cm-icon">⏱️</div>
+        <div class="cm-text">
+          <h4>Market Desk Timings</h4>
+          <p>Monday – Saturday: 8:00 AM – 8:30 PM IST<br>Real-time trading signal desk active during full NSE sessions.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="form-box">
+      <h3>Request a Callback or Consultation</h3>
+      <p>Submit your inquiry below. Our quantitative analyst will reach out within 15 minutes.</p>
+
+      <form id="contactForm" onsubmit="handleFormSubmit(event)">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>FULL NAME *</label>
+            <input type="text" id="name" class="form-control" placeholder="e.g. Akshay Patel" required>
+          </div>
+          <div class="form-group">
+            <label>WHATSAPP NUMBER *</label>
+            <input type="tel" id="phone" class="form-control" placeholder="+91 98765 43210" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>EMAIL ADDRESS *</label>
+            <input type="email" id="email" class="form-control" placeholder="akshay@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label>TRADING SEGMENT</label>
+            <select id="segment" class="form-control">
+              <option value="Nifty & Bank Nifty Options">Nifty & Bank Nifty Options</option>
+              <option value="Intraday Stocks">Intraday Stocks</option>
+              <option value="Futures & Swing Trading">Futures & Swing Trading</option>
+              <option value="Beginner Trader (Learning)">Beginner Trader (Learning)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>YOUR QUESTION / MESSAGE</label>
+          <textarea id="message" class="form-control" placeholder="How do I connect FinGroww alerts to my Zerodha or Angel One account?"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%">
+          📩 Submit Inquiry & Connect on WhatsApp
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-box">
+    <div style="text-align:center;margin-bottom:30px;">
+      <h2 style="font-size:1.8rem;font-weight:900;color:var(--text-main);">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q">
+          <span>How soon do I receive alerts after subscribing?</span>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-a">
+          Immediately! Once your payment is processed, you are automatically invited to our VIP Telegram & WhatsApp signal desks and your terminal credentials are active within 60 seconds.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <span>Can I trade directly from the FinGroww terminal?</span>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-a">
+          Elite members can use our automated webhook bridge to execute orders directly in Zerodha, Angel One, Groww, and Dhan. Pro and Free members can use the terminal for live analysis and execute manually on any broker app.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <span>How does the 7-day money-back guarantee work?</span>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-a">
+          If for any reason you are not completely satisfied with our accuracy or tools within 7 days of purchase, send a message to support@fingroww.com or WhatsApp us for a 100% full refund with no questions asked.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q">
+          <span>Do I need to install any heavy software?</span>
+          <span class="faq-chevron">▼</span>
+        </div>
+        <div class="faq-a">
+          No installation needed! FinGroww is completely browser-based and works lightning-fast on any laptop, tablet, or smartphone (Chrome, Safari, Edge, Firefox).
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <span class="brand-badge">Trading Intelligence</span>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;line-height:1.6;">Empowering Indian traders with algorithmic quantitative edge and strict risk preservation.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Quick Links</h5>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="trades.html">Possible Trades</a></li>
+          <li><a href="accuracy.html">95% Accuracy Engine</a></li>
+          <li><a href="pricing.html">Subscriptions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html">Live Terminal</a></li>
+          <li><a href="contact.html">Support Desk</a></li>
+          <li><a href="about.html">About FinGroww</a></li>
+          <li><a href="disclaimer.html">Compliance & SEBI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <ul>
+          <li><a href="https://wa.me/919876543210" target="_blank"><i class="fa-brands fa-whatsapp" style="margin-right:6px;color:#25d366;"></i>WhatsApp Desk</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="margin-right:6px;"></i>support@fingroww.com</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-shield-halved" style="margin-right:6px;color:var(--accent-green);"></i>7-Day Guarantee</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI & Regulatory Risk Disclaimer -->
+    <div style="margin-top:40px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI & Regulatory Risk Disclosure:</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created for analytical purposes. We do not provide guaranteed returns, portfolio management services (PMS), or SEBI-registered personal investment advisory.
+    </div>
+
+    <div style="border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
+      <div style="display:flex;gap:16px;">
+        <a href="https://wa.me/919876543210" target="_blank" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i></a>
+        <a href="mailto:support@fingroww.com" title="Email"><i class="fa-solid fa-envelope" style="font-size:16px;"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp Quick Help Button -->
+<a href="https://wa.me/919876543210?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20your%20trading%20support%20desk!" target="_blank" class="floating-whatsapp-btn" title="Chat on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="theme.js"></script>
+<script>
+// Initialize AOS Animations
+AOS.init({
+  duration: 700,
+  once: true,
+  easing: 'ease-out-cubic'
+});
+
+function handleFormSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('name').value;
+  const phone = document.getElementById('phone').value;
+  const seg = document.getElementById('segment').value;
+  const msg = document.getElementById('message').value;
+
+  showToast(`Inquiry received, ${name}! Redirecting to WhatsApp desk...`);
+
+  setTimeout(() => {
+    const text = encodeURIComponent(`Hello FinGroww! My name is ${name} (${phone}). Segment: ${seg}. Message: ${msg || 'I want more information on FinGroww.'}`);
+    window.open(`https://wa.me/919876543210?text=${text}`, '_blank');
+    e.target.reset();
+  }, 1000);
+}
+</script>
+
+</body>
+</html>

@@ -19,6 +19,16 @@
   --glow-red:0 0 24px rgba(255,71,87,.35);
   --radius:16px;--radius-sm:10px;
 }
+[data-theme="light"]{
+  --bg:#f8fafc;--bg2:#ffffff;--panel:#ffffff;--panel2:#f1f5f9;
+  --line:rgba(2,132,199,.25);--line2:rgba(15,23,42,.08);
+  --text:#0f172a;--muted:#475569;
+  --green:#059669;--green-dim:rgba(5,150,105,.12);
+  --red:#e11d48;--red-dim:rgba(225,29,72,.12);
+  --yellow:#d97706;--blue:#0284c7;--gold:#d97706;--purple:#7c3aed;
+  --glow-green:0 4px 15px rgba(5,150,105,.25);
+  --glow-red:0 4px 15px rgba(225,29,72,.25);
+}
 *{box-sizing:border-box}
 body{
   margin:0;min-height:100vh;color:var(--text);
@@ -343,6 +353,12 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
     </div>
   </div>
   <div class="status-hud">
+    <a href="index.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--blue);background:rgba(56,189,248,.1);cursor:pointer;" title="FinGroww Home">🏠 Home</a>
+    <a href="trades.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--text);background:rgba(255,255,255,.05);cursor:pointer;" title="View Possible Trades">📊 Setups</a>
+    <a href="pricing.html" class="live-pill" style="text-decoration:none;border-color:rgba(255,213,79,.35);color:var(--gold);background:rgba(255,213,79,.1);cursor:pointer;" title="Upgrade to Pro">💎 Pro Plans</a>
+    <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme" style="width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:inherit;cursor:pointer;display:grid;place-items:center;font-size:15px;margin-left:4px;">
+      <span class="theme-icon">☀️</span>
+    </button>
     <span id="livePill" class="live-pill loading"><i class="dot"></i><span id="liveLabel">Connecting</span></span>
     <span id="clock">--:--:--</span>
     <span id="dataStatus">Start server & scan</span>
@@ -1745,5 +1761,6 @@ window.addEventListener("resize",()=>{
   if(state.backtest)drawSubChart(state.backtest);
 });
 </script>
+<script src="theme.js"></script>
 </body>
 </html>

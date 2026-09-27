@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Possible & Profitable Trades Radar — FinGroww</title>
+<!-- CDNs: Font Awesome & AOS Animation -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Page Banner */
+.page-hero {
+  padding: 50px 0 40px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.page-hero-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 30px;
+  align-items: center;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 999px;
+  background: var(--accent-blue-dim); border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--accent-blue); font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 14px;
+}
+.page-title {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 900; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 12px;
+  color: var(--text-main);
+}
+.page-desc { font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; }
+
+.live-metrics-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  box-shadow: var(--shadow-card);
+}
+.lmp-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+.lmp-box .lbl { font-size: 11px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; }
+.lmp-box .val { font-size: 1.7rem; font-weight: 900; margin-top: 4px; line-height: 1; color: var(--text-main); }
+
+/* Radar Controls Bar */
+.radar-controls {
+  padding: 30px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+.radar-tab {
+  padding: 8px 18px; border-radius: 999px;
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  color: var(--text-muted); font-size: 13px; font-weight: 700;
+  transition: var(--transition);
+}
+.radar-tab:hover { color: var(--text-main); border-color: var(--border-active); }
+.radar-tab.active {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff; border-color: transparent;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+}
+
+.search-box { position: relative; min-width: 260px; }
+.search-box input {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 999px;
+  padding: 9px 16px 9px 38px;
+  color: var(--text-main); font-family: inherit; font-size: 13px;
+  outline: none; transition: border-color 0.2s;
+}
+.search-box input:focus { border-color: var(--accent-blue); }
+.search-box .icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); font-size: 14px;
+}
+
+/* Trade Cards Grid */
+.trades-section { padding-bottom: 70px; }
+.trades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
+}
+.trade-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  transition: var(--transition);
+}
+.trade-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-card);
+}
+.tc-top {
+  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;
+}
+.tc-sym { font-size: 1.3rem; font-weight: 800; color: var(--text-main); }
+.tc-sub { font-size: 11px; color: var(--text-dim); }
+.tc-badge {
+  padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase;
+}
+.badge-buy { background: var(--accent-green-dim); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--accent-green); }
+.badge-sell { background: var(--accent-red-dim); border: 1px solid rgba(244, 63, 94, 0.4); color: var(--accent-red); }
+.badge-breakout { background: var(--accent-blue-dim); border: 1px solid rgba(56, 189, 248, 0.4); color: var(--accent-blue); }
+.badge-squeeze { background: var(--accent-purple-dim); border: 1px solid rgba(168, 85, 247, 0.4); color: var(--accent-purple); }
+
+.tc-grid-levels {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  background: var(--bg-surface); border: 1px solid var(--border-subtle);
+  border-radius: 10px; padding: 12px 10px; margin-bottom: 16px;
+}
+.tc-lvl { text-align: center; }
+.tc-lvl .l-name { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+.tc-lvl .l-val { font-size: 13px; font-weight: 700; margin-top: 2px; }
+
+.tc-confluence-box {
+  background: var(--bg-surface);
+  border-left: 3px solid var(--accent-blue);
+  padding: 10px 14px; border-radius: 0 8px 8px 0;
+  font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px;
+}
+.tc-confluence-box strong { color: var(--text-main); }
+
+.tc-footer {
+  margin-top: auto; display: flex; align-items: center; justify-content: space-between;
+  padding-top: 14px; border-top: 1px solid var(--border-subtle);
+}
+.tc-win-acc {
+  display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--accent-green);
+}
+.tc-btn {
+  font-size: 12px; font-weight: 700; color: var(--accent-blue);
+  display: inline-flex; align-items: center; gap: 4px; transition: var(--transition);
+}
+.tc-btn:hover { color: var(--text-main); gap: 7px; }
+
+/* Table Audit */
+.audit-section {
+  padding: 50px 0 80px; border-top: 1px solid var(--border-subtle);
+}
+.table-wrap {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-card);
+}
+table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+th {
+  background: var(--bg-surface); padding: 14px 18px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); font-weight: 700; border-bottom: 1px solid var(--border-subtle);
+}
+td { padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); color: var(--text-main); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg-card-hover); }
+
+.status-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;
+}
+.tag-hit { background: var(--accent-green-dim); color: var(--accent-green); }
+.tag-active { background: var(--accent-blue-dim); color: var(--accent-blue); }
+
+.cta-banner {
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  padding: 36px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; flex-wrap: wrap; margin-top: 50px;
+  box-shadow: var(--glow-blue);
+}
+.cta-text h3 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; color: var(--text-main); }
+.cta-text p { color: var(--text-muted); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .page-hero-grid { grid-template-columns: 1fr; }
+}
+</style>
+<body class="bg-ambient-grid">
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <span class="brand-badge">Trading Intelligence</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li><a href="trades.html" class="active"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> 95% Accuracy Engine</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Launch Live Terminal">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Launch Terminal</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> 95% Accuracy Engine</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary">🚀 Launch Live Terminal</a>
+    </div>
+  </div>
+</div>
+
+<main>
+  <!-- Page Banner -->
+  <section class="page-hero">
+    <div class="container page-hero-grid">
+      <div>
+        <div class="hero-tag">Real-Time Signal Radar</div>
+        <h1 class="page-title">Possible & Profitable Trade Setups</h1>
+        <p class="page-desc">
+          Live algorithmic scanning across 500+ NSE instruments. Filtered with our strict 95%+ probability confluence criteria so you only execute high-conviction trades.
+        </p>
+      </div>
+
+      <div class="live-metrics-panel">
+        <div class="lmp-box">
+          <div class="lbl">Active High-Win Signals</div>
+          <div class="val mono up">8 Trades</div>
+        </div>
+        <div class="lmp-box">
+          <div class="lbl">Algorithm Win Accuracy</div>
+          <div class="val mono up">95.4%</div>
+        </div>
+        <div class="lmp-box">
+          <div class="lbl">Average Risk:Reward</div>
+          <div class="val mono" style="color:var(--accent-blue)">1 : 3.4</div>
+        </div>
+        <div class="lmp-box">
+          <div class="lbl">Target 1 Hit Rate</div>
+          <div class="val mono" style="color:var(--accent-gold)">98.1%</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Radar Controls -->
+  <section class="container">
+    <div class="radar-controls">
+      <div class="filter-group">
+        <button type="button" class="radar-tab active" onclick="filterRadar('all', this)">All Setups (8)</button>
+        <button type="button" class="radar-tab" onclick="filterRadar('index', this)">Nifty & Bank Nifty</button>
+        <button type="button" class="radar-tab" onclick="filterRadar('options', this)">Options Scalp</button>
+        <button type="button" class="radar-tab" onclick="filterRadar('stocks', this)">NSE Equities</button>
+        <button type="button" class="radar-tab" onclick="filterRadar('swing', this)">Swing Delivery</button>
+      </div>
+
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="tradeSearch" placeholder="Search symbol (e.g. NIFTY, TATA)..." oninput="searchTrades()">
+      </div>
+    </div>
+  </section>
+
+  <!-- Trades Grid -->
+  <section class="container trades-section">
+    <div class="trades-grid" id="tradesGrid">
+
+      <!-- Setup 1 -->
+      <div class="trade-card" data-cat="index options" data-sym="NIFTY 24,700 CE">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">NIFTY 24,700 CE</div>
+            <div class="tc-sub">Weekly Index Option • 15m Confluence</div>
+          </div>
+          <span class="tc-badge badge-buy">STRONG BUY</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹142.50</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹124.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹182.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹215.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> Supertrend bullish breakout + Session VWAP reclaim + 3.8x Call Volume spike.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 96.2% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 2 -->
+      <div class="trade-card" data-cat="index options" data-sym="BANK NIFTY 52,500 CE">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">BANK NIFTY 52,500 CE</div>
+            <div class="tc-sub">High Beta Scalp • Range Breakout</div>
+          </div>
+          <span class="tc-badge badge-breakout">BREAKOUT</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹310.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹265.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹395.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹460.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> HDFC & ICICI bank alignment + Open Interest short covering + MACD expansion.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 95.8% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 3 -->
+      <div class="trade-card" data-cat="stocks swing" data-sym="RELIANCE">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">RELIANCE</div>
+            <div class="tc-sub">NSE Largecap • Institutional Accumulation</div>
+          </div>
+          <span class="tc-badge badge-buy">ACCUMULATION</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹2,980.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹2,945.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹3,040.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹3,115.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> 200 EMA key support bounce + Bullish RSI divergence on daily chart.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 95.1% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 4 -->
+      <div class="trade-card" data-cat="stocks" data-sym="TATA MOTORS">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">TATA MOTORS</div>
+            <div class="tc-sub">Intraday Momentum • Multi-Day High</div>
+          </div>
+          <span class="tc-badge badge-buy">STRONG BUY</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹985.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹972.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹1,012.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹1,038.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> 3.4x volume surge + ADX trend strength > 34 + Auto index outperformance.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 94.9% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 5 -->
+      <div class="trade-card" data-cat="stocks" data-sym="HDFC BANK">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">HDFC BANK</div>
+            <div class="tc-sub">Volatility Squeeze • Institutional Buyer</div>
+          </div>
+          <span class="tc-badge badge-squeeze">SQUEEZE</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹1,680.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹1,664.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹1,715.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹1,745.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> Bollinger Band squeeze expansion + Foreign institutional block volume.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 95.4% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 6 -->
+      <div class="trade-card" data-cat="index options" data-sym="NIFTY 24,800 PE">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">NIFTY 24,800 PE</div>
+            <div class="tc-sub">Reversal Hedge • Daily Supply Rejection</div>
+          </div>
+          <span class="tc-badge badge-sell">SHORT SCALP</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹145.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹128.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹190.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹235.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> Resistance rejection at 24,850 + Stochastic overbought bearish crossover.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 94.6% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 7 -->
+      <div class="trade-card" data-cat="stocks swing" data-sym="INFY">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">INFY (Infosys)</div>
+            <div class="tc-sub">IT Sector Rebound • Higher Low Structure</div>
+          </div>
+          <span class="tc-badge badge-buy">SWING BUY</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹1,890.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹1,855.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹1,950.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹2,020.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> Nasdaq rebound + EMA 50 support + Accumulation volume pattern.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 95.0% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+      <!-- Setup 8 -->
+      <div class="trade-card" data-cat="index options" data-sym="FINNIFTY 23,400 CE">
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">FINNIFTY 23,400 CE</div>
+            <div class="tc-sub">Expiry Scalp • Trend Continuation</div>
+          </div>
+          <span class="tc-badge badge-breakout">BREAKOUT</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹68.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹52.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹96.00</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹128.00</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Confluence:</strong> Financial services index momentum + 0-DTE gamma burst detected.
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc">🎯 95.7% Confidence</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- CTA Banner -->
+    <div class="cta-banner">
+      <div class="cta-text">
+        <h3>Want Instant 95% Accuracy Alerts on WhatsApp?</h3>
+        <p>Never miss a high-probability breakout while at work or away from your desk. Pro Trader alerts trigger within 120ms.</p>
+      </div>
+      <div>
+        <a href="pricing.html" class="btn btn-primary">Upgrade to Pro Trader Algo →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Verified Historical Trade Log -->
+  <section class="audit-section">
+    <div class="container">
+      <div style="margin-bottom:24px;">
+        <span class="hero-tag" style="background:var(--accent-green-dim);color:var(--accent-green);border-color:rgba(16,185,129,0.3)">100% Verifiable Data</span>
+        <h2 style="font-size:1.8rem;font-weight:900;color:var(--text-main);">Recent Signal Performance Audit</h2>
+        <p style="color:var(--text-muted);font-size:14px;">Every trade generated by FinGroww is tracked and audited against live candle highs & lows.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date / Time</th>
+              <th>Instrument</th>
+              <th>Signal</th>
+              <th>Trigger Price</th>
+              <th>Stop Loss</th>
+              <th>Target 1</th>
+              <th>Outcome</th>
+              <th>Points / ROI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">Today 09:30 AM</td>
+              <td><strong>NIFTY 24,700 CE</strong></td>
+              <td><span class="status-tag tag-hit">BUY</span></td>
+              <td class="mono">₹142.50</td>
+              <td class="mono down">₹124.00</td>
+              <td class="mono up">₹182.00</td>
+              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
+              <td class="mono up"><strong>+27.7%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">Today 10:15 AM</td>
+              <td><strong>BANK NIFTY 52,500 CE</strong></td>
+              <td><span class="status-tag tag-hit">BUY</span></td>
+              <td class="mono">₹310.00</td>
+              <td class="mono down">₹265.00</td>
+              <td class="mono up">₹395.00</td>
+              <td><span class="status-tag tag-active">⚡ In Profit (+62 pts)</span></td>
+              <td class="mono up"><strong>+20.0%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">Yesterday 02:00 PM</td>
+              <td><strong>RELIANCE</strong></td>
+              <td><span class="status-tag tag-hit">BUY</span></td>
+              <td class="mono">₹2,980.00</td>
+              <td class="mono down">₹2,945.00</td>
+              <td class="mono up">₹3,040.00</td>
+              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
+              <td class="mono up"><strong>+2.01%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">Yesterday 11:45 AM</td>
+              <td><strong>NIFTY 24,800 PE</strong></td>
+              <td><span class="status-tag tag-hit">SELL</span></td>
+              <td class="mono">₹145.00</td>
+              <td class="mono down">₹128.00</td>
+              <td class="mono up">₹190.00</td>
+              <td><span class="status-tag tag-hit">✔ Target 2 Hit</span></td>
+              <td class="mono up"><strong>+42.2%</strong></td>
+            </tr>
+            <tr>
+              <td class="mono">24-Sep 01:20 PM</td>
+              <td><strong>TATA MOTORS</strong></td>
+              <td><span class="status-tag tag-hit">BUY</span></td>
+              <td class="mono">₹985.00</td>
+              <td class="mono down">₹972.00</td>
+              <td class="mono up">₹1,012.00</td>
+              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
+              <td class="mono up"><strong>+2.74%</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <span class="brand-badge">Trading Intelligence</span>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;line-height:1.6;">Empowering Indian traders with algorithmic quantitative edge and strict risk preservation.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Quick Links</h5>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="trades.html">Possible Trades</a></li>
+          <li><a href="accuracy.html">95% Accuracy Engine</a></li>
+          <li><a href="pricing.html">Subscriptions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html">Live Terminal</a></li>
+          <li><a href="contact.html">Support Desk</a></li>
+          <li><a href="about.html">About FinGroww</a></li>
+          <li><a href="disclaimer.html">Compliance & SEBI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <ul>
+          <li><a href="https://wa.me/919876543210" target="_blank"><i class="fa-brands fa-whatsapp" style="margin-right:6px;color:#25d366;"></i>WhatsApp Desk</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="margin-right:6px;"></i>support@fingroww.com</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-shield-halved" style="margin-right:6px;color:var(--accent-green);"></i>7-Day Guarantee</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI & Regulatory Risk Disclaimer -->
+    <div style="margin-top:40px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI & Regulatory Risk Disclosure:</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created for analytical purposes. We do not provide guaranteed returns, portfolio management services (PMS), or SEBI-registered personal investment advisory.
+    </div>
+
+    <div style="border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
+      <div style="display:flex;gap:16px;">
+        <a href="https://wa.me/919876543210" target="_blank" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i></a>
+        <a href="mailto:support@fingroww.com" title="Email"><i class="fa-solid fa-envelope" style="font-size:16px;"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp Quick Help Button -->
+<a href="https://wa.me/919876543210?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20your%20possible%20trade%20setups!" target="_blank" class="floating-whatsapp-btn" title="Chat on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="theme.js"></script>
+<script>
+// Initialize AOS Animations
+AOS.init({
+  duration: 700,
+  once: true,
+  easing: 'ease-out-cubic'
+});
+
+function filterRadar(cat, btn) {
+  document.querySelectorAll('.radar-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cards = document.querySelectorAll('.trade-card');
+  cards.forEach(card => {
+    const cardCat = card.getAttribute('data-cat') || '';
+    if (cat === 'all' || cardCat.includes(cat)) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+function searchTrades() {
+  const query = document.getElementById('tradeSearch').value.trim().toUpperCase();
+  const cards = document.querySelectorAll('.trade-card');
+  cards.forEach(card => {
+    const sym = (card.getAttribute('data-sym') || '').toUpperCase();
+    if (!query || sym.includes(query)) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+</script>
+
+</body>
+</html>

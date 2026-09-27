@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscriptions & Pricing Plans — FinGroww</title>
+<!-- CDNs: Font Awesome & AOS Animation -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Page Header */
+.pricing-header {
+  text-align: center; padding: 60px 0 40px;
+}
+.tag-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: 999px; background: var(--accent-blue-dim);
+  border: 1px solid rgba(56, 189, 248, 0.3); color: var(--accent-blue);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; margin-bottom: 16px;
+}
+.p-main-title {
+  font-size: clamp(2.2rem, 4.5vw, 3.2rem); font-weight: 900;
+  letter-spacing: -0.02em; margin-bottom: 14px; line-height: 1.15;
+  color: var(--text-main);
+}
+.p-main-desc { font-size: 1.1rem; color: var(--text-muted); max-width: 650px; margin: 0 auto 36px; }
+
+/* Switcher */
+.billing-switcher {
+  display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 48px;
+}
+.switch-label { font-size: 14px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+.switch-label.active { color: var(--text-main); }
+.toggle-switch {
+  width: 54px; height: 28px; background: var(--border-card);
+  border-radius: 999px; padding: 3px; cursor: pointer; transition: background 0.3s;
+}
+.toggle-switch.annual { background: var(--accent-blue); }
+.toggle-knob {
+  width: 22px; height: 22px; background: #fff; border-radius: 50%;
+  transition: transform 0.3s;
+}
+.toggle-switch.annual .toggle-knob { transform: translateX(26px); }
+.discount-pill {
+  background: var(--accent-gold-dim); border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--accent-gold); font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px;
+}
+
+/* Cards Grid */
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 26px; align-items: stretch; margin-bottom: 70px;
+}
+.price-card {
+  background: var(--bg-card); border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg); padding: 36px 30px;
+  display: flex; flex-direction: column; position: relative;
+  transition: var(--transition);
+}
+.price-card:hover {
+  transform: translateY(-6px); box-shadow: var(--shadow-card);
+}
+.price-card.featured {
+  border: 2px solid var(--accent-blue); box-shadow: var(--glow-blue);
+  transform: scale(1.02);
+}
+.price-card.featured:hover { transform: scale(1.02) translateY(-6px); }
+.popular-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(90deg, #0284c7, #2563eb); color: #fff;
+  padding: 4px 16px; border-radius: 999px; font-size: 11px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.tier-title { font-size: 1.35rem; font-weight: 800; margin-bottom: 8px; color: var(--text-main); }
+.tier-desc { font-size: 13px; color: var(--text-muted); min-height: 42px; margin-bottom: 24px; }
+.price-row {
+  display: flex; align-items: baseline; gap: 6px; margin-bottom: 24px;
+  padding-bottom: 24px; border-bottom: 1px solid var(--border-subtle);
+}
+.curr { font-size: 1.5rem; font-weight: 700; color: var(--text-muted); }
+.amt { font-size: 3rem; font-weight: 900; line-height: 1; color: var(--text-main); }
+.per { font-size: 13px; color: var(--text-muted); }
+
+.features-list {
+  list-style: none; display: flex; flex-direction: column; gap: 14px;
+  margin-bottom: 32px; flex-grow: 1;
+}
+.features-list li {
+  display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text-main);
+}
+.features-list li.dim { color: var(--text-dim); }
+.check-icon { color: var(--accent-green); font-weight: 900; }
+.cross-icon { color: var(--text-dim); font-weight: 900; }
+
+/* Comparison Matrix */
+.matrix-section { padding: 60px 0 80px; border-top: 1px solid var(--border-subtle); }
+.matrix-table {
+  width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;
+  background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg);
+  overflow: hidden; box-shadow: var(--shadow-card);
+}
+.matrix-table th {
+  background: var(--bg-surface); padding: 18px 24px;
+  font-size: 12px; text-transform: uppercase; color: var(--text-dim);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.matrix-table td {
+  padding: 16px 24px; border-bottom: 1px solid var(--border-subtle); color: var(--text-main);
+}
+.matrix-table tr:last-child td { border-bottom: none; }
+.matrix-table td.col-head { font-weight: 700; }
+.matrix-table td.check { text-align: center; }
+
+/* Guarantee Box */
+.guarantee-box {
+  background: var(--bg-card);
+  border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-lg);
+  padding: 36px 40px; display: flex; align-items: center; gap: 30px;
+  margin-bottom: 70px; box-shadow: var(--glow-green);
+}
+.g-icon {
+  width: 70px; height: 70px; border-radius: 50%; background: var(--accent-green-dim);
+  border: 2px solid var(--accent-green); display: grid; place-items: center; font-size: 32px;
+  flex-shrink: 0;
+}
+.g-text h4 { font-size: 1.4rem; font-weight: 800; margin-bottom: 6px; color: var(--text-main); }
+.g-text p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+/* Modal Checkout */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-card {
+  background: var(--bg-card); border: 1px solid var(--border-active); border-radius: var(--radius-lg);
+  max-width: 500px; width: 100%; padding: 32px; position: relative; box-shadow: var(--shadow-card);
+}
+.modal-close {
+  position: absolute; right: 20px; top: 20px; font-size: 20px; color: var(--text-muted);
+  cursor: pointer; background: transparent;
+}
+
+@media (max-width: 900px) {
+  .pricing-grid { grid-template-columns: 1fr; }
+  .price-card.featured { transform: none; }
+  .guarantee-box { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body class="bg-ambient-grid">
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <span class="brand-badge">Trading Intelligence</span>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> 95% Accuracy Engine</a></li>
+      <li><a href="pricing.html" class="active"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Launch Live Terminal">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Launch Terminal</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> 95% Accuracy Engine</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary">🚀 Launch Live Terminal</a>
+    </div>
+  </div>
+</div>
+
+<main class="container">
+  <!-- Page Header -->
+  <section class="pricing-header">
+    <div class="tag-badge">Invest in Market Profitability</div>
+    <h1 class="p-main-title">Simple, Transparent Subscriptions</h1>
+    <p class="p-main-desc">
+      One profitable trade covers your entire subscription. Trade with institutional algorithms and eliminate costly emotional mistakes.
+    </p>
+
+    <!-- Toggle Switcher -->
+    <div class="billing-switcher">
+      <span class="switch-label active" id="lblM" onclick="setBillingMode(false)">Monthly Billing</span>
+      <div class="toggle-switch" id="bToggle" onclick="toggleBillingMode()">
+        <div class="toggle-knob"></div>
+      </div>
+      <span class="switch-label" id="lblA" onclick="setBillingMode(true)">Annual Billing</span>
+      <span class="discount-pill">🔥 2 Months Free (Save 25%)</span>
+    </div>
+  </section>
+
+  <!-- Pricing Cards -->
+  <section class="pricing-grid">
+    <!-- Free Starter -->
+    <div class="price-card">
+      <div class="tier-title">Free Starter</div>
+      <div class="tier-desc">Explore the FinGroww charting arena & basic technical tools.</div>
+      
+      <div class="price-row">
+        <span class="curr">₹</span>
+        <span class="amt mono">0</span>
+        <span class="per">/ forever</span>
+      </div>
+
+      <ul class="features-list">
+        <li><span class="check-icon">✔</span> Standard Trading Terminal</li>
+        <li><span class="check-icon">✔</span> Delayed NSE Market Quotes (15m)</li>
+        <li><span class="check-icon">✔</span> Standard Indicators (RSI, SMA)</li>
+        <li><span class="check-icon">✔</span> Offline Practice Simulator Mode</li>
+        <li class="dim"><span class="cross-icon">✕</span> 95% Accuracy Signal Alerts</li>
+        <li class="dim"><span class="cross-icon">✕</span> Real-time Options Scalping Radar</li>
+        <li class="dim"><span class="cross-icon">✕</span> WhatsApp VIP Instant Pushes</li>
+      </ul>
+
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-outline" style="width:100%">
+        Launch Free Terminal
+      </a>
+    </div>
+
+    <!-- Pro Trader (Featured) -->
+    <div class="price-card featured">
+      <div class="popular-badge">⭐ Recommended — 95% Win Accuracy</div>
+      <div class="tier-title">Pro Trader Algo</div>
+      <div class="tier-desc">Our flagship high-probability engine designed to make you consistently profitable.</div>
+      
+      <div class="price-row">
+        <span class="curr">₹</span>
+        <span class="amt mono" id="proAmt">1,499</span>
+        <span class="per" id="proPer">/ month</span>
+      </div>
+
+      <ul class="features-list">
+        <li><span class="check-icon">✔</span> <strong>95%+ High-Probability Trade Signals</strong></li>
+        <li><span class="check-icon">✔</span> <strong>Real-Time Live NSE & Yahoo Ticks</strong></li>
+        <li><span class="check-icon">✔</span> NIFTY & BANK NIFTY 0-DTE Radar</li>
+        <li><span class="check-icon">✔</span> Auto Stop Loss & Dynamic Target Calc</li>
+        <li><span class="check-icon">✔</span> Instant WhatsApp & Telegram VIP Pushes</li>
+        <li><span class="check-icon">✔</span> Triple Confluence Volume Delta Engine</li>
+        <li><span class="check-icon">✔</span> 7-Day Unconditional Money-Back Guarantee</li>
+      </ul>
+
+      <button type="button" class="btn btn-primary" style="width:100%" onclick="openCheckout('Pro Trader Algo', '₹1,499/mo')">
+        🚀 Unlock Pro Trader Signals
+      </button>
+    </div>
+
+    <!-- Elite Master -->
+    <div class="price-card">
+      <div class="tier-title">Elite Master</div>
+      <div class="tier-desc">For full-time quantitative traders seeking automated webhook execution.</div>
+      
+      <div class="price-row">
+        <span class="curr">₹</span>
+        <span class="amt mono" id="eliteAmt">3,999</span>
+        <span class="per" id="elitePer">/ month</span>
+      </div>
+
+      <ul class="features-list">
+        <li><span class="check-icon">✔</span> <strong>Everything in Pro Trader</strong></li>
+        <li><span class="check-icon">✔</span> <strong>Broker Webhook Bridge</strong> (Zerodha, AngelOne, Groww, Dhan)</li>
+        <li><span class="check-icon">✔</span> Options Greeks & Gamma Blast Scanner</li>
+        <li><span class="check-icon">✔</span> 1-on-1 Risk & Strategy Performance Review</li>
+        <li><span class="check-icon">✔</span> 24/7 Dedicated Quant Analyst Hotline</li>
+        <li><span class="check-icon">✔</span> Multi-Monitor Pro Workspace Presets</li>
+      </ul>
+
+      <button type="button" class="btn btn-outline" style="width:100%" onclick="openCheckout('Elite Master', '₹3,999/mo')">
+        Join Elite Master Club
+      </button>
+    </div>
+  </section>
+
+  <!-- 7-Day Money Back Guarantee -->
+  <section class="guarantee-box">
+    <div class="g-icon">🛡️</div>
+    <div class="g-text">
+      <h4>100% Risk-Free 7-Day Performance Promise</h4>
+      <p>
+        Try the Pro Trader Algo for a full week. Test the signals, watch the high-accuracy breakouts, and verify our precision. If you are not completely blown away by the clarity and profitability, just message support for an instant, no-questions-asked refund.
+      </p>
+    </div>
+  </section>
+
+  <!-- Feature Matrix Table -->
+  <section class="matrix-section">
+    <div style="text-align:center;margin-bottom:36px;">
+      <h2 style="font-size:2rem;font-weight:900;color:var(--text-main);">Detailed Feature Comparison</h2>
+      <p style="color:var(--text-muted);font-size:14px;">Everything you need to trade with algorithmic confidence.</p>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th>Platform Feature</th>
+            <th style="text-align:center;">Free Starter</th>
+            <th style="text-align:center;color:var(--accent-blue);">Pro Trader</th>
+            <th style="text-align:center;color:var(--accent-gold);">Elite Master</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-head">Signal Accuracy Model</td>
+            <td class="check">Basic Technicals</td>
+            <td class="check" style="color:var(--accent-green);font-weight:800;">95%+ Verified</td>
+            <td class="check" style="color:var(--accent-green);font-weight:800;">95%+ Quant Mode</td>
+          </tr>
+          <tr>
+            <td class="col-head">Market Data Latency</td>
+            <td class="check">15-Minute Delay</td>
+            <td class="check" style="color:var(--accent-green);font-weight:700;">Real-Time Tick</td>
+            <td class="check" style="color:var(--accent-green);font-weight:700;">Ultra-Low Latency</td>
+          </tr>
+          <tr>
+            <td class="col-head">Nifty & Bank Nifty Options</td>
+            <td class="check">✕</td>
+            <td class="check" style="color:var(--accent-green);">✔ Intraday & Scalp</td>
+            <td class="check" style="color:var(--accent-green);">✔ Intraday + 0-DTE Gamma</td>
+          </tr>
+          <tr>
+            <td class="col-head">WhatsApp & Telegram VIP Alerts</td>
+            <td class="check">✕</td>
+            <td class="check" style="color:var(--accent-green);">✔ Instant (&lt;120ms)</td>
+            <td class="check" style="color:var(--accent-green);">✔ Instant + Custom Voice</td>
+          </tr>
+          <tr>
+            <td class="col-head">Broker Webhook Auto-Execution</td>
+            <td class="check">✕</td>
+            <td class="check">✕</td>
+            <td class="check" style="color:var(--accent-green);">✔ Zerodha, Angel, Dhan</td>
+          </tr>
+          <tr>
+            <td class="col-head">Stop-Loss Auto Calculator</td>
+            <td class="check">Manual</td>
+            <td class="check" style="color:var(--accent-green);">✔ Automated</td>
+            <td class="check" style="color:var(--accent-green);">✔ Trailing Algo Engine</td>
+          </tr>
+          <tr>
+            <td class="col-head">1-on-1 Mentor Review</td>
+            <td class="check">✕</td>
+            <td class="check">✕</td>
+            <td class="check" style="color:var(--accent-green);">✔ Monthly Session</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<!-- Checkout Modal -->
+<div class="modal-overlay" id="checkoutModal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeCheckout()">✕</button>
+    <div style="font-size:11px;color:var(--accent-blue);font-weight:800;text-transform:uppercase;margin-bottom:6px;">Instant Activation</div>
+    <h3 style="font-size:1.4rem;font-weight:900;margin-bottom:8px;color:var(--text-main);" id="modalPlanName">Pro Trader Algo</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:20px;">Complete your WhatsApp details to receive payment link & instant signal desk credentials.</p>
+
+    <form onsubmit="handleModalSubmit(event)">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">YOUR NAME</label>
+        <input type="text" id="mName" required placeholder="e.g. Rahul Sharma" style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;color:var(--text-main);outline:none;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">WHATSAPP NUMBER</label>
+        <input type="tel" id="mPhone" required placeholder="+91 98765 43210" style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;color:var(--text-main);outline:none;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">EMAIL ADDRESS</label>
+        <input type="email" id="mEmail" required placeholder="trader@gmail.com" style="width:100%;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;color:var(--text-main);outline:none;">
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%">
+        💳 Proceed to Secure UPI / Razorpay Checkout →
+      </button>
+    </form>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="brand">
+          <div class="brand-icon">📈</div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <span class="brand-badge">Trading Intelligence</span>
+          </div>
+        </div>
+        <p style="margin-top:14px;font-size:13px;line-height:1.6;">Empowering Indian traders with algorithmic quantitative edge and strict risk preservation.</p>
+      </div>
+      <div class="footer-col">
+        <h5>Quick Links</h5>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="trades.html">Possible Trades</a></li>
+          <li><a href="accuracy.html">95% Accuracy Engine</a></li>
+          <li><a href="pricing.html">Subscriptions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Platform</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html">Live Terminal</a></li>
+          <li><a href="contact.html">Support Desk</a></li>
+          <li><a href="about.html">About FinGroww</a></li>
+          <li><a href="disclaimer.html">Compliance & SEBI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Connect</h5>
+        <ul>
+          <li><a href="https://wa.me/919876543210" target="_blank"><i class="fa-brands fa-whatsapp" style="margin-right:6px;color:#25d366;"></i>WhatsApp Desk</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="margin-right:6px;"></i>support@fingroww.com</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-shield-halved" style="margin-right:6px;color:var(--accent-green);"></i>7-Day Guarantee</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI & Regulatory Risk Disclaimer -->
+    <div style="margin-top:40px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI & Regulatory Risk Disclosure:</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created for analytical purposes. We do not provide guaranteed returns, portfolio management services (PMS), or SEBI-registered personal investment advisory.
+    </div>
+
+    <div style="border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
+      <div style="display:flex;gap:16px;">
+        <a href="https://wa.me/919876543210" target="_blank" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i></a>
+        <a href="mailto:support@fingroww.com" title="Email"><i class="fa-solid fa-envelope" style="font-size:16px;"></i></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp Quick Help Button -->
+<a href="https://wa.me/919876543210?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20your%2095%25%20Accuracy%20Trading%20Plans!" target="_blank" class="floating-whatsapp-btn" title="Chat on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="theme.js"></script>
+<script>
+// Initialize AOS Animations
+AOS.init({
+  duration: 700,
+  once: true,
+  easing: 'ease-out-cubic'
+});
+
+let isAnnual = false;
+function toggleBillingMode() { setBillingMode(!isAnnual); }
+function setBillingMode(annual) {
+  isAnnual = annual;
+  const toggle = document.getElementById('bToggle');
+  const lblM = document.getElementById('lblM');
+  const lblA = document.getElementById('lblA');
+  const proA = document.getElementById('proAmt');
+  const proP = document.getElementById('proPer');
+  const eliteA = document.getElementById('eliteAmt');
+  const eliteP = document.getElementById('elitePer');
+
+  if (isAnnual) {
+    toggle.classList.add('annual');
+    lblM.classList.remove('active');
+    lblA.classList.add('active');
+    proA.textContent = '11,999'; proP.textContent = '/ year (₹999/mo)';
+    eliteA.textContent = '29,999'; eliteP.textContent = '/ year (₹2,499/mo)';
+  } else {
+    toggle.classList.remove('annual');
+    lblM.classList.add('active');
+    lblA.classList.remove('active');
+    proA.textContent = '1,499'; proP.textContent = '/ month';
+    eliteA.textContent = '3,999'; eliteP.textContent = '/ month';
+  }
+}
+
+function openCheckout(plan, price) {
+  document.getElementById('modalPlanName').textContent = `${plan} — ${price}`;
+  document.getElementById('checkoutModal').classList.add('open');
+}
+function closeCheckout() {
+  document.getElementById('checkoutModal').classList.remove('open');
+}
+
+function handleModalSubmit(e) {
+  e.preventDefault();
+  const name = document.getElementById('mName').value;
+  const phone = document.getElementById('mPhone').value;
+  const plan = document.getElementById('modalPlanName').textContent;
+  
+  const text = encodeURIComponent(`Hi FinGroww! I want to activate ${plan}. My name is ${name} and phone is ${phone}. Please send payment QR code & signal desk credentials.`);
+  closeCheckout();
+  window.open(`https://wa.me/919876543210?text=${text}`, '_blank');
+}
+</script>
+
+</body>
+</html>
