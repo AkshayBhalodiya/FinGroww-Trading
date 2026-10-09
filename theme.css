@@ -51,6 +51,14 @@
   --glow-green: 0 0 35px rgba(16, 185, 129, 0.25);
   --shadow-card: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-floating: 0 30px 60px -15px rgba(0, 0, 0, 0.9);
+
+  --bg-hud: rgba(15, 23, 42, 0.65);
+  --bg-hud-border: rgba(255, 255, 255, 0.08);
+  --bg-banner-closed: rgba(245, 158, 11, 0.1);
+  --border-banner-closed: rgba(245, 158, 11, 0.3);
+  --text-banner-closed: #fef08a;
+  --bg-modal-overlay: rgba(3, 7, 18, 0.85);
+  --table-row-hover: rgba(56, 189, 248, 0.04);
   
   --bg-grid-dot: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   --bg-gradient-mesh: 
@@ -64,19 +72,19 @@
 [data-theme="light"] {
   --bg-base: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.92);
   --bg-card-hover: #ffffff;
   --bg-card-solid: #ffffff;
-  --bg-input: #f8fafc;
-  --header-bg: rgba(255, 255, 255, 0.86);
+  --bg-input: #f1f5f9;
+  --header-bg: rgba(255, 255, 255, 0.92);
 
-  --border-subtle: rgba(15, 23, 42, 0.07);
-  --border-card: rgba(15, 23, 42, 0.09);
-  --border-card-hover: rgba(2, 132, 199, 0.4);
+  --border-subtle: rgba(15, 23, 42, 0.09);
+  --border-card: rgba(15, 23, 42, 0.12);
+  --border-card-hover: rgba(2, 132, 199, 0.45);
   --border-active: #0284c7;
 
   --text-main: #0f172a;
-  --text-muted: #475569;
+  --text-muted: #334155;
   --text-dim: #64748b;
 
   --accent-blue: #0284c7;
@@ -94,8 +102,16 @@
 
   --glow-blue: 0 10px 30px rgba(2, 132, 199, 0.14);
   --glow-green: 0 10px 30px rgba(5, 150, 105, 0.14);
-  --shadow-card: 0 12px 30px -8px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03);
-  --shadow-floating: 0 25px 50px -12px rgba(15, 23, 42, 0.12);
+  --shadow-card: 0 12px 30px -8px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-floating: 0 25px 50px -12px rgba(15, 23, 42, 0.14);
+
+  --bg-hud: #f1f5f9;
+  --bg-hud-border: rgba(15, 23, 42, 0.1);
+  --bg-banner-closed: #fffbe6;
+  --border-banner-closed: #fde68a;
+  --text-banner-closed: #92400e;
+  --bg-modal-overlay: rgba(15, 23, 42, 0.65);
+  --table-row-hover: rgba(2, 132, 199, 0.05);
 
   --bg-grid-dot: radial-gradient(rgba(15, 23, 42, 0.08) 1px, transparent 1px);
   --bg-gradient-mesh: 
@@ -567,3 +583,79 @@ footer.site-footer {
   .footer-grid { grid-template-columns: 1fr; }
   .floating-whatsapp-btn { bottom: 20px; right: 20px; width: 48px; height: 48px; font-size: 22px; }
 }
+
+/* Light & Dark Mode Universal High-Contrast & Typography Fixes */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] .hero-title,
+[data-theme="light"] .sig-strike-title,
+[data-theme="light"] .op-symbol-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: var(--bg-input) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-card) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-dim) !important;
+}
+
+/* Form Controls & Select Dropdowns Theme Override */
+input, select, textarea {
+  color: var(--text-main);
+}
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+}
+
+/* Universal Rule Chip Styling */
+.rule-chip {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--bg-hud, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Light Mode Overrides for Hardcoded Dark Elements */
+[data-theme="light"] .greek-stat,
+[data-theme="light"] .ts-card,
+[data-theme="light"] .hud-item,
+[data-theme="light"] .price-hud-box {
+  background: var(--bg-hud, #f1f5f9) !important;
+  border-color: var(--border-card, rgba(15, 23, 42, 0.1)) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="light"] .chain-table-wrap,
+[data-theme="light"] table.chain-table {
+  background: var(--bg-surface) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="light"] table.chain-table th {
+  background: var(--bg-input) !important;
+  color: var(--text-muted) !important;
+}
+
+[data-theme="light"] table.chain-table td {
+  color: var(--text-main) !important;
+}
+
+[data-theme="light"] .strike-row-atm {
+  background: rgba(217, 119, 6, 0.12) !important;
+  border-color: var(--accent-gold) !important;
+}
+

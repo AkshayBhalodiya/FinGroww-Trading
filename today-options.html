@@ -1055,25 +1055,25 @@
     </div>
 
     <!-- Dynamic Market Closed Alert Banner -->
-    <div id="marketClosedAlertBanner" style="display:none; background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 14px; padding: 18px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div id="marketClosedAlertBanner" style="display:none; background: var(--bg-banner-closed); border: 1px solid var(--border-banner-closed); border-radius: 14px; padding: 18px 24px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
       <div style="display: flex; align-items: center; gap: 14px;">
-        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: #fbbf24; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); color: var(--accent-gold); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
           <i class="fa-solid fa-moon"></i>
         </div>
         <div>
-          <div style="font-size: 1rem; font-weight: 800; color: #f8fafc;">
+          <div style="font-size: 1rem; font-weight: 800; color: var(--text-main);">
             🌙 MARKET IS CLOSED — TODAY'S SESSION SETUP PERFORMANCE HISTORY
           </div>
-          <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
             Official <strong>Last Traded Closing Prices (LTP)</strong> are retained after 03:30 PM IST. Displaying today's final Fibonacci Golden Zone trade outcomes:
           </div>
         </div>
       </div>
       <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <button type="button" class="btn btn-primary btn-sm" onclick="openHistoryModal()" style="background: linear-gradient(135deg, #a855f7, #7c3aed); border: none;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="openHistoryModal()" style="background: linear-gradient(135deg, #a855f7, #7c3aed); border: none; color:#fff">
           <i class="fa-solid fa-list-check"></i> 📜 View Today's Setup History Log
         </button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="resetRadarForNextDay()" style="border-color: rgba(255,255,255,0.2); color: #f8fafc;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="resetRadarForNextDay()">
           <i class="fa-solid fa-arrows-rotate"></i> Reset for Next Day
         </button>
       </div>
@@ -1887,7 +1887,7 @@ function renderSetups() {
           </div>
 
           <!-- Lifecycle Execution Timestamps HUD -->
-          <div style="background:rgba(15,23,42,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:8px 12px; margin:10px 0; font-size:11px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center">
+          <div style="background:var(--bg-hud, rgba(15,23,42,0.6)); border:1px solid var(--border-subtle); border-radius:10px; padding:8px 12px; margin:10px 0; font-size:11px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; text-align:center">
             <div>
               <div style="font-size:10px; font-weight:800; color:var(--text-dim); text-transform:uppercase"><i class="fa-solid fa-clock" style="color:#fbbf24"></i> Formed</div>
               <div style="font-weight:800; color:var(--text-main); font-family:var(--font-mono); margin-top:2px">${setup.setupFormedTime || '09:35 AM'}</div>
