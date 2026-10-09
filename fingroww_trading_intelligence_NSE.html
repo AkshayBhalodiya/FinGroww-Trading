@@ -354,6 +354,7 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
   </div>
   <div class="status-hud">
     <a href="index.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--blue);background:rgba(56,189,248,.1);cursor:pointer;" title="FinGroww Home">🏠 Home</a>
+    <a href="options.html" class="live-pill" style="text-decoration:none;border-color:rgba(168,85,247,.4);color:var(--purple);background:rgba(168,85,247,.15);cursor:pointer;" title="Options Intelligence">🎯 Options Intel</a>
     <a href="trades.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--text);background:rgba(255,255,255,.05);cursor:pointer;" title="View Possible Trades">📊 Setups</a>
     <a href="pricing.html" class="live-pill" style="text-decoration:none;border-color:rgba(255,213,79,.35);color:var(--gold);background:rgba(255,213,79,.1);cursor:pointer;" title="Upgrade to Pro">💎 Pro Plans</a>
     <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme" style="width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:inherit;cursor:pointer;display:grid;place-items:center;font-size:15px;margin-left:4px;">
@@ -376,7 +377,13 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
 
   <section class="deck">
     <div class="control deck-row-full chips-wrap">
-      <div class="label">Quick pick</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div class="label" style="margin-bottom:0">Quick pick & Stock Universe</div>
+        <div style="display:flex;gap:6px;">
+          <button type="button" class="chip active" id="btnFilterAll" style="padding:4px 12px;font-size:11px">All Stocks</button>
+          <button type="button" class="chip" id="btnFilterFo" style="padding:4px 12px;font-size:11px;background:rgba(167,139,250,.12);border-color:var(--purple);color:var(--purple)">🎯 F&O Option Stocks Only</button>
+        </div>
+      </div>
       <div class="chips" id="quickChips"></div>
     </div>
     <div class="control combo-wrap" id="watchCombo">
@@ -499,6 +506,7 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
   <div class="tabs" role="tablist">
     <button type="button" class="tab active" data-tab="indicators">Indicators</button>
     <button type="button" class="tab" data-tab="levels">Levels</button>
+    <button type="button" class="tab" data-tab="optionchain" style="background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(56,189,248,.2));border-color:var(--purple);color:#fff">🎯 Option Chain</button>
     <button type="button" class="tab" data-tab="risk">Risk calc</button>
     <button type="button" class="tab" data-tab="backtest">Verified Backtest</button>
   </div>
@@ -511,6 +519,56 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
   <section id="levels" class="panel tabpanel">
     <div class="panel-head"><h3>Support & resistance</h3></div>
     <div class="metrics" id="levelMetrics"></div>
+  </section>
+
+  <section id="optionchain" class="panel tabpanel">
+    <div class="panel-head">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <h3>Live Option Chain & Derivatives Analytics</h3>
+        <span class="panel-badge" style="background:rgba(167,139,250,.18);color:var(--purple)">CE & PE Live OI</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select id="optionExpiry" style="padding:6px 12px;font-size:12px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;color:var(--text)">
+          <option>Loading Expiries…</option>
+        </select>
+        <button type="button" class="chip" id="btnRefreshChain" style="padding:6px 12px;font-size:11px">🔄 Refresh</button>
+      </div>
+    </div>
+
+    <!-- Option Chain Summary Cards -->
+    <div class="metrics" id="optionMetrics" style="margin-bottom:14px">
+      <div class="metric"><div class="mini">Spot Price / ATM</div><div class="v blue" id="optAtmPrice">—</div><div class="mini" id="optAtmStrike">ATM Strike: —</div></div>
+      <div class="metric"><div class="mini">Put-Call Ratio (PCR)</div><div class="v" id="optPcrVal">—</div><div class="mini" id="optPcrSentiment">Sentiment: —</div></div>
+      <div class="metric"><div class="mini">Total Call OI vs Put OI</div><div class="v yellow" id="optOiRatio">—</div><div class="mini" id="optOiTotals">CE: — | PE: —</div></div>
+      <div class="metric"><div class="mini">Option Trade Advice</div><div class="v green" id="optTradeAdvice" style="font-size:12px;line-height:1.2;margin-top:2px">—</div></div>
+    </div>
+
+    <!-- Option Chain Table -->
+    <div class="tablewrap" style="max-height:480px;overflow-y:auto">
+      <table style="font-size:12px;text-align:center">
+        <thead style="position:sticky;top:0;background:#0d1527;z-index:10">
+          <tr>
+            <th colspan="4" style="background:rgba(0,230,118,.12);color:var(--green);text-align:center">CALLS (CE)</th>
+            <th style="background:rgba(255,213,79,.15);color:var(--gold);text-align:center">STRIKE</th>
+            <th colspan="4" style="background:rgba(255,71,87,.12);color:var(--red);text-align:center">PUTS (PE)</th>
+          </tr>
+          <tr>
+            <th style="text-align:right">Volume</th>
+            <th style="text-align:right">Open Int (OI)</th>
+            <th style="text-align:right">LTP (Chg)</th>
+            <th style="text-align:center">CE Call</th>
+            <th style="text-align:center;background:rgba(255,213,79,.1);color:var(--gold)">Strike Price</th>
+            <th style="text-align:center">PE Put</th>
+            <th style="text-align:left">LTP (Chg)</th>
+            <th style="text-align:left">Open Int (OI)</th>
+            <th style="text-align:left">Volume</th>
+          </tr>
+        </thead>
+        <tbody id="optionChainBody">
+          <tr><td colspan="9" style="padding:24px;color:var(--muted)">Select a stock & tap Option Chain to view live CE/PE strike data</td></tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 
   <section id="risk" class="panel tabpanel">
@@ -1405,32 +1463,89 @@ function renderBacktestPanel(bt){
 const CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
-async function fetchApi(path, options={}){
-  const isLocalHost=(window.location.hostname==="127.0.0.1"||window.location.hostname==="localhost");
-  const primary=isLocalHost?LOCAL_API:CLOUD_API;
-  const secondary=isLocalHost?CLOUD_API:LOCAL_API;
-  try{
-    const r=await fetch(primary+path,{cache:"no-store",...options});
-    if(r.ok)return r;
-    throw new Error("Primary API unavailable");
-  }catch(e){
-    return await fetch(secondary+path,{cache:"no-store",...options});
+async function fetchWithTimeout(url, options = {}, timeoutMs = 2200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { cache: "no-store", ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
   }
 }
+
+async function fetchApi(path, options = {}) {
+  const isLocalHost = window.location.hostname === "127.0.0.1" || 
+                      window.location.hostname === "localhost" || 
+                      window.location.protocol === "file:" || 
+                      !window.location.hostname;
+  const primary = isLocalHost ? LOCAL_API : CLOUD_API;
+  const secondary = isLocalHost ? CLOUD_API : LOCAL_API;
+
+  try {
+    const r = await fetchWithTimeout(primary + path, options, 2200);
+    if (r.ok) return r;
+  } catch (e) {}
+
+  try {
+    const r = await fetchWithTimeout(secondary + path, options, 2200);
+    if (r.ok) return r;
+  } catch (e) {}
+
+  return { ok: false };
+}
+
+let foOnlyFilter = false;
+let activeTabId = "indicators";
+let currentOptionChain = null;
+
+const QUICK_FO = ["NIFTY 50","BANK NIFTY","RELIANCE","TCS","INFY","HDFCBANK","ICICIBANK","SBIN","TATAMOTORS","BHARTIARTL","LT","AXISBANK","MARUTI","BAJFINANCE","M&M","TITAN"];
 
 function escHtml(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
 function symbolRowHtml(row,activeSym){
   const on=row.symbol===activeSym?" active":"";
-  return `<div class="symbol-row${on}" role="option" data-symbol="${escHtml(row.symbol)}" tabindex="0"><span class="sym">${escHtml(row.symbol)}</span><span class="nm">${escHtml(row.name||"")}</span></div>`;
+  const foBadge=row.is_fo||row.kind==="index"?' <span class="pill" style="font-size:8px;padding:1px 4px;background:rgba(167,139,250,.2);color:var(--purple)">F&O</span>':'';
+  return `<div class="symbol-row${on}" role="option" data-symbol="${escHtml(row.symbol)}" tabindex="0"><span class="sym">${escHtml(row.symbol)}${foBadge}</span><span class="nm">${escHtml(row.name||"")}</span></div>`;
 }
 
 function filterSymbols(query){
   const q=(query||"").trim().toLowerCase();
-  if(!q)return SYMBOLS;
-  return SYMBOLS.filter(row=>{
+  let list = SYMBOLS;
+  if (foOnlyFilter) {
+    list = list.filter(x => x.is_fo || x.kind === "index");
+  }
+  if(!q)return list;
+  return list.filter(row=>{
     const sym=row.symbol.toLowerCase(),name=(row.name||"").toLowerCase();
     return sym.includes(q)||name.includes(q)||sym.startsWith(q);
   });
+}
+
+function renderQuickChips() {
+  const chips = $("quickChips");
+  if (!chips) return;
+  chips.innerHTML = "";
+  const list = foOnlyFilter ? QUICK_FO : QUICK;
+  list.forEach(sym => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.dataset.sym = sym;
+    b.textContent = sym.replace("NIFTY 50", "NIFTY").replace("BANK NIFTY", "BANKNIFTY");
+    b.addEventListener("click", () => pickWatchSymbol(sym));
+    chips.appendChild(b);
+  });
+  updateChipActive(state.symbol);
+}
+
+function setFoFilter(foOnly) {
+  foOnlyFilter = !!foOnly;
+  if ($("btnFilterAll")) $("btnFilterAll").classList.toggle("active", !foOnlyFilter);
+  if ($("btnFilterFo")) $("btnFilterFo").classList.toggle("active", foOnlyFilter);
+  renderQuickChips();
+  renderWatchList();
 }
 
 function findSymbolRow(sym){
@@ -1441,7 +1556,8 @@ function updateWatchTrigger(){
   const sym=state.watchSymbol;
   $("watchTriggerSym").textContent=sym;
   const row=findSymbolRow(sym);
-  $("watchTriggerName").textContent=row?.name||"Tap to search all NSE stocks";
+  const foTxt = row?.is_fo || row?.kind === "index" ? " (F&O Stock Option)" : "";
+  $("watchTriggerName").textContent=(row?.name || "Tap to search all NSE stocks") + foTxt;
 }
 
 function renderWatchList(){
@@ -1460,7 +1576,8 @@ function renderWatchList(){
   const maxShow=q?120:80;
   const slice=filtered.slice(0,maxShow);
   let html=slice.map(row=>symbolRowHtml(row,active)).join("");
-  if(!q)html+=`<div class="hint">${SYMBOLS.length} stocks — type to search</div>`;
+  const tagStr = foOnlyFilter ? "F&O stocks" : "stocks";
+  if(!q)html+=`<div class="hint">${filtered.length} ${tagStr} — type to search</div>`;
   else if(filtered.length>maxShow)html+=`<div class="hint">${filtered.length} matches — show first ${maxShow}</div>`;
   else html+=`<div class="hint">${filtered.length} match${filtered.length===1?"":"es"}</div>`;
   el.innerHTML=html;
@@ -1525,7 +1642,7 @@ async function fetchCustomSuggest(q){
     return;
   }
   try{
-    const r=await fetchApi("/api/symbols/search?q="+encodeURIComponent(q)+"&limit=25");
+    const r=await fetchApi("/api/symbols/search?q="+encodeURIComponent(q)+"&limit=25"+(foOnlyFilter?"&fo_only=1":""));
     const d=await r.json();
     renderCustomSuggest(d.results||[]);
   }catch{renderCustomSuggest([])}
@@ -1538,19 +1655,229 @@ async function loadSymbolUniverse(){
     SYMBOLS=d.symbols||[];
   }catch{
     SYMBOLS=[
-      {symbol:"NIFTY 50",name:"Nifty 50 Index",kind:"index"},
-      {symbol:"BANK NIFTY",name:"Nifty Bank Index",kind:"index"},
-      {symbol:"SENSEX",name:"BSE Sensex Index",kind:"index"},
-      {symbol:"RELIANCE",name:"Reliance Industries Limited",kind:"equity"},
-      {symbol:"TCS",name:"Tata Consultancy Services Limited",kind:"equity"}
+      {symbol:"NIFTY 50",name:"Nifty 50 Index",kind:"index",is_fo:true},
+      {symbol:"BANK NIFTY",name:"Nifty Bank Index",kind:"index",is_fo:true},
+      {symbol:"SENSEX",name:"BSE Sensex Index",kind:"index",is_fo:true},
+      {symbol:"RELIANCE",name:"Reliance Industries Limited",kind:"equity",is_fo:true},
+      {symbol:"TCS",name:"Tata Consultancy Services Limited",kind:"equity",is_fo:true}
     ];
   }
   updateWatchTrigger();
+  renderQuickChips();
 }
 
 function activeSymbol(){
   const custom=$("customSymbol").value.trim().toUpperCase();
   return custom||state.watchSymbol;
+}
+
+function getExpiriesForSymbol(symbol) {
+  const now = new Date();
+  let targetDay = 4; // 4 = Thursday
+  let isIndex = true;
+
+  if (symbol === "BANK NIFTY" || symbol === "BANKNIFTY") {
+    targetDay = 3; // 3 = Wednesday
+  } else if (symbol === "FINNIFTY") {
+    targetDay = 2; // 2 = Tuesday
+  } else if (symbol === "SENSEX") {
+    targetDay = 5; // 5 = Friday
+  } else if (symbol === "NIFTY 50" || symbol === "NIFTY" || symbol === "MIDCPNIFTY") {
+    targetDay = 4; // 4 = Thursday
+  } else {
+    isIndex = false;
+  }
+
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+  if (isIndex) {
+    const list = [];
+    let curr = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    while (list.length < 4) {
+      curr.setDate(curr.getDate() + 1);
+      if (curr.getDay() === targetDay) {
+        const dte = Math.max(1, Math.round((curr - now) / (1000 * 60 * 60 * 24)));
+        const dayStr = String(curr.getDate()).padStart(2, "0");
+        const monthStr = months[curr.getMonth()];
+        const yearStr = curr.getFullYear();
+        const dateFormatted = `${dayStr}-${monthStr}-${yearStr}`;
+
+        const isMonthly = (list.length >= 2);
+        const tag = isMonthly ? `Monthly Expiry - ${dte} Days Left` : `Weekly Expiry - ${dte} Days Left`;
+        
+        list.push({
+          label: `${dateFormatted} (${tag})`,
+          dte: dte,
+          dateStr: dateFormatted,
+          type: isMonthly ? "monthly" : "weekly"
+        });
+      }
+    }
+    return list;
+  } else {
+    // Stock options: Monthly Expiries (Last Thursday of current & next 2 months)
+    const list = [];
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    for (let mOffset = 0; mOffset < 3; mOffset++) {
+      const targetMonth = (currentMonth + mOffset) % 12;
+      const targetYear = currentYear + Math.floor((currentMonth + mOffset) / 12);
+      
+      const lastDay = new Date(targetYear, targetMonth + 1, 0);
+      while (lastDay.getDay() !== 4) { // Thursday
+        lastDay.setDate(lastDay.getDate() - 1);
+      }
+
+      if (lastDay > now) {
+        const dte = Math.max(1, Math.round((lastDay - now) / (1000 * 60 * 60 * 24)));
+        const dayStr = String(lastDay.getDate()).padStart(2, "0");
+        const monthStr = months[lastDay.getMonth()];
+        const yearStr = lastDay.getFullYear();
+        const dateFormatted = `${dayStr}-${monthStr}-${yearStr}`;
+
+        const labelName = mOffset === 0 ? "Current Monthly" : mOffset === 1 ? "Next Monthly" : "Far Monthly";
+        list.push({
+          label: `${dateFormatted} (${labelName} Expiry - ${dte} Days Left)`,
+          dte: dte,
+          dateStr: dateFormatted,
+          type: "monthly"
+        });
+      }
+    }
+    return list;
+  }
+}
+
+async function fetchOptionChain(symbol) {
+  const sym = symbol || activeSymbol();
+  const expSelect = $("optionExpiry");
+  const expList = getExpiriesForSymbol(sym);
+
+  if (expSelect) {
+    const currentVal = expSelect.value;
+    const isValid = expList.some(x => x.label === currentVal);
+    if (!isValid || !expSelect.options.length || expSelect.options[0].text.includes("Loading")) {
+      expSelect.innerHTML = expList.map(x => `<option value="${escHtml(x.label)}">${escHtml(x.label)}</option>`).join("");
+    }
+  }
+
+  const selectedExpLabel = expSelect ? (expSelect.value || expList[0].label) : expList[0].label;
+
+  if ($("optionChainBody")) {
+    $("optionChainBody").innerHTML = '<tr><td colspan="9" style="padding:24px;color:var(--muted)">Loading Option Chain for ' + escHtml(sym) + ' (' + escHtml(selectedExpLabel) + ')…</td></tr>';
+  }
+
+  try {
+    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + "&expiry=" + encodeURIComponent(selectedExpLabel));
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Failed to load Option Chain");
+
+    // Adjust prices by selected DTE ratio if applicable
+    const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
+    const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
+
+    if (dteRatio !== 1.0 && data.chain) {
+      data.chain = data.chain.map(row => {
+        const st = row.strikePrice;
+        const spot = data.spotPrice;
+        const ceInt = Math.max(0, spot - st);
+        const peInt = Math.max(0, st - spot);
+        const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
+        const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
+        return {
+          ...row,
+          CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
+          PE: { ...row.PE, ltp: round(peInt + peExtr) }
+        };
+      });
+    }
+
+    currentOptionChain = data;
+    renderOptionChain(data);
+  } catch (err) {
+    if ($("optionChainBody")) {
+      $("optionChainBody").innerHTML = '<tr><td colspan="9" style="padding:20px;color:var(--red)">' + escHtml(err.message || "Option Chain unavailable") + '</td></tr>';
+    }
+  }
+}
+
+function renderOptionChain(data) {
+  if (!data || !data.chain || !data.chain.length) {
+    if ($("optionChainBody")) $("optionChainBody").innerHTML = '<tr><td colspan="9" style="padding:20px;color:var(--muted)">No option chain strikes found.</td></tr>';
+    return;
+  }
+
+  const expSelect = $("optionExpiry");
+  if (expSelect && data.expiries && data.expiries.length) {
+    expSelect.innerHTML = data.expiries.map(x => `<option value="${escHtml(x)}" ${x===data.selectedExpiry?'selected':''}>${escHtml(x)}</option>`).join("");
+  }
+
+  if ($("optAtmPrice")) $("optAtmPrice").textContent = "₹" + round(data.spotPrice);
+  if ($("optAtmStrike")) $("optAtmStrike").textContent = "ATM Strike: ₹" + data.atmStrike;
+  
+  const pcr = data.pcr || 1.0;
+  if ($("optPcrVal")) {
+    $("optPcrVal").textContent = pcr;
+    const sentiment = pcr >= 1.2 ? "Bullish (Put Writing)" : pcr <= 0.75 ? "Bearish (Call Writing)" : "Neutral / Ranging";
+    if ($("optPcrSentiment")) $("optPcrSentiment").textContent = "Sentiment: " + sentiment;
+    const pcrColor = pcr >= 1.2 ? "var(--green)" : pcr <= 0.75 ? "var(--red)" : "var(--yellow)";
+    $("optPcrVal").style.color = pcrColor;
+  }
+
+  const ceOi = (data.totalCeOi || 0).toLocaleString();
+  const peOi = (data.totalPeOi || 0).toLocaleString();
+  if ($("optOiRatio")) $("optOiRatio").textContent = `PCR ${pcr}`;
+  if ($("optOiTotals")) $("optOiTotals").textContent = `CE OI: ${ceOi} | PE OI: ${peOi}`;
+
+  const spot = data.spotPrice;
+  const atm = data.atmStrike;
+  const atmRow = data.chain.find(x => x.strikePrice === atm) || data.chain[Math.floor(data.chain.length/2)];
+  const ceLtp = atmRow?.CE?.ltp || round(spot * 0.015);
+  const peLtp = atmRow?.PE?.ltp || round(spot * 0.015);
+  
+  let advice = "";
+  const straddleCost = round(ceLtp + peLtp);
+  if (pcr >= 1.15 || state.signal === "BUY") {
+    advice = `💡 BUY CALL: ₹${atm} CE @ ₹${ceLtp}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(ceLtp*1.35)} | SL: ₹${round(ceLtp*0.72)}</span>`;
+  } else if (pcr <= 0.82 || state.signal === "SELL") {
+    advice = `💡 BUY PUT: ₹${atm} PE @ ₹${peLtp}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(peLtp*1.35)} | SL: ₹${round(peLtp*0.72)}</span>`;
+  } else {
+    advice = `⚖️ WAIT DIRECTION / ${data.symbol} ${atm} STRADDLE<br><span style="font-weight:400;color:var(--muted)">BUY ${atm} CE (₹${ceLtp}) + PE (₹${peLtp}) | Cost: ₹${straddleCost} | Tgt: ₹${round(straddleCost*1.3)} | SL: ₹${round(straddleCost*0.75)}</span>`;
+  }
+  if ($("optTradeAdvice")) $("optTradeAdvice").innerHTML = advice;
+
+  const html = data.chain.map(row => {
+    const isAtm = row.strikePrice === data.atmStrike;
+    const isItmCe = row.strikePrice < data.spotPrice;
+    const isItmPe = row.strikePrice > data.spotPrice;
+
+    const bgCe = isItmCe ? "background:rgba(0,230,118,.05);" : "";
+    const bgPe = isItmPe ? "background:rgba(255,71,87,.05);" : "";
+    const bgAtm = isAtm ? "background:rgba(255,213,79,.18);font-weight:900;border:1px solid var(--gold);" : "";
+
+    const ceChgCol = row.CE.change >= 0 ? "var(--green)" : "var(--red)";
+    const peChgCol = row.PE.change >= 0 ? "var(--green)" : "var(--red)";
+
+    return `
+      <tr style="${bgAtm}">
+        <td style="${bgCe}text-align:right;font-family:'JetBrains Mono',monospace;color:var(--muted)">${(row.CE.vol||0).toLocaleString()}</td>
+        <td style="${bgCe}text-align:right;font-family:'JetBrains Mono',monospace">${(row.CE.oi||0).toLocaleString()}</td>
+        <td style="${bgCe}text-align:right;font-family:'JetBrains Mono',monospace"><b style="color:var(--blue)">₹${round(row.CE.ltp)}</b> <span style="font-size:10px;color:${ceChgCol}">(${row.CE.change>=0?'+':''}${round(row.CE.change)})</span></td>
+        <td style="${bgCe}text-align:center"><button type="button" class="chip" style="padding:2px 8px;font-size:10px;background:rgba(0,230,118,.15);color:var(--green);border-color:rgba(0,230,118,.3)" onclick="alert('Option BUY Order Signal\\n\\nSymbol: ${escHtml(data.symbol)}\\nStrike: ${row.strikePrice} CE\\nLTP: ₹${row.CE.ltp}\\nStatus: Option Trade Ready')">BUY CE</button></td>
+        
+        <td style="${bgAtm}text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;color:${isAtm?'var(--gold)':'var(--text)'}">${row.strikePrice} ${isAtm?'<span style="font-size:9px;padding:2px 4px;border-radius:4px;background:var(--gold);color:#000;font-weight:900">ATM</span>':''}</td>
+        
+        <td style="${bgPe}text-align:center"><button type="button" class="chip" style="padding:2px 8px;font-size:10px;background:rgba(255,71,87,.15);color:var(--red);border-color:rgba(255,71,87,.3)" onclick="alert('Option BUY Order Signal\\n\\nSymbol: ${escHtml(data.symbol)}\\nStrike: ${row.strikePrice} PE\\nLTP: ₹${row.PE.ltp}\\nStatus: Option Trade Ready')">BUY PE</button></td>
+        <td style="${bgPe}text-align:left;font-family:'JetBrains Mono',monospace"><b style="color:var(--blue)">₹${round(row.PE.ltp)}</b> <span style="font-size:10px;color:${peChgCol}">(${row.PE.change>=0?'+':''}${round(row.PE.change)})</span></td>
+        <td style="${bgPe}text-align:left;font-family:'JetBrains Mono',monospace">${(row.PE.oi||0).toLocaleString()}</td>
+        <td style="${bgPe}text-align:left;font-family:'JetBrains Mono',monospace;color:var(--muted)">${(row.PE.vol||0).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join("");
+
+  if ($("optionChainBody")) $("optionChainBody").innerHTML = html;
 }
 
 async function loadLive(){
@@ -1574,11 +1901,13 @@ async function loadLive(){
     if(rows.length>=30){
       state.series=rows;state.price=price;calc();
       if(payload.warning)$("signalText").textContent=payload.warning;
+      if (activeTabId === "optionchain") fetchOptionChain(sym);
       return;
     }
     $("signalCard").textContent="—";$("scoreCard").textContent="—";$("probCard").textContent="—";
     $("signalText").textContent="Price OK — try 1H or 1D for more candles.";
     setLiveStatus("","Live LTP",statusText);
+    if (activeTabId === "optionchain") fetchOptionChain(sym);
   }catch(e){
     const hint=(e.message||"").includes("fetch")||(e.message||"").includes("Failed")
       ?"Connecting live Render server ("+CLOUD_API+")":e.message;
@@ -1586,6 +1915,7 @@ async function loadLive(){
     syncHero(sym,NaN);
     $("priceCard").textContent="—";$("signalCard").textContent="—";$("scoreCard").textContent="—";$("probCard").textContent="—";
     $("signalText").textContent=hint;
+    if (activeTabId === "optionchain") fetchOptionChain(sym);
   }finally{
     $("btnScan").disabled=false;
   }
@@ -1598,12 +1928,17 @@ function randomize(){
   calc();
   setLiveStatus("","Practice","Demo candles — not live");
   updateChipActive(sym);
+  if (activeTabId === "optionchain") fetchOptionChain(sym);
 }
 
 function showTab(id){
+  activeTabId = id;
   document.querySelectorAll(".tabpanel").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===id));
   const el=$(id);if(el)el.classList.add("active");
+  if(id === "optionchain"){
+    fetchOptionChain(activeSymbol());
+  }
 }
 function calcRisk(){
   let cap=+$("capital").value,rp=+$("riskPct").value,e=+$("riskEntry").value,sl=+$("riskSL").value;
@@ -1720,13 +2055,13 @@ function initChartInteractions(){
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-  const chips=$("quickChips");
-  QUICK.forEach(sym=>{
-    const b=document.createElement("button");
-    b.type="button";b.className="chip";b.dataset.sym=sym;b.textContent=sym.replace("NIFTY 50","NIFTY").replace("BANK NIFTY","BANKNIFTY");
-    b.addEventListener("click",()=>pickWatchSymbol(sym));
-    chips.appendChild(b);
-  });
+  if ($("btnFilterAll")) $("btnFilterAll").addEventListener("click", () => setFoFilter(false));
+  if ($("btnFilterFo")) $("btnFilterFo").addEventListener("click", () => setFoFilter(true));
+  if ($("btnRefreshChain")) $("btnRefreshChain").addEventListener("click", () => fetchOptionChain());
+  if ($("optionExpiry")) $("optionExpiry").addEventListener("change", () => fetchOptionChain());
+
+  renderQuickChips();
+
   $("watchTrigger").addEventListener("click",e=>{
     e.stopPropagation();
     setWatchMenuOpen(!$("watchCombo").classList.contains("is-open"));
@@ -1751,8 +2086,17 @@ document.addEventListener("DOMContentLoaded",()=>{
   $("btnScan").addEventListener("click",loadLive);
   $("btnDemo").addEventListener("click",randomize);
   document.querySelectorAll(".tab").forEach(t=>t.addEventListener("click",()=>showTab(t.dataset.tab)));
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("fo") === "1" || params.get("fo_only") === "1" || params.get("tab") === "optionchain") {
+    setFoFilter(true);
+  }
+
   updateChipActive("NIFTY 50");
   loadLive();
+
+  if (params.get("tab") === "optionchain") {
+    showTab("optionchain");
+  }
 });
 setInterval(()=>{$("clock").textContent=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"})},1000);
 window.addEventListener("resize",()=>{

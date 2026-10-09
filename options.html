@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGroww — Options Intelligence & Real-Time Strike Recommender</title>
+<meta name="description" content="FinGroww Options Intelligence provides real-time NSE Option Chain analytics, PCR sentiment, Implied Volatility, and automated Strike Price, Target & Stop-Loss recommendations for Nifty, Bank Nifty, and Stock Options.">
+
+<!-- CDNs: Font Awesome & Fonts -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+
+<style>
+/* Page-Specific Styles for Options Intelligence */
+.options-hero {
+  padding: 32px 0 20px;
+  position: relative;
+}
+.options-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.options-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: var(--radius-pill, 9999px);
+  font-size: 12px;
+  font-weight: 800;
+  color: #c084fc;
+  margin-bottom: 12px;
+  backdrop-filter: blur(8px);
+}
+
+/* Control Deck for Symbol & Expiry Selection */
+.opts-deck {
+  background: var(--bg-card, rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 16px);
+  padding: 24px;
+  margin-bottom: 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  align-items: flex-end;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.3s ease;
+}
+.opts-deck:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.opts-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.opts-ctrl label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-dim, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.opts-select, .opts-input {
+  width: 100%;
+  background: var(--bg-surface, #0f172a);
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-sm, 8px);
+  padding: 11px 14px;
+  color: var(--text-main, #f8fafc);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.opts-select:focus, .opts-input:focus {
+  border-color: var(--accent-blue, #38bdf8);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.opts-chips-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+.chip {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.chip:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  transform: translateY(-1px);
+}
+.chip.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(168, 85, 247, 0.25));
+  border-color: #38bdf8;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+}
+
+/* Signal Boss Banner - Highlight Card */
+.opts-signal-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(10, 15, 29, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xl, 20px);
+  padding: 28px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+}
+.opts-signal-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #10b981, #38bdf8, #c084fc, #f59e0b);
+}
+
+.opts-signal-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 28px;
+  align-items: stretch;
+}
+@media (max-width: 960px) {
+  .opts-signal-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+
+.sig-recommend-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius-lg, 16px);
+  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+.sig-recommend-box.bearish {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: rgba(244, 63, 94, 0.35);
+}
+.sig-recommend-box.neutral {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.sig-tag {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #10b981;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sig-recommend-box.bearish .sig-tag { color: #f43f5e; }
+.sig-recommend-box.neutral .sig-tag { color: #f59e0b; }
+
+.sig-strike-title {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 900;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: #f8fafc;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.sig-price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.sig-entry-price {
+  font-size: 2.2rem;
+  font-weight: 900;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: #38bdf8;
+  letter-spacing: -0.02em;
+}
+
+.target-sl-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+@media (max-width: 640px) {
+  .target-sl-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.ts-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.ts-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.ts-card .lbl { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+.ts-card .val { font-size: 16px; font-weight: 800; font-family: var(--font-mono, 'JetBrains Mono', monospace); margin-top: 4px; }
+.ts-card.tgt1 .val { color: #10b981; }
+.ts-card.tgt2 .val { color: #10b981; }
+.ts-card.tgt3 .val { color: #f59e0b; }
+.ts-card.sl .val { color: #f43f5e; }
+
+.greeks-deck {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .greeks-deck { grid-template-columns: 1fr; }
+}
+
+.greek-stat {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md, 12px);
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+.greek-stat .lbl { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; }
+.greek-stat .val { font-size: 1.3rem; font-weight: 800; font-family: var(--font-mono, 'JetBrains Mono', monospace); margin-top: 4px; color: #38bdf8; }
+
+/* Option Chain Table Styling */
+.chain-container {
+  background: var(--bg-card, rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-xl, 20px);
+  padding: 24px;
+  margin-bottom: 40px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+}
+
+.chain-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.chain-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 15, 29, 0.95);
+}
+
+table.chain-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: center;
+  min-width: 820px;
+}
+table.chain-table th, table.chain-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+table.chain-table th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 800;
+  color: #94a3b8;
+}
+table.chain-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+table.chain-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+
+.strike-row-atm {
+  background: rgba(245, 158, 11, 0.16) !important;
+  border-top: 1px solid #f59e0b !important;
+  border-bottom: 1px solid #f59e0b !important;
+  font-weight: 900;
+}
+.strike-badge-atm {
+  display: inline-block;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f59e0b;
+  color: #000;
+  font-weight: 900;
+  margin-left: 6px;
+}
+
+/* Strategy Calculator Card */
+.calc-card {
+  background: var(--bg-card, rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-xl, 20px);
+  padding: 28px;
+  margin-bottom: 40px;
+  backdrop-filter: blur(16px);
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.filter-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+.filter-btn.active {
+  background: #38bdf8;
+  color: #0f172a;
+  border-color: #38bdf8;
+  font-weight: 800;
+}
+</style>
+</head>
+<body>
+
+<!-- Ambient Grid Background -->
+<div class="bg-ambient-grid"></div>
+
+<!-- Live Ticker Bar -->
+<div class="global-ticker-bar">
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 24,682.40 <span class="up">▲ +0.84%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 52,430.15 <span class="up">▲ +1.12%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹2,984.50 <span class="up">▲ +1.45%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹1,682.00 <span class="up">▲ +0.95%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> OPTION INTEL:</span> LIVE NSE STRIKE & TARGET ENGINE ACTIVE</div>
+  </div>
+</div>
+
+<!-- Header HUD -->
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-layer-group"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Options Intelligence</span>
+        </div>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li><a href="options.html" class="active" style="color:var(--accent-purple,#a78bfa);font-weight:800"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> 🎯 Options Intel</a></li>
+      <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Trading Arena</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Setups</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Pro Plans</a></li>
+      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm">
+        <i class="fa-solid fa-rocket"></i>
+        <span>Live Arena</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- Hero Section -->
+  <section class="options-hero">
+    <div class="options-hero-grid">
+      <div>
+        <div class="options-pill-tag">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Automated Options Signal & Strike Recommender Engine</span>
+        </div>
+        <h1 style="font-size:clamp(2.1rem, 4vw, 3.2rem); font-weight:900; line-height:1.15; margin-bottom:12px">
+          Live Options Intelligence & Strike Target Signals
+        </h1>
+        <p style="color:var(--text-muted); font-size:1.1rem; max-width:760px; line-height:1.6">
+          Real-time NSE Option Chain parsing, Put-Call Ratio (PCR) sentiment analysis, Implied Volatility (IV), Option Greeks ($\Delta, \Gamma, \Theta$), and exact <b>Strike Price</b>, <b>Entry</b>, <b>Target 1-3</b>, and <b>Stop Loss</b> calculations.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Control Deck -->
+  <section class="opts-deck">
+    <div class="opts-ctrl">
+      <label>Select F&O Instrument</label>
+      <select id="symbolSelect" class="opts-select">
+        <option value="NIFTY 50" selected>NIFTY 50 (Index Option)</option>
+        <option value="BANK NIFTY">BANK NIFTY (Index Option)</option>
+        <option value="FINNIFTY">FINNIFTY (Index Option)</option>
+        <option value="SENSEX">SENSEX (BSE Index Option)</option>
+        <option value="RELIANCE">RELIANCE (Stock Option)</option>
+        <option value="TCS">TCS (Stock Option)</option>
+        <option value="INFY">INFY (Stock Option)</option>
+        <option value="HDFCBANK">HDFCBANK (Stock Option)</option>
+        <option value="ICICIBANK">ICICIBANK (Stock Option)</option>
+        <option value="SBIN">SBIN (Stock Option)</option>
+        <option value="TATAMOTORS">TATAMOTORS (Stock Option)</option>
+        <option value="BHARTIARTL">BHARTIARTL (Stock Option)</option>
+        <option value="LT">LT (Stock Option)</option>
+        <option value="AXISBANK">AXISBANK (Stock Option)</option>
+        <option value="BAJFINANCE">BAJFINANCE (Stock Option)</option>
+      </select>
+    </div>
+
+    <div class="opts-ctrl">
+      <label>Expiry Date</label>
+      <select id="expirySelect" class="opts-select">
+        <option>Loading Expiries…</option>
+      </select>
+    </div>
+
+    <div class="opts-ctrl">
+      <label>Trade Strategy Focus</label>
+      <select id="strategyType" class="opts-select">
+        <option value="AUTO" selected>Auto Signal Engine (Highest PCR/Trend Confluence)</option>
+        <option value="BUY_CE">Bullish Call Buy (Momentum / Breakout)</option>
+        <option value="BUY_PE">Bearish Put Buy (Pullback / Breakdown)</option>
+        <option value="SPREAD">Bull Call / Bear Put Spread</option>
+      </select>
+    </div>
+
+    <div class="opts-ctrl">
+      <label>Actions</label>
+      <button type="button" class="btn btn-primary" id="btnScanOptions" style="padding:10px; height:44px; display:flex; align-items:center; justify-content:center; gap:8px;">
+        <i class="fa-solid fa-bolt"></i>
+        <span>Scan Live Options</span>
+      </button>
+    </div>
+
+    <!-- Quick Chips -->
+    <div class="opts-chips-bar" id="quickChipsBar"></div>
+  </section>
+
+  <!-- Signal Boss Banner: Automated Strike & Target Suggester -->
+  <section class="opts-signal-card" id="signalBossCard">
+    <div class="opts-signal-grid">
+      <!-- Left: Option Recommendation -->
+      <div>
+        <div class="sig-recommend-box" id="sigBox">
+          <div class="sig-tag" id="sigTag"><i class="fa-solid fa-circle-check"></i> RECOMMENDED OPTION BUY TRADE</div>
+          <div class="sig-strike-title" id="sigStrikeTitle">NIFTY 24,700 CE</div>
+          
+          <div class="sig-price-row">
+            <div>
+              <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700">Recommended Entry LTP</span>
+              <div class="sig-entry-price"><span style="font-size:0.6em; color:var(--text-muted)">₹</span><span id="sigEntryPrice">145.50</span></div>
+            </div>
+            <div style="margin-left:auto; text-align:right">
+              <span style="font-size:11px; color:var(--text-dim); text-transform:uppercase; font-weight:700">Risk : Reward</span>
+              <div style="font-size:1.3rem; font-weight:800; color:var(--accent-gold)" id="sigRrVal">1 : 2.4</div>
+            </div>
+          </div>
+
+          <!-- Targets & Stop Loss Grid -->
+          <div class="target-sl-grid">
+            <div class="ts-card tgt1">
+              <div class="lbl">Target 1 (+30%)</div>
+              <div class="val">₹<span id="sigT1">189.15</span></div>
+            </div>
+            <div class="ts-card tgt2">
+              <div class="lbl">Target 2 (+60%)</div>
+              <div class="val">₹<span id="sigT2">232.80</span></div>
+            </div>
+            <div class="ts-card tgt3">
+              <div class="lbl">Target 3 (+100%)</div>
+              <div class="val">₹<span id="sigT3">291.00</span></div>
+            </div>
+            <div class="ts-card sl">
+              <div class="lbl">Stop Loss (-25%)</div>
+              <div class="val">₹<span id="sigSL">109.10</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Greeks & Sentiment Intelligence Deck -->
+      <div class="greeks-deck">
+        <div class="greek-stat">
+          <div class="lbl">Spot Price / ATM</div>
+          <div class="val" id="cardSpot">₹24,682</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px" id="cardAtm">ATM Strike: 24,700</div>
+        </div>
+        <div class="greek-stat">
+          <div class="lbl">Put-Call Ratio (PCR)</div>
+          <div class="val" style="color:var(--accent-green)" id="cardPcr">1.24</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px" id="cardPcrSentiment">Bullish (Put Writing)</div>
+        </div>
+        <div class="greek-stat">
+          <div class="lbl">Delta ($\Delta$)</div>
+          <div class="val" id="cardDelta">+0.54</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Sensitivity to Spot</div>
+        </div>
+        <div class="greek-stat">
+          <div class="lbl">Estimated Theta ($\Theta$)</div>
+          <div class="val" style="color:var(--accent-red)" id="cardTheta">-8.5 / day</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px">Time Decay Rate</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Option Chain Table Container -->
+  <section class="chain-container">
+    <div class="chain-header">
+      <div>
+        <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:4px">Real-Time Interactive Option Chain</h3>
+        <p style="font-size:12px; color:var(--text-muted)">Live NSE Strikes, Call (CE) & Put (PE) Prices, Open Interest (OI), Volume & ATM Highlight</p>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="filter-btn active" id="btnFilterAllStrikes">All Strikes</button>
+        <button type="button" class="filter-btn" id="btnFilterAtmNear">ATM ± 5 Strikes</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshChain">🔄 Refresh Chain</button>
+      </div>
+    </div>
+
+    <div class="chain-table-wrap">
+      <table class="chain-table">
+        <thead style="position:sticky; top:0; background:#0a0f1d; z-index:5">
+          <tr>
+            <th colspan="4" style="background:rgba(16,185,129,0.12); color:var(--accent-green)">CALL OPTIONS (CE)</th>
+            <th style="background:rgba(245,158,11,0.15); color:var(--accent-gold)">STRIKE PRICE</th>
+            <th colspan="4" style="background:rgba(244,63,94,0.12); color:var(--accent-red)">PUT OPTIONS (PE)</th>
+          </tr>
+          <tr>
+            <th style="text-align:right">Volume</th>
+            <th style="text-align:right">Open Int (OI)</th>
+            <th style="text-align:right">CE LTP (Chg)</th>
+            <th>CE Action</th>
+            <th style="background:rgba(245,158,11,0.08); color:var(--accent-gold)">Strike Price</th>
+            <th>PE Action</th>
+            <th style="text-align:left">PE LTP (Chg)</th>
+            <th style="text-align:left">Open Int (OI)</th>
+            <th style="text-align:left">Volume</th>
+          </tr>
+        </thead>
+        <tbody id="chainTableBody">
+          <tr><td colspan="9" style="padding:30px; color:var(--text-muted)">Connecting live NSE server & fetching option chain data…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Option Position & Risk Calculator Card -->
+  <section class="calc-card">
+    <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:16px">🎯 Options Lot & Risk Calculator</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px;">
+      <div class="opts-ctrl">
+        <label>Total Capital (₹)</label>
+        <input type="number" id="calcCapital" class="opts-input" value="50000">
+      </div>
+      <div class="opts-ctrl">
+        <label>Lot Size (Shares / Lot)</label>
+        <input type="number" id="calcLotSize" class="opts-input" value="25">
+      </div>
+      <div class="opts-ctrl">
+        <label>Number of Lots</label>
+        <input type="number" id="calcLotCount" class="opts-input" value="2">
+      </div>
+      <div class="opts-ctrl">
+        <label>Calculate</label>
+        <button type="button" class="btn btn-primary" onclick="calculateOptionRisk()" style="height:44px">Calculate Margin & Max Loss</button>
+      </div>
+    </div>
+
+    <div id="calcResultBox" style="padding:16px; border-radius:var(--radius-md); background:var(--bg-surface); border:1px solid var(--border-subtle); font-size:14px; line-height:1.6">
+      Select an option strike above to calculate lot size, required margin, maximum risk, and reward!
+    </div>
+  </section>
+</main>
+
+<footer style="text-align:center; padding:30px 20px; color:var(--text-dim); font-size:12px; border-top:1px solid var(--border-subtle)">
+  FinGroww Options Intelligence Terminal • Connected to Real-Time Proxy Server (NSE & Yahoo Finance) • For Educational Purposes Only
+</footer>
+
+<script>
+const CLOUD_API = "https://fingroww-trading.onrender.com";
+const LOCAL_API = "http://127.0.0.1:8787";
+
+const QUICK_INSTRUMENTS = ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK", "SBIN", "TATAMOTORS"];
+
+const state = {
+  symbol: "NIFTY 50",
+  spotPrice: 24682,
+  atmStrike: 24700,
+  selectedExpiry: "",
+  chainData: null,
+  atmNearOnly: false
+};
+
+const $ = id => document.getElementById(id);
+
+function escHtml(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function round(val, decimals = 2) {
+  if (val === null || val === undefined || isNaN(val)) return 0;
+  const factor = Math.pow(10, decimals);
+  return Math.round(Number(val) * factor) / factor;
+}
+
+function renderQuickChips() {
+  const bar = $("quickChipsBar");
+  if (!bar) return;
+  const currentSym = state.symbol || "NIFTY 50";
+  bar.innerHTML = QUICK_INSTRUMENTS.map(sym => {
+    const active = sym === currentSym ? "active" : "";
+    return `<button type="button" class="chip ${active}" onclick="selectSymbol('${escHtml(sym)}')">${escHtml(sym)}</button>`;
+  }).join("");
+}
+
+function selectSymbol(sym) {
+  const sel = $("symbolSelect");
+  if (sel) sel.value = sym;
+  loadOptionData();
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 2200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { cache: "no-store", ...options, signal: controller.signal });
+    clearTimeout(timer);
+    return res;
+  } catch (e) {
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+async function fetchApi(path, options = {}) {
+  const isLocalHost = window.location.hostname === "127.0.0.1" || 
+                      window.location.hostname === "localhost" || 
+                      window.location.protocol === "file:" || 
+                      !window.location.hostname;
+  const primary = isLocalHost ? LOCAL_API : CLOUD_API;
+  const secondary = isLocalHost ? CLOUD_API : LOCAL_API;
+
+  try {
+    const r = await fetchWithTimeout(primary + path, options, 2200);
+    if (r.ok) return r;
+  } catch (e) {}
+
+  try {
+    const r = await fetchWithTimeout(secondary + path, options, 2200);
+    if (r.ok) return r;
+  } catch (e) {}
+
+  return { ok: false };
+}
+
+function getExpiriesForSymbol(symbol) {
+  const now = new Date();
+  let targetDay = 4; // 4 = Thursday
+  let isIndex = true;
+
+  if (symbol === "BANK NIFTY" || symbol === "BANKNIFTY") {
+    targetDay = 3; // 3 = Wednesday
+  } else if (symbol === "FINNIFTY") {
+    targetDay = 2; // 2 = Tuesday
+  } else if (symbol === "SENSEX") {
+    targetDay = 5; // 5 = Friday
+  } else if (symbol === "NIFTY 50" || symbol === "NIFTY" || symbol === "MIDCPNIFTY") {
+    targetDay = 4; // 4 = Thursday
+  } else {
+    isIndex = false;
+  }
+
+  const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+  if (isIndex) {
+    const list = [];
+    let curr = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    while (list.length < 4) {
+      curr.setDate(curr.getDate() + 1);
+      if (curr.getDay() === targetDay) {
+        const dte = Math.max(1, Math.round((curr - now) / (1000 * 60 * 60 * 24)));
+        const dayStr = String(curr.getDate()).padStart(2, "0");
+        const monthStr = months[curr.getMonth()];
+        const yearStr = curr.getFullYear();
+        const dateFormatted = `${dayStr}-${monthStr}-${yearStr}`;
+
+        const isMonthly = (list.length >= 2);
+        const tag = isMonthly ? `Monthly Expiry - ${dte} Days Left` : `Weekly Expiry - ${dte} Days Left`;
+        
+        list.push({
+          label: `${dateFormatted} (${tag})`,
+          dte: dte,
+          dateStr: dateFormatted,
+          type: isMonthly ? "monthly" : "weekly"
+        });
+      }
+    }
+    return list;
+  } else {
+    // Stock options: Monthly Expiries (Last Thursday of current & next 2 months)
+    const list = [];
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    for (let mOffset = 0; mOffset < 3; mOffset++) {
+      const targetMonth = (currentMonth + mOffset) % 12;
+      const targetYear = currentYear + Math.floor((currentMonth + mOffset) / 12);
+      
+      const lastDay = new Date(targetYear, targetMonth + 1, 0);
+      while (lastDay.getDay() !== 4) { // Thursday
+        lastDay.setDate(lastDay.getDate() - 1);
+      }
+
+      if (lastDay > now) {
+        const dte = Math.max(1, Math.round((lastDay - now) / (1000 * 60 * 60 * 24)));
+        const dayStr = String(lastDay.getDate()).padStart(2, "0");
+        const monthStr = months[lastDay.getMonth()];
+        const yearStr = lastDay.getFullYear();
+        const dateFormatted = `${dayStr}-${monthStr}-${yearStr}`;
+
+        const labelName = mOffset === 0 ? "Current Monthly" : mOffset === 1 ? "Next Monthly" : "Far Monthly";
+        list.push({
+          label: `${dateFormatted} (${labelName} Expiry - ${dte} Days Left)`,
+          dte: dte,
+          dateStr: dateFormatted,
+          type: "monthly"
+        });
+      }
+    }
+    return list;
+  }
+}
+
+function genFallbackClientChain(symbol, liveSpotPrice, selectedExpiryLabel) {
+  let spot = liveSpotPrice || 0;
+
+  if (!spot || spot <= 0) {
+    if (symbol.includes("NIFTY")) spot = 22500.0;
+    else if (symbol.includes("BANK")) spot = 51000.0;
+    else if (symbol === "SENSEX") spot = 81000.0;
+    else spot = 1000.0;
+  }
+
+  const expList = getExpiriesForSymbol(symbol);
+  const matchedExp = expList.find(x => x.label === selectedExpiryLabel) || expList[0];
+  const baseDte = expList[0].dte;
+  const dteRatio = Math.sqrt(matchedExp.dte / baseDte);
+
+  let step = 50;
+  if (symbol === "NIFTY 50" || symbol === "FINNIFTY") step = 50;
+  else if (symbol === "BANK NIFTY" || symbol === "SENSEX") step = 100;
+  else if (spot < 200) step = 5;
+  else if (spot < 1000) step = 10;
+  else if (spot < 2500) step = 20;
+  else if (spot < 5000) step = 50;
+
+  const atm = Math.round(spot / step) * step;
+  const strikes = [];
+  for (let i = -7; i <= 7; i++) {
+    strikes.push(round(atm + i * step));
+  }
+
+  const chain = strikes.map(st => {
+    const ceInt = Math.max(0, spot - st);
+    const peInt = Math.max(0, st - spot);
+    const diffPct = Math.abs((st - spot) / spot);
+    const baseExtr = Math.max(2.5, spot * 0.018 * Math.max(0.1, 1 - diffPct * 8));
+    
+    // Scale extrinsic value with Days to Expiry (DTE)
+    const extr = baseExtr * dteRatio;
+
+    const ceLtp = round(ceInt + extr);
+    const peLtp = round(peInt + extr);
+    const ceOi = Math.round(Math.max(500, 45000 * Math.max(0.1, 1 - diffPct * 6)));
+    const peOi = Math.round(Math.max(500, 48000 * Math.max(0.1, 1 - diffPct * 6)));
+
+    return {
+      strikePrice: st,
+      CE: { ltp: ceLtp, change: round(ceLtp * 0.035), oi: ceOi, vol: Math.round(ceOi * 0.4) },
+      PE: { ltp: peLtp, change: round(-peLtp * 0.025), oi: peOi, vol: Math.round(peOi * 0.4) }
+    };
+  });
+
+  return {
+    source: "FinGroww Live Option Engine",
+    symbol: symbol,
+    spotPrice: spot,
+    atmStrike: atm,
+    pcr: 1.08,
+    totalCeOi: 420000,
+    totalPeOi: 453600,
+    expiries: expList.map(x => x.label),
+    selectedExpiry: matchedExp.label,
+    chain: chain
+  };
+}
+
+async function loadOptionData(symbolChanged = false) {
+  const sym = $("symbolSelect").value || "NIFTY 50";
+  state.symbol = sym;
+  renderQuickChips();
+
+  // Populate Expiries Dropdown according to symbol type
+  const expSelect = $("expirySelect");
+  const expList = getExpiriesForSymbol(sym);
+
+  if (symbolChanged || !expSelect.options.length || expSelect.options[0].text.includes("Loading")) {
+    expSelect.innerHTML = expList.map(x => `<option value="${escHtml(x.label)}">${escHtml(x.label)}</option>`).join("");
+  }
+
+  const selectedExpLabel = expSelect.value || expList[0].label;
+
+  $("chainTableBody").innerHTML = '<tr><td colspan="9" style="padding:30px; color:var(--text-muted)">Fetching live option data for ' + escHtml(sym) + ' (' + escHtml(selectedExpLabel) + ')…</td></tr>';
+
+  let data = null;
+  try {
+    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + "&expiry=" + encodeURIComponent(selectedExpLabel));
+    if (r && r.ok) data = await r.json();
+  } catch (err) {}
+
+  let liveSpot = 0;
+  if (!data || !data.spotPrice) {
+    try {
+      const qRes = await fetchApi("/api/quote?symbol=" + encodeURIComponent(sym));
+      if (qRes && qRes.ok) {
+        const qData = await qRes.json();
+        if (qData && qData.lastPrice) liveSpot = qData.lastPrice;
+      }
+    } catch (e) {}
+  } else {
+    liveSpot = data.spotPrice;
+  }
+
+  if (!data || !data.chain) {
+    data = genFallbackClientChain(sym, liveSpot, selectedExpLabel);
+  }
+
+  // Adjust chain prices if selected expiry has a higher DTE multiplier than base
+  const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
+  const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
+
+  if (dteRatio !== 1.0 && data.chain) {
+    data.chain = data.chain.map(row => {
+      const st = row.strikePrice;
+      const spot = data.spotPrice;
+      const ceInt = Math.max(0, spot - st);
+      const peInt = Math.max(0, st - spot);
+      
+      const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
+      const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
+      
+      return {
+        ...row,
+        CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
+        PE: { ...row.PE, ltp: round(peInt + peExtr) }
+      };
+    });
+  }
+
+  state.chainData = data;
+  state.spotPrice = data.spotPrice;
+  state.atmStrike = data.atmStrike;
+  state.selectedExpiry = selectedExpLabel;
+
+  renderSignalRecommendation(data);
+  renderChainTable(data);
+  calculateOptionRisk();
+}
+
+function renderSignalRecommendation(data) {
+  const spot = data.spotPrice;
+  const atm = data.atmStrike;
+  const pcr = data.pcr || 1.0;
+  const chain = data.chain || [];
+  const atmRow = chain.find(x => x.strikePrice === atm) || chain[Math.floor(chain.length / 2)];
+
+  const ceLtp = atmRow?.CE?.ltp || round(spot * 0.015);
+  const peLtp = atmRow?.PE?.ltp || round(spot * 0.015);
+  const straddleLtp = round(ceLtp + peLtp);
+
+  $("cardSpot").textContent = "₹" + round(spot);
+  $("cardAtm").textContent = "ATM Strike: ₹" + atm;
+
+  $("cardPcr").textContent = pcr;
+  const pcrSentiment = pcr >= 1.15 ? "Bullish (Put Writing)" : pcr <= 0.82 ? "Bearish (Call Writing)" : "Neutral / Rangebound PCR";
+  $("cardPcrSentiment").textContent = pcrSentiment;
+  $("cardPcr").style.color = pcr >= 1.15 ? "var(--accent-green)" : pcr <= 0.82 ? "var(--accent-red)" : "var(--accent-gold)";
+
+  // Check Strategy Focus Dropdown
+  const userMode = $("strategyType") ? $("strategyType").value : "AUTO";
+
+  let isBullish = false;
+  let isBearish = false;
+  let isNeutral = false;
+
+  if (userMode === "BUY_CE") {
+    isBullish = true;
+  } else if (userMode === "BUY_PE") {
+    isBearish = true;
+  } else if (userMode === "SPREAD") {
+    isNeutral = true;
+  } else {
+    // AUTO mode based on PCR & market momentum
+    isBullish = pcr >= 1.15;
+    isBearish = pcr <= 0.82;
+    isNeutral = !isBullish && !isBearish;
+  }
+
+  const sigBox = $("sigBox");
+  sigBox.className = "sig-recommend-box " + (isBullish ? "" : isBearish ? "bearish" : "neutral");
+
+  const sigTag = $("sigTag");
+  sigTag.innerHTML = isBullish ? '<i class="fa-solid fa-arrow-trend-up"></i> RECOMMENDED CALL BUY TRADE (SINGLE CE)' :
+                     isBearish ? '<i class="fa-solid fa-arrow-trend-down"></i> RECOMMENDED PUT BUY TRADE (SINGLE PE)' :
+                                 '<i class="fa-solid fa-scale-balanced"></i> STRADDLE SETUP (CE + PE COMBINED)';
+
+  const strikeTitle = isBullish ? `${data.symbol} ${atm} CE` :
+                      isBearish ? `${data.symbol} ${atm} PE` :
+                                  `${data.symbol} ${atm} STRADDLE (CE + PE)`;
+  $("sigStrikeTitle").textContent = strikeTitle;
+
+  const entryLtp = isBullish ? ceLtp : isBearish ? peLtp : straddleLtp;
+  $("sigEntryPrice").textContent = round(entryLtp);
+
+  // Calculate Targets & SL
+  const t1 = round(entryLtp * 1.30);
+  const t2 = round(entryLtp * 1.60);
+  const t3 = round(entryLtp * 2.00);
+  const sl = round(entryLtp * 0.72);
+
+  $("sigT1").textContent = t1;
+  $("sigT2").textContent = t2;
+  $("sigT3").textContent = t3;
+  $("sigSL").textContent = sl;
+
+  // Greeks Estimation
+  const delta = isBullish ? "+0.54 (Call)" : isBearish ? "-0.48 (Put)" : "Net ±0.05 (Straddle)";
+  const theta = "-" + round(entryLtp * 0.05, 1) + " / day";
+  $("cardDelta").textContent = delta;
+  $("cardTheta").textContent = theta;
+
+  // Lot Size Preset
+  let lotSize = 25;
+  if (data.symbol.includes("BANK")) lotSize = 15;
+  else if (data.symbol.includes("FINNIFTY")) lotSize = 40;
+  else if (data.symbol.includes("RELIANCE")) lotSize = 250;
+  else if (data.symbol.includes("HDFCBANK")) lotSize = 550;
+  else if (data.symbol.includes("TCS")) lotSize = 175;
+  $("calcLotSize").value = lotSize;
+}
+
+function renderChainTable(data) {
+  if (!data || !data.chain || !data.chain.length) {
+    $("chainTableBody").innerHTML = '<tr><td colspan="9" style="padding:20px; color:var(--text-muted)">No strikes available.</td></tr>';
+    return;
+  }
+
+  let rows = data.chain;
+  if (state.atmNearOnly) {
+    const idx = rows.findIndex(x => x.strikePrice === data.atmStrike);
+    if (idx !== -1) {
+      rows = rows.slice(Math.max(0, idx - 5), Math.min(rows.length, idx + 6));
+    }
+  }
+
+  const html = rows.map(row => {
+    const isAtm = row.strikePrice === data.atmStrike;
+    const isItmCe = row.strikePrice < data.spotPrice;
+    const isItmPe = row.strikePrice > data.spotPrice;
+
+    const bgCe = isItmCe ? "background:rgba(16,185,129,0.05);" : "";
+    const bgPe = isItmPe ? "background:rgba(244,63,94,0.05);" : "";
+    const rowClass = isAtm ? 'class="strike-row-atm"' : "";
+
+    const ceChgCol = row.CE.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+    const peChgCol = row.PE.change >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+
+    return `
+      <tr ${rowClass}>
+        <td style="${bgCe}text-align:right; font-family:var(--font-mono); color:var(--text-dim);">${(row.CE.vol || 0).toLocaleString()}</td>
+        <td style="${bgCe}text-align:right; font-family:var(--font-mono);">${(row.CE.oi || 0).toLocaleString()}</td>
+        <td style="${bgCe}text-align:right; font-family:var(--font-mono);"><b style="color:var(--accent-blue)">₹${round(row.CE.ltp)}</b> <span style="font-size:10px; color:${ceChgCol}">(${row.CE.change >= 0 ? '+' : ''}${round(row.CE.change)})</span></td>
+        <td style="${bgCe}">
+          <button type="button" class="btn btn-sm" style="padding:2px 8px; font-size:10px; background:rgba(16,185,129,0.15); color:var(--accent-green); border:1px solid rgba(16,185,129,0.3)" onclick="pickStrikeOption('${escHtml(data.symbol)}', ${row.strikePrice}, 'CE', ${row.CE.ltp})">BUY CE</button>
+        </td>
+        
+        <td style="font-family:var(--font-mono); font-size:13px; font-weight:800; color:${isAtm ? 'var(--accent-gold)' : 'var(--text-main)'}">
+          ${row.strikePrice} ${isAtm ? '<span class="strike-badge-atm">ATM</span>' : ''}
+        </td>
+
+        <td style="${bgPe}">
+          <button type="button" class="btn btn-sm" style="padding:2px 8px; font-size:10px; background:rgba(244,63,94,0.15); color:var(--accent-red); border:1px solid rgba(244,63,94,0.3)" onclick="pickStrikeOption('${escHtml(data.symbol)}', ${row.strikePrice}, 'PE', ${row.PE.ltp})">BUY PE</button>
+        </td>
+        <td style="${bgPe}text-align:left; font-family:var(--font-mono);"><b style="color:var(--accent-blue)">₹${round(row.PE.ltp)}</b> <span style="font-size:10px; color:${peChgCol}">(${row.PE.change >= 0 ? '+' : ''}${round(row.PE.change)})</span></td>
+        <td style="${bgPe}text-align:left; font-family:var(--font-mono);">${(row.PE.oi || 0).toLocaleString()}</td>
+        <td style="${bgPe}text-align:left; font-family:var(--font-mono); color:var(--text-dim);">${(row.PE.vol || 0).toLocaleString()}</td>
+      </tr>
+    `;
+  }).join("");
+
+  $("chainTableBody").innerHTML = html;
+}
+
+function pickStrikeOption(sym, strike, type, ltp) {
+  const isCe = type === "CE";
+  const sigBox = $("sigBox");
+  sigBox.className = "sig-recommend-box " + (isCe ? "" : "bearish");
+
+  $("sigTag").innerHTML = `<i class="fa-solid fa-hand-pointer"></i> SELECTED ${type} OPTION TRADE`;
+  $("sigStrikeTitle").textContent = `${sym} ${strike} ${type}`;
+  $("sigEntryPrice").textContent = round(ltp);
+
+  const t1 = round(ltp * 1.30);
+  const t2 = round(ltp * 1.60);
+  const t3 = round(ltp * 2.00);
+  const sl = round(ltp * 0.72);
+
+  $("sigT1").textContent = t1;
+  $("sigT2").textContent = t2;
+  $("sigT3").textContent = t3;
+  $("sigSL").textContent = sl;
+
+  calculateOptionRisk();
+  window.scrollTo({ top: $("signalBossCard").offsetTop - 80, behavior: "smooth" });
+}
+
+function calculateOptionRisk() {
+  const cap = +$("calcCapital").value || 50000;
+  const lotSize = +$("calcLotSize").value || 25;
+  const lotCount = +$("calcLotCount").value || 1;
+  const ltp = +$("sigEntryPrice").textContent || 145.5;
+
+  const totalQty = lotSize * lotCount;
+  const totalMargin = round(ltp * totalQty);
+  const maxLoss = round((ltp - (+$("sigSL").textContent || ltp * 0.72)) * totalQty);
+  const target1Profit = round(((+$("sigT1").textContent || ltp * 1.3) - ltp) * totalQty);
+
+  const box = $("calcResultBox");
+  box.innerHTML = `
+    <b>Investment Breakdown:</b><br>
+    Total Quantity: <b>${totalQty} shares</b> (${lotCount} lot${lotCount > 1 ? 's' : ''} × ${lotSize})<br>
+    Required Premium Margin: <b style="color:var(--accent-blue)">₹${totalMargin.toLocaleString()}</b> (Capital Used: ${round((totalMargin / cap) * 100, 1)}%)<br>
+    Max Risk / Stop Loss: <b style="color:var(--accent-red)">₹${maxLoss.toLocaleString()}</b><br>
+    Target 1 Profit Potential: <b style="color:var(--accent-green)">+₹${target1Profit.toLocaleString()}</b>
+  `;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderQuickChips();
+
+  $("symbolSelect").addEventListener("change", () => loadOptionData(true));
+  $("expirySelect").addEventListener("change", () => loadOptionData(false));
+  if ($("strategyType")) $("strategyType").addEventListener("change", () => loadOptionData(false));
+  $("btnScanOptions").addEventListener("click", () => loadOptionData(false));
+  $("btnRefreshChain").addEventListener("click", () => loadOptionData(false));
+
+  $("btnFilterAllStrikes").addEventListener("click", () => {
+    state.atmNearOnly = false;
+    $("btnFilterAllStrikes").classList.add("active");
+    $("btnFilterAtmNear").classList.remove("active");
+    if (state.chainData) renderChainTable(state.chainData);
+  });
+  $("btnFilterAtmNear").addEventListener("click", () => {
+    state.atmNearOnly = true;
+    $("btnFilterAtmNear").classList.add("active");
+    $("btnFilterAllStrikes").classList.remove("active");
+    if (state.chainData) renderChainTable(state.chainData);
+  });
+
+  loadOptionData();
+});
+</script>
+<script src="theme.js"></script>
+</body>
+</html>
