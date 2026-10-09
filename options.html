@@ -360,6 +360,85 @@ table.chain-table tbody tr:hover {
   border-color: #38bdf8;
   font-weight: 800;
 }
+
+.symbol-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.symbol-search-box input {
+  padding-right: 36px;
+  font-weight: 800;
+  color: #38bdf8;
+}
+.symbol-dropdown-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 6px;
+  font-size: 12px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.symbol-dropdown-btn:hover {
+  color: #38bdf8;
+}
+.symbol-suggest-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 120;
+  margin-top: 6px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+.symbol-suggest-item {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s ease;
+}
+.symbol-suggest-item:last-child {
+  border-bottom: none;
+}
+.symbol-suggest-item:hover, .symbol-suggest-item.active {
+  background: rgba(56, 189, 248, 0.15);
+}
+.symbol-suggest-item .sym-name {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-weight: 800;
+  color: #f8fafc;
+  font-size: 13px;
+}
+.symbol-suggest-item .sym-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.symbol-suggest-item .sym-badge.index {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+.symbol-suggest-item .sym-badge.stock {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
 </style>
 </head>
 <body>
@@ -435,25 +514,14 @@ table.chain-table tbody tr:hover {
 
   <!-- Control Deck -->
   <section class="opts-deck">
-    <div class="opts-ctrl">
-      <label>Select F&O Instrument</label>
-      <select id="symbolSelect" class="opts-select">
-        <option value="NIFTY 50" selected>NIFTY 50 (Index Option)</option>
-        <option value="BANK NIFTY">BANK NIFTY (Index Option)</option>
-        <option value="FINNIFTY">FINNIFTY (Index Option)</option>
-        <option value="SENSEX">SENSEX (BSE Index Option)</option>
-        <option value="RELIANCE">RELIANCE (Stock Option)</option>
-        <option value="TCS">TCS (Stock Option)</option>
-        <option value="INFY">INFY (Stock Option)</option>
-        <option value="HDFCBANK">HDFCBANK (Stock Option)</option>
-        <option value="ICICIBANK">ICICIBANK (Stock Option)</option>
-        <option value="SBIN">SBIN (Stock Option)</option>
-        <option value="TATAMOTORS">TATAMOTORS (Stock Option)</option>
-        <option value="BHARTIARTL">BHARTIARTL (Stock Option)</option>
-        <option value="LT">LT (Stock Option)</option>
-        <option value="AXISBANK">AXISBANK (Stock Option)</option>
-        <option value="BAJFINANCE">BAJFINANCE (Stock Option)</option>
-      </select>
+    <div class="opts-ctrl" style="position:relative;">
+      <label><i class="fa-solid fa-magnifying-glass" style="color:var(--accent-blue)"></i> Type or Search F&O Instrument</label>
+      <div class="symbol-search-box">
+        <input type="text" id="symbolInput" class="opts-input" placeholder="Type stock or index (e.g. NIFTY, HDFCBANK, RELIANCE, SBIN)..." value="NIFTY 50" autocomplete="off">
+        <button type="button" class="symbol-dropdown-btn" id="btnToggleSymbolMenu" title="Show F&O List"><i class="fa-solid fa-chevron-down"></i></button>
+      </div>
+      <!-- Autocomplete Dropdown List -->
+      <div class="symbol-suggest-menu" id="symbolSuggestMenu"></div>
     </div>
 
     <div class="opts-ctrl">
@@ -846,9 +914,134 @@ function genFallbackClientChain(symbol, liveSpotPrice, selectedExpiryLabel) {
   };
 }
 
-async function loadOptionData(symbolChanged = false) {
-  const sym = $("symbolSelect").value || "NIFTY 50";
+const ALL_FO_SYMBOLS = [
+  { symbol: "NIFTY 50", name: "Nifty 50 Index", kind: "index" },
+  { symbol: "BANK NIFTY", name: "Nifty Bank Index", kind: "index" },
+  { symbol: "FINNIFTY", name: "Nifty Financial Services", kind: "index" },
+  { symbol: "SENSEX", name: "BSE Sensex Index", kind: "index" },
+  { symbol: "MIDCPNIFTY", name: "Nifty Midcap Select", kind: "index" },
+  { symbol: "RELIANCE", name: "Reliance Industries Ltd", kind: "stock" },
+  { symbol: "TCS", name: "Tata Consultancy Services Ltd", kind: "stock" },
+  { symbol: "INFY", name: "Infosys Ltd", kind: "stock" },
+  { symbol: "HDFCBANK", name: "HDFC Bank Ltd", kind: "stock" },
+  { symbol: "ICICIBANK", name: "ICICI Bank Ltd", kind: "stock" },
+  { symbol: "SBIN", name: "State Bank of India", kind: "stock" },
+  { symbol: "TATAMOTORS", name: "Tata Motors Ltd", kind: "stock" },
+  { symbol: "BHARTIARTL", name: "Bharti Airtel Ltd", kind: "stock" },
+  { symbol: "LT", name: "Larsen & Toubro Ltd", kind: "stock" },
+  { symbol: "AXISBANK", name: "Axis Bank Ltd", kind: "stock" },
+  { symbol: "BAJFINANCE", name: "Bajaj Finance Ltd", kind: "stock" },
+  { symbol: "MARUTI", name: "Maruti Suzuki India Ltd", kind: "stock" },
+  { symbol: "ITC", name: "ITC Ltd", kind: "stock" },
+  { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank Ltd", kind: "stock" },
+  { symbol: "SUNPHARMA", name: "Sun Pharmaceutical Inds", kind: "stock" },
+  { symbol: "ASIANPAINT", name: "Asian Paints Ltd", kind: "stock" },
+  { symbol: "TATASTEEL", name: "Tata Steel Ltd", kind: "stock" },
+  { symbol: "TITAN", name: "Titan Company Ltd", kind: "stock" },
+  { symbol: "HCLTECH", name: "HCL Technologies Ltd", kind: "stock" },
+  { symbol: "WIPRO", name: "Wipro Ltd", kind: "stock" },
+  { symbol: "ULTRACEMCO", name: "UltraTech Cement Ltd", kind: "stock" },
+  { symbol: "NTPC", name: "NTPC Ltd", kind: "stock" },
+  { symbol: "POWERGRID", name: "Power Grid Corp of India", kind: "stock" },
+  { symbol: "M&M", name: "Mahindra & Mahindra Ltd", kind: "stock" },
+  { symbol: "ADANIENT", name: "Adani Enterprises Ltd", kind: "stock" },
+  { symbol: "ADANIPORTS", name: "Adani Ports & SEZ Ltd", kind: "stock" },
+  { symbol: "HAL", name: "Hindustan Aeronautics Ltd", kind: "stock" },
+  { symbol: "BEL", name: "Bharat Electronics Ltd", kind: "stock" },
+  { symbol: "COALINDIA", name: "Coal India Ltd", kind: "stock" },
+  { symbol: "DLF", name: "DLF Ltd", kind: "stock" },
+  { symbol: "TECHM", name: "Tech Mahindra Ltd", kind: "stock" },
+  { symbol: "INDUSINDBK", name: "IndusInd Bank Ltd", kind: "stock" },
+  { symbol: "TRENT", name: "Trent Ltd", kind: "stock" },
+  { symbol: "SIEMENS", name: "Siemens Ltd", kind: "stock" },
+  { symbol: "HINDALCO", name: "Hindalco Industries Ltd", kind: "stock" },
+  { symbol: "VBL", name: "Varun Beverages Ltd", kind: "stock" },
+  { symbol: "GAIL", name: "GAIL (India) Ltd", kind: "stock" },
+  { symbol: "CANBK", name: "Canara Bank", kind: "stock" },
+  { symbol: "PNB", name: "Punjab National Bank", kind: "stock" },
+  { symbol: "BANKBARODA", name: "Bank of Baroda", kind: "stock" }
+];
+
+function setupSymbolSearch() {
+  const input = $("symbolInput");
+  const menu = $("symbolSuggestMenu");
+  const btnToggle = $("btnToggleSymbolMenu");
+
+  if (!input || !menu) return;
+
+  function renderMenu(query = "") {
+    const q = query.trim().toUpperCase();
+    const filtered = ALL_FO_SYMBOLS.filter(item => 
+      item.symbol.includes(q) || item.name.toUpperCase().includes(q)
+    );
+
+    if (!filtered.length) {
+      menu.innerHTML = `<div style="padding:12px; font-size:12px; color:var(--text-muted); text-align:center">No matching stock found for "${escHtml(q)}". Press Enter to scan live NSE proxy.</div>`;
+    } else {
+      menu.innerHTML = filtered.map(item => `
+        <div class="symbol-suggest-item" onclick="pickSearchSymbol('${escHtml(item.symbol)}')">
+          <div>
+            <div class="sym-name">${escHtml(item.symbol)}</div>
+            <div style="font-size:11px; color:var(--text-dim)">${escHtml(item.name)}</div>
+          </div>
+          <span class="sym-badge ${item.kind}">${item.kind === 'index' ? 'INDEX' : 'STOCK'}</span>
+        </div>
+      `).join("");
+    }
+    menu.style.display = "block";
+  }
+
+  input.addEventListener("focus", () => renderMenu(input.value));
+  input.addEventListener("input", () => renderMenu(input.value));
+  
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      menu.style.display = "none";
+      const val = input.value.trim().toUpperCase();
+      if (val) {
+        state.symbol = val;
+        loadOptionData(true);
+      }
+    }
+  });
+
+  if (btnToggle) {
+    btnToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (menu.style.display === "block") {
+        menu.style.display = "none";
+      } else {
+        renderMenu("");
+      }
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".opts-ctrl")) {
+      menu.style.display = "none";
+    }
+  });
+}
+
+function pickSearchSymbol(sym) {
+  const input = $("symbolInput");
+  if (input) input.value = sym;
+  const menu = $("symbolSuggestMenu");
+  if (menu) menu.style.display = "none";
   state.symbol = sym;
+  loadOptionData(true);
+}
+
+function selectSymbol(sym) {
+  pickSearchSymbol(sym);
+}
+
+async function loadOptionData(symbolChanged = false) {
+  const inputVal = $("symbolInput") ? $("symbolInput").value.trim().toUpperCase() : "";
+  const sym = inputVal || state.symbol || "NIFTY 50";
+  state.symbol = sym;
+  if ($("symbolInput")) $("symbolInput").value = sym;
   renderQuickChips();
 
   // Populate Expiries Dropdown according to symbol type
@@ -1097,12 +1290,12 @@ function calculateOptionRisk() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setupSymbolSearch();
   renderQuickChips();
 
-  $("symbolSelect").addEventListener("change", () => loadOptionData(true));
   $("expirySelect").addEventListener("change", () => loadOptionData(false));
   if ($("strategyType")) $("strategyType").addEventListener("change", () => loadOptionData(false));
-  $("btnScanOptions").addEventListener("click", () => loadOptionData(false));
+  $("btnScanOptions").addEventListener("click", () => loadOptionData(true));
   $("btnRefreshChain").addEventListener("click", () => loadOptionData(false));
 
   $("btnFilterAllStrikes").addEventListener("click", () => {
