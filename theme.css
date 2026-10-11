@@ -659,3 +659,275 @@ select option {
   border-color: var(--accent-gold) !important;
 }
 
+/* ==========================================================================
+   FinGroww Live Signal Notification & Audio Alert System
+   ========================================================================== */
+.nav-alert-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  transition: var(--transition-normal);
+  cursor: pointer;
+  position: relative;
+}
+.nav-alert-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--accent-blue);
+  transform: scale(1.05);
+}
+.nav-alert-btn.active-pulse::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  box-shadow: 0 0 10px var(--accent-green);
+  animation: pulsePing 1.8s infinite;
+}
+
+/* Floating Signal Alert Banner */
+.signal-alert-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 400px;
+  width: calc(100vw - 32px);
+}
+.signal-alert-banner {
+  pointer-events: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-active);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+.signal-alert-banner.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+.signal-alert-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent-blue);
+}
+.signal-alert-banner.sab-buy::before { background: var(--accent-green); }
+.signal-alert-banner.sab-sell::before { background: var(--accent-red); }
+
+.sab-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sab-sym {
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sab-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sab-badge.badge-buy {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.sab-badge.badge-sell {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+.sab-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  line-height: 1;
+  transition: var(--transition-fast);
+}
+.sab-close:hover { color: var(--text-main); }
+
+.sab-levels {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+.sab-lvl-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; font-family: var(--font-sans); }
+.sab-lvl-val { font-weight: 800; margin-top: 1px; }
+
+.sab-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sab-time { display: flex; align-items: center; gap: 4px; }
+.sab-action-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: var(--accent-blue-dim);
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+.sab-action-btn:hover {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+/* Alert Settings Modal */
+.alert-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.alert-modal-overlay.open { display: flex; }
+.alert-modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  max-width: 480px;
+  width: 100%;
+  padding: 28px 24px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.alert-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.alert-modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  gap: 12px;
+}
+.alert-row-text h5 { font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+.alert-row-text p { font-size: 11.5px; color: var(--text-muted); line-height: 1.4; }
+
+/* Custom Switch Toggle */
+.switch-ui {
+  position: relative;
+  width: 46px;
+  height: 24px;
+  background: var(--border-card);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  flex-shrink: 0;
+}
+.switch-ui.active { background: var(--accent-green); }
+.switch-handle {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.switch-ui.active .switch-handle { transform: translateX(22px); }
+
+/* Watchlist Selection Chips */
+.watchlist-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.wl-chip {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+.wl-chip:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-main);
+}
+.wl-chip.active {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+

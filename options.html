@@ -1265,6 +1265,20 @@ function renderSignalRecommendation(data) {
       <span class="rule-chip"><i class="fa-solid fa-check" style="color:#10b981"></i> ${isBullish ? 'RSI 64.2 Bullish' : 'RSI 38.5 Bearish'}</span>
     `;
   }
+
+  // Live Alert Trigger (Audio chime, push notification & floating toast)
+  if (window.FinGrowwAlerts && (isBullish || isBearish)) {
+    window.FinGrowwAlerts.triggerSignal({
+      symbol: data.symbol,
+      sig: 'BUY',
+      quality: `${strikeTitle} (${data.confluenceScore || 92}%)`,
+      price: entryLtp,
+      sl: sl,
+      t1: t1,
+      t2: t2,
+      score: Math.round(data.confluenceScore || 92)
+    });
+  }
 }
 
 function renderChainTable(data) {
@@ -1389,10 +1403,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 <script src="theme.js"></script>
-<!-- Floating WhatsApp Quick Help Button (Akshay Bhalodiya) -->
-<a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww%20Trading!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
-  <i class="fa-brands fa-whatsapp"></i>
-</a>
 
 </body>
 </html>
