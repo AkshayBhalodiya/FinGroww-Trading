@@ -1690,6 +1690,19 @@ function startLiveSim() {
           setup.targetHitTime = "Target 1 Active (Running)";
           showToast(`⚡ ALERT: ${setup.symbol} crossed trigger price ₹${setup.triggerPrice}! BUY Signal Active!`);
           playAlertChime('BUY');
+
+          if (window.FinGrowwAlerts) {
+            window.FinGrowwAlerts.triggerSignal({
+              symbol: setup.underlying || setup.symbol,
+              sig: 'BUY',
+              quality: `${setup.confluenceScore || 88}% Golden Zone`,
+              price: setup.currentPremium,
+              sl: setup.stopLoss,
+              t1: setup.target1,
+              t2: setup.target2,
+              score: Math.round(setup.confluenceScore || 88)
+            });
+          }
         }
       } else if (setup.state === 'BUY' && setup.currentPremium > setup.triggerPrice + 2) {
         setup.state = 'IN_PROCESS';
@@ -2251,10 +2264,6 @@ function resetRadarForNextDay() {
 }
 window.resetRadarForNextDay = resetRadarForNextDay;
 </script>
-<!-- Floating WhatsApp Quick Help Button (Akshay Bhalodiya) -->
-<a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww%20Trading!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
-  <i class="fa-brands fa-whatsapp"></i>
-</a>
 
 </body>
 </html>
