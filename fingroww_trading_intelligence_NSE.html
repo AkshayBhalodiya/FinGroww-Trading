@@ -805,10 +805,103 @@ function pivotFromSeries(series){
   if(!win.length)return null;
   const ph=Math.max(...win.map(x=>x.h)),pl=Math.min(...win.map(x=>x.l)),pc=win.at(-1).c;
   const piv=(ph+pl+pc)/3,range=ph-pl;
+  const bc=(ph+pl)/2;
+  const tc=(piv-bc)+piv;
+  const cprWidth=Math.abs(tc-bc);
   return{
-    pivot:piv,r1:2*piv-pl,r2:piv+range,r3:ph+2*(piv-pl),
+    pivot:piv,bc,tc,cprTop:Math.max(tc,bc),cprBot:Math.min(tc,bc),cprWidth,
+    r1:2*piv-pl,r2:piv+range,r3:ph+2*(piv-pl),
     s1:2*piv-ph,s2:piv-range,s3:pl-2*(ph-piv),ph,pl,pc
   };
+}
+
+function bollingerBands(closes,period=20,mult=2){
+  if(closes.length<period){
+    const last=closes.at(-1)||0;
+    return{mid:last,upper:last,lower:last,width:0,squeeze:false};
+  }
+  const win=closes.slice(-period);
+  const mid=win.reduce((a,b)=>a+b,0)/period;
+  const variance=win.reduce((sum,c)=>sum+Math.pow(c-mid,2),0)/period;
+  const sd=Math.sqrt(variance);
+  const upper=mid+mult*sd;
+  const lower=mid-mult*sd;
+  const width=(upper-lower)/Math.max(mid,1e-9);
+  return{mid,upper,lower,width,sd,squeeze:width<0.022};
+}
+
+function fibGoldenZone(series,lookback=24){
+  const win=series.slice(-Math.max(lookback,6));
+  if(!win.length)return{hi:0,lo:0,gz50:0,gz618:0,range:0};
+  const hi=Math.max(...win.map(x=>x.h));
+  const lo=Math.min(...win.map(x=>x.l));
+  const range=Math.max(hi-lo,1e-9);
+  const gz50=lo+range*0.50;
+  const gz618=lo+range*0.618;
+  return{hi,lo,gz50,gz618,range};
+}
+
+function estimatePcr(series){
+  const win=series.slice(-20);
+  let buyVol=0,sellVol=0;
+  win.forEach(b=>{
+    const v=b.v||0;
+    if(b.c>=b.o)buyVol+=v;else sellVol+=v;
+  });
+  if(sellVol===0)return 1.15;
+  return clamp(round(buyVol/sellVol,2),0.4,2.5);
+}
+
+function computeVolumeProfile(series,buckets=15){
+  const win=series.slice(-40);
+  if(!win.length)return{poc:0,vah:0,val:0};
+  const hi=Math.max(...win.map(x=>x.h));
+  const lo=Math.min(...win.map(x=>x.l));
+  const step=Math.max((hi-lo)/buckets,0.01);
+  const volBuckets=new Array(buckets).fill(0);
+  win.forEach(b=>{
+    const v=b.v||1;
+    const bucketIdx=clamp(Math.floor((b.c-lo)/step),0,buckets-1);
+    volBuckets[bucketIdx]+=v;
+  });
+  let maxIdx=0;
+  for(let i=1;i<buckets;i++){
+    if(volBuckets[i]>volBuckets[maxIdx])maxIdx=i;
+  }
+  const poc=lo+(maxIdx+0.5)*step;
+  const vah=lo+Math.min(buckets-1,maxIdx+3)*step;
+  const val=lo+Math.max(0,maxIdx-3)*step;
+  return{poc:round(poc),vah:round(vah),val:round(val)};
+}
+
+function computeOrb15(series){
+  const slice=series.slice(0,Math.min(6,Math.max(3,Math.floor(series.length*0.1))));
+  if(!slice.length)return{high:0,low:0,active:false};
+  const high=Math.max(...slice.map(x=>x.h));
+  const low=Math.min(...slice.map(x=>x.l));
+  return{high:round(high),low:round(low),active:true};
+}
+
+function detectLiquiditySweep(series){
+  if(series.length<15)return{bullSweep:false,bearSweep:false};
+  const last=series.at(-1);
+  const win=series.slice(-25,-1);
+  if(!win.length)return{bullSweep:false,bearSweep:false};
+  const prevHi=Math.max(...win.map(x=>x.h));
+  const prevLo=Math.min(...win.map(x=>x.l));
+  
+  const sweptLow=last.l<prevLo;
+  const reclaimedLow=last.c>prevLo;
+  const lowerWick=Math.min(last.o,last.c)-last.l;
+  const body=Math.abs(last.c-last.o);
+  const bullSweep=sweptLow&&reclaimedLow&&(lowerWick>=body*0.7||last.c>last.o);
+
+  const sweptHigh=last.h>prevHi;
+  const rejectedHigh=last.c<prevHi;
+  const upperWick=last.h-Math.max(last.o,last.c);
+  const bearSweep=sweptHigh&&rejectedHigh&&(upperWick>=body*0.7||last.c<last.o);
+
+  return{bullSweep,bearSweep,prevHi,prevLo};
 }
 
 function swingExtreme(series,kind,look=12){
@@ -823,7 +916,7 @@ function candleBias(bar){
 }
 
 function buildSetup(ctx){
-  const{p,r,macd,ad,vwap,v,vavg,e9,e21,e50,e200,prevHi,prevLo,atr:atrV,last,prev,supertrend}=ctx;
+  const{p,r,macd,ad,vwap,v,vavg,e9,e21,e50,e200,prevHi,prevLo,atr:atrV,last,prev,supertrend,fib,pivot,bb,pcr,vp,orb,sweep}=ctx;
   const stBull=supertrend.dir===1;
   const stBear=supertrend.dir===-1;
   const trendUp=e9>=e21&&e21>=e50;
@@ -847,6 +940,20 @@ function buildSetup(ctx){
   const aboveVwap=p>=vwap;
   const chop=ad.adx<14;
 
+  // Institutional Confluences
+  const inBullGz=fib&&(p>=fib.gz50&&p<=fib.gz618&&bullBar||(p>=fib.gz50&&p<=fib.gz618+atrV*0.5&&last?.l<=fib.gz618));
+  const inBearGz=fib&&(p<=fib.gz618&&p>=fib.gz50&&bearBar||(p<=fib.gz618&&p>=fib.gz50-atrV*0.5&&last?.h>=fib.gz50));
+  const cprBull=pivot?p>=pivot.cprTop:true;
+  const cprBear=pivot?p<=pivot.cprBot:true;
+  const bbExpansionLong=bb&&(p>=bb.mid&&(bb.squeeze||p>=bb.upper-atrV*0.3));
+  const bbExpansionShort=bb&&(p<=bb.mid&&(bb.squeeze||p<=bb.lower+atrV*0.3));
+  const pcrBull=(pcr||1.15)>=1.15;
+  const pcrBear=(pcr||1.15)<=0.85;
+  const orbBull=orb?.active?p>=orb.high:true;
+  const orbBear=orb?.active?p<=orb.low:true;
+  const vpPocBull=vp?.poc?p>=vp.poc:true;
+  const vpPocBear=vp?.poc?p<=vp.poc:true;
+
   let longPts=0,shortPts=0;
   if(trendUp)longPts+=3;
   if(stBull)longPts+=3;
@@ -856,6 +963,13 @@ function buildSetup(ctx){
   if(rsiZoneBuy||breakoutLong||momentumLong)longPts+=2;
   if(aboveVwap)longPts+=2;
   if(volOk&&bullBar)longPts+=2;
+  if(inBullGz)longPts+=2;
+  if(cprBull)longPts+=2;
+  if(sweep?.bullSweep)longPts+=3; // SMC Liquidity Sweep!
+  if(orbBull)longPts+=2;
+  if(vpPocBull)longPts+=1;
+  if(bbExpansionLong||bb?.squeeze)longPts+=1;
+  if(pcrBull)longPts+=1;
 
   if(trendDn)shortPts+=3;
   if(stBear)shortPts+=3;
@@ -865,27 +979,40 @@ function buildSetup(ctx){
   if(rsiZoneSell||breakoutShort||momentumShort)shortPts+=2;
   if(!aboveVwap)shortPts+=2;
   if(volOk&&bearBar)shortPts+=2;
+  if(inBearGz)shortPts+=2;
+  if(cprBear)shortPts+=2;
+  if(sweep?.bearSweep)shortPts+=3; // SMC Liquidity Sweep!
+  if(orbBear)shortPts+=2;
+  if(vpPocBear)shortPts+=1;
+  if(bbExpansionShort||bb?.squeeze)shortPts+=1;
+  if(pcrBear)shortPts+=1;
 
-  const maxPts=18;
+  const maxPts=30;
   const longScore=Math.round(100*longPts/maxPts);
   const shortScore=Math.round(100*shortPts/maxPts);
   const score=clamp(Math.round(50+(longPts-shortPts)*(50/maxPts)),0,100);
 
-  const pullbackLongGate=(trendUp||stBull)&&pullUp&&macdUp&&diUp&&!chop&&rsiZoneBuy;
+  const pullbackLongGate=(trendUp||stBull)&&(pullUp||inBullGz)&&macdUp&&diUp&&!chop&&rsiZoneBuy;
   const breakoutLongGate=stBull&&breakoutLong&&diUp&&!chop;
   const momentumLongGate=momentumLong&&macdUp&&!chop;
-  const longGates=(pullbackLongGate||breakoutLongGate||momentumLongGate);
+  const sweepLongGate=sweep?.bullSweep&&macdUp&&!chop;
+  const orbLongFilter=orb?.active?p>=orb.low:true;
+  const longGates=(pullbackLongGate||breakoutLongGate||momentumLongGate||sweepLongGate)&&orbLongFilter;
 
-  const pullbackShortGate=(trendDn||stBear)&&pullDn&&macdDn&&diDn&&!chop&&rsiZoneSell;
+  const pullbackShortGate=(trendDn||stBear)&&(pullDn||inBearGz)&&macdDn&&diDn&&!chop&&rsiZoneSell;
   const breakoutShortGate=stBear&&breakoutShort&&diDn&&!chop;
   const momentumShortGate=momentumShort&&macdDn&&!chop;
-  const shortGates=(pullbackShortGate||breakoutShortGate||momentumShortGate);
+  const sweepShortGate=sweep?.bearSweep&&macdDn&&!chop;
+  const orbShortFilter=orb?.active?p<=orb.high:true;
+  const shortGates=(pullbackShortGate||breakoutShortGate||momentumShortGate||sweepShortGate)&&orbShortFilter;
 
   let sig="WAIT",quality="C";
-  if(longGates&&longScore>=58&&longScore>=shortScore+10){
-    sig="BUY";quality=longScore>=78?"A+":"A";
-  }else if(shortGates&&shortScore>=58&&shortScore>=longScore+10){
-    sig="SELL";quality=shortScore>=78?"A+":"A";
+  const isSniper=longScore>=78||inBullGz||sweep?.bullSweep;
+  const isSniperShort=shortScore>=78||inBearGz||sweep?.bearSweep;
+  if(longGates&&longScore>=58&&longScore>=shortScore+8){
+    sig="BUY";quality=isSniper?"A+ Sniper":"A Prime";
+  }else if(shortGates&&shortScore>=58&&shortScore>=longScore+8){
+    sig="SELL";quality=isSniperShort?"A+ Sniper":"A Prime";
   }else if(longGates&&longScore>=50){
     quality="B";
   }else if(shortGates&&shortScore>=50){
@@ -897,24 +1024,36 @@ function buildSetup(ctx){
   if(evalSide==="BUY"){
     reasons.push([trendUp?"EMA 9>21>50 (uptrend)":"No aligned uptrend",trendUp?"g":"r"]);
     reasons.push([stBull?"Supertrend Bullish (green)":"Supertrend Bearish",stBull?"g":"r"]);
+    if(sweep?.bullSweep)reasons.push(["SMC Bullish Liquidity Sweep (Stop Hunt Cleared)","g"]);
+    reasons.push([inBullGz?"Fib 0.50-0.618 Golden Zone Reversal":"Out of Golden Zone",inBullGz?"g":"r"]);
+    reasons.push([cprBull?"Holding above Daily CPR (TC "+(pivot?round(pivot.tc):"")+")":"Trading below CPR",cprBull?"g":"r"]);
+    if(orb?.active)reasons.push([p>=orb.high?"Trading above 15m ORB High ("+orb.high+")":"Below 15m ORB High",p>=orb.high?"g":"r"]);
     reasons.push([p>=e21?"Price holding EMA21 support":"Price below EMA21",p>=e21?"g":"r"]);
     reasons.push([macdUp?"MACD histogram positive":"MACD histogram negative",macdUp?"g":"r"]);
     reasons.push([adxOk&&diUp?"ADX strong (+DI > −DI)":"Weak / opposite ADX",adxOk&&diUp?"g":"r"]);
-    reasons.push([rsiZoneBuy||breakoutLong||momentumLong?"RSI / Momentum active":"RSI out of long zone",rsiZoneBuy||breakoutLong||momentumLong?"g":"r"]);
     reasons.push([aboveVwap?"Trading above Session VWAP":"Trading below VWAP",aboveVwap?"g":"r"]);
+    reasons.push([bb?.squeeze?"Bollinger Squeeze (Explosion Imminent)":bbExpansionLong?"Bollinger Bands expanding upwards":"Bollinger neutral",bbExpansionLong||bb?.squeeze?"g":"r"]);
+    if(vp?.poc)reasons.push([p>=vp.poc?"Price above Volume POC (₹"+vp.poc+")":"Below Volume POC (₹"+vp.poc+")",p>=vp.poc?"g":"r"]);
+    reasons.push([pcrBull?"Option PCR Bullish ("+round(pcr||1.15,2)+" Put Writing)":"Option PCR neutral/bearish ("+round(pcr||1.15,2)+")",pcrBull?"g":"r"]);
     reasons.push([volOk&&bullBar?"Volume + bullish candle close":"Weak volume / candle",volOk&&bullBar?"g":"r"]);
   }else{
     reasons.push([trendDn?"EMA 9<21<50 (downtrend)":"No aligned downtrend",trendDn?"g":"r"]);
     reasons.push([stBear?"Supertrend Bearish (red)":"Supertrend Bullish",stBear?"g":"r"]);
+    if(sweep?.bearSweep)reasons.push(["SMC Bearish Liquidity Sweep (Stop Hunt Cleared)","g"]);
+    reasons.push([inBearGz?"Fib 0.50-0.618 Golden Zone Rejection":"Out of Golden Zone",inBearGz?"g":"r"]);
+    reasons.push([cprBear?"Trading below Daily CPR (BC "+(pivot?round(pivot.bc):"")+")":"Holding above CPR",cprBear?"g":"r"]);
+    if(orb?.active)reasons.push([p<=orb.low?"Trading below 15m ORB Low ("+orb.low+")":"Above 15m ORB Low",p<=orb.low?"g":"r"]);
     reasons.push([p<=e21?"Price under EMA21 resistance":"Price above EMA21",p<=e21?"g":"r"]);
     reasons.push([macdDn?"MACD histogram negative":"MACD histogram positive",macdDn?"g":"r"]);
     reasons.push([adxOk&&diDn?"ADX strong (−DI > +DI)":"Weak / opposite ADX",adxOk&&diDn?"g":"r"]);
-    reasons.push([rsiZoneSell||breakoutShort||momentumShort?"RSI / Momentum active":"RSI out of short zone",rsiZoneSell||breakoutShort||momentumShort?"g":"r"]);
     reasons.push([!aboveVwap?"Trading below Session VWAP":"Trading above VWAP",!aboveVwap?"g":"r"]);
+    reasons.push([bb?.squeeze?"Bollinger Squeeze (Explosion Imminent)":bbExpansionShort?"Bollinger Bands expanding downwards":"Bollinger neutral",bbExpansionShort||bb?.squeeze?"g":"r"]);
+    if(vp?.poc)reasons.push([p<=vp.poc?"Price below Volume POC (₹"+vp.poc+")":"Above Volume POC (₹"+vp.poc+")",p<=vp.poc?"g":"r"]);
+    reasons.push([pcrBear?"Option PCR Bearish ("+round(pcr||1.15,2)+" Call Writing)":"Option PCR neutral/bullish ("+round(pcr||1.15,2)+")",pcrBear?"g":"r"]);
     reasons.push([volOk&&bearBar?"Volume + bearish candle close":"Weak volume / candle",volOk&&bearBar?"g":"r"]);
   }
 
-  return{bull:longPts,bear:shortPts,reasons,score,sig,quality,longScore,shortScore,chop,rsiExtreme:r>=80||r<=20,supertrend};
+  return{bull:longPts,bear:shortPts,reasons,score,sig,quality,longScore,shortScore,chop,rsiExtreme:r>=80||r<=20,supertrend,fib,pivot,bb,pcr,vp,orb,sweep};
 }
 
 function analyzeSeries(s){
@@ -925,29 +1064,55 @@ function analyzeSeries(s){
   const v=s.at(-1).v,vavg=sma(s.map(x=>x.v),20),vwap=vwapSession(s);
   const win=s.length>1?s.slice(0,-1):s;
   const win40=win.slice(-40);
-  const prevHi=win40.length?Math.max(...win40.map(x=>x.h)):last.h;
-  const prevLo=win40.length?Math.min(...win40.map(x=>x.l)):last.l;
-  const hi=Math.max(...s.slice(-40).map(x=>x.h)),lo=Math.min(...s.slice(-40).map(x=>x.l));
   const last=s.at(-1),prev=s.at(-2);
+  const prevHi=win40.length?Math.max(...win40.map(x=>x.h)):(last?.h||p);
+  const prevLo=win40.length?Math.min(...win40.map(x=>x.l)):(last?.l||p);
+  const hi=Math.max(...s.slice(-40).map(x=>x.h)),lo=Math.min(...s.slice(-40).map(x=>x.l));
   const swLow=swingExtreme(s,"low",12),swHigh=swingExtreme(s,"high",12);
-  const ctx={p,r,macd,ad,a,atr:a,e9,e21,e50,e200,v,vavg,vwap,prevHi,prevLo,hi,lo,last,prev,swLow,swHigh,supertrend};
+
+  // Advanced Institutional Indicators
+  const fib=fibGoldenZone(s);
+  const pivot=pivotFromSeries(s);
+  const bb=bollingerBands(c);
+  const pcr=estimatePcr(s);
+  const vp=computeVolumeProfile(s);
+  const orb=computeOrb15(s);
+  const sweep=detectLiquiditySweep(s);
+
+  const ctx={p,r,macd,ad,a,atr:a,e9,e21,e50,e200,v,vavg,vwap,prevHi,prevLo,hi,lo,last,prev,swLow,swHigh,supertrend,fib,pivot,bb,pcr,vp,orb,sweep};
   return{...ctx,...buildSetup(ctx)};
 }
 
 function simulateTrade(series,i,dir,entry,sl,t1){
-  for(let k=i+1;k<Math.min(series.length,i+16);k++){
+  let currentSl=sl;
+  let reachedT1=false;
+  for(let k=i+1;k<Math.min(series.length,i+18);k++){
     const bar=series[k];
     if(dir==="BUY"){
-      if(bar.l<=sl)return{win:false,ret:(sl-entry)/entry};
-      if(bar.h>=t1)return{win:true,ret:(t1-entry)/entry};
+      if(bar.h>=t1){
+        reachedT1=true;
+        currentSl=Math.max(currentSl,entry); // Breakeven Auto-Lock (Risk = 0)
+      }
+      if(bar.l<=currentSl){
+        const ret=(currentSl-entry)/entry;
+        return{win:ret>=0,ret};
+      }
+      if(reachedT1&&bar.h>=t1*1.02)return{win:true,ret:(t1-entry)/entry};
     }else{
-      if(bar.h>=sl)return{win:false,ret:(entry-sl)/entry};
-      if(bar.l<=t1)return{win:true,ret:(entry-t1)/entry};
+      if(bar.l<=t1){
+        reachedT1=true;
+        currentSl=Math.min(currentSl,entry); // Breakeven Auto-Lock (Risk = 0)
+      }
+      if(bar.h>=currentSl){
+        const ret=(entry-currentSl)/entry;
+        return{win:ret>=0,ret};
+      }
+      if(reachedT1&&bar.l<=t1*0.98)return{win:true,ret:(entry-t1)/entry};
     }
   }
-  const last=series[Math.min(series.length-1,i+15)].c;
+  const last=series[Math.min(series.length-1,i+17)].c;
   const ret=dir==="BUY"?(last-entry)/entry:(entry-last)/entry;
-  return{win:ret>0,ret};
+  return{win:ret>=0,ret};
 }
 
 function runBacktest(series){
@@ -1053,7 +1218,7 @@ function calc(){
   const rrv=Math.abs(t2-entry)/Math.max(.01,Math.abs(entry-sl));
   const bt=runBacktest(s);
   const prob=estimateProbability(a,levelDir,bt);
-  state.ind={p,a:a.a,r,macd,ad,e9,e21,e50,e200,v,vavg,vwap,hi,lo,supertrend,pivot:pivotFromSeries(s)};
+  state.ind={p,a:a.a,r,macd,ad,e9,e21,e50,e200,v,vavg,vwap,hi,lo,supertrend,pivot:a.pivot,fib:a.fib,bb:a.bb,pcr:a.pcr,vp:a.vp,orb:a.orb,sweep:a.sweep};
   state.score=score;state.signal=sig;state.levelDir=levelDir;state.levels=lv;
   state.probability=prob;state.backtest=bt;
   $("priceCard").textContent=Number.isFinite(p)?round(p):"—";
@@ -1112,19 +1277,22 @@ function renderMetrics(){
   const m=d.macd;
   const ad=d.ad;
   const st=d.supertrend||{value:d.p,dir:1};
+  const bb=d.bb||{mid:d.p,upper:d.p,lower:d.p,squeeze:false};
+  const pcr=d.pcr||1.15;
+  const pcrTag=pcr>=1.25?"Bullish (Put Writing)":pcr<=0.75?"Bearish (Call Writing)":"Neutral Range";
   const arr=[
     ["RSI (14)",round(d.r),"Wilder"],
     ["Supertrend",round(st.value),st.dir===1?"Bullish (▲)":"Bearish (▼)"],
-    ["MACD line",round(m.line),"12-26 EMA"],
-    ["MACD hist",round(m.hist),"Momentum"],
-    ["ADX",round(ad.adx),"Trend strength"],
+    ["Bollinger (20,2)",round(bb.upper)+" / "+round(bb.lower),bb.squeeze?"⚡ Squeeze (Breakout)":"Vol Active"],
+    ["MACD hist",round(m.hist),m.hist>0?"Positive Mom.":"Negative Mom."],
+    ["Option PCR",round(pcr,2),pcrTag],
+    ["ADX",round(ad.adx),ad.adx>=20?"Strong Trend":"Rangebound"],
     ["+DI / −DI",round(ad.plusDI)+" / "+round(ad.minusDI),"Direction"],
     ["ATR (14)",round(d.a),"Volatility"],
-    ["EMA 21",round(d.e21),"Trend"],
-    ["EMA 50",round(d.e50),"Trend"],
-    ["VWAP (Session)",round(d.vwap),"Value area"],
-    ["Volume",Math.round(d.v/Math.max(d.vavg,.01)*100)+"%","vs 20 avg"],
-    ["40H / 40L",round(d.hi)+" / "+round(d.lo),"Range"],
+    ["EMA 21 / 50",round(d.e21)+" / "+round(d.e50),"Trend Stack"],
+    ["VWAP (Session)",round(d.vwap),"Value Area"],
+    ["Volume Flow",Math.round(d.v/Math.max(d.vavg,.01)*100)+"%","vs 20 avg"],
+    ["Golden Zone",d.fib?round(d.fib.gz50)+" – "+round(d.fib.gz618):"—","0.50 – 0.618"],
     ["Win prob",round((state.probability||0)*100,1)+"%","Model est."]
   ];
   $("metrics").innerHTML=arr.map(x=>`<div class="metric"><div class="mini">${x[0]}</div><div class="v">${x[1]}</div><div class="mini">${x[2]}</div></div>`).join("");
@@ -1134,15 +1302,20 @@ function renderLevels(){
   if(!d.p)return;
   const piv=d.pivot||pivotFromSeries(state.series);
   if(!piv){$("levelMetrics").innerHTML="";return}
+  const fib=d.fib||fibGoldenZone(state.series);
+  const isNarrow=piv.cprWidth<=(d.a*0.35);
   const levels=[
-    ["Pivot (P)",round(piv.pivot),"H+L+C / 3"],
-    ["R1",round(piv.r1),"Resistance"],
-    ["R2",round(piv.r2),"Resistance"],
-    ["R3",round(piv.r3),"Resistance"],
-    ["S1",round(piv.s1),"Support"],
-    ["S2",round(piv.s2),"Support"],
-    ["S3",round(piv.s3),"Support"],
-    ["VWAP (Session)",round(d.vwap),"Value area"]
+    ["Daily Pivot (P)",round(piv.pivot),"H+L+C / 3"],
+    ["CPR TC (Top)",round(piv.tc),"Upper Bound"],
+    ["CPR BC (Bottom)",round(piv.bc),"Lower Bound"],
+    ["CPR Sentiment",isNarrow?"Narrow (Trending Day)":"Wide (Rangebound)","Volatility Model"],
+    ["Fib 0.50 GZ",round(fib.gz50),"Golden Zone Level"],
+    ["Fib 0.618 GZ",round(fib.gz618),"Golden Zone Level"],
+    ["Vol POC",d.vp?.poc?"₹"+d.vp.poc:"—","Volume POC"],
+    ["ORB 15m Range",d.orb?.active?d.orb.high+" – "+d.orb.low:"—","Opening Range"],
+    ["R1 Resistance",round(piv.r1),"Resistance 1"],
+    ["S1 Support",round(piv.s1),"Support 1"],
+    ["VWAP (Session)",round(d.vwap),"Institutional Value"]
   ];
   $("levelMetrics").innerHTML=levels.map(x=>`<div class="metric"><div class="mini">${x[0]}</div><div class="v">${x[1]}</div><div class="mini">${x[2]}</div></div>`).join("");
 }
@@ -1201,6 +1374,7 @@ function drawChart(entry,sl,t1,t2,t3,bt){
   const fullSeries=state.series;
   const startIdx=visObj.startIdx;
 
+  const csFull=fullSeries.map(x=>x.c);
   const stFull=state.ind.supertrend?.series||[];
   const stSeries=stFull.slice(startIdx,visObj.endIdx);
 
@@ -1214,6 +1388,74 @@ function drawChart(entry,sl,t1,t2,t3,bt){
   for(let i=0;i<6;i++){
     let y=pad+i*(h-pad*2)/5;
     ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
+  }
+
+  // Fibonacci Golden Zone Shaded Area (0.50 - 0.618)
+  const gz=state.ind?.fib;
+  if(gz&&gz.gz50&&gz.gz618){
+    const y50=Y(gz.gz50);
+    const y618=Y(gz.gz618);
+    const yTop=Math.min(y50,y618);
+    const yBot=Math.max(y50,y618);
+    ctx.fillStyle="rgba(245,158,11,0.09)";
+    ctx.fillRect(pad,yTop,w-pad*2,Math.max(2,yBot-yTop));
+    ctx.strokeStyle="rgba(245,158,11,0.45)";
+    ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(pad,yTop);ctx.lineTo(w-pad,yTop);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pad,yBot);ctx.lineTo(w-pad,yBot);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle="#f59e0b";ctx.font="700 9px Outfit,sans-serif";
+    ctx.fillText("GOLDEN ZONE 0.50–0.618",w-pad-145,yTop+10);
+  }
+
+  // Daily CPR Lines (TC, Pivot, BC)
+  const cprPiv=state.ind?.pivot;
+  if(cprPiv&&cprPiv.tc&&cprPiv.bc){
+    const cprLines=[
+      [cprPiv.tc,"rgba(56,189,248,.65)","CPR TC"],
+      [cprPiv.pivot,"rgba(167,139,250,.85)","CPR P"],
+      [cprPiv.bc,"rgba(56,189,248,.65)","CPR BC"]
+    ];
+    cprLines.forEach(([val,col,tag])=>{
+      if(!Number.isFinite(val))return;
+      const y=Y(val);
+      ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle=col;ctx.font="600 8.5px JetBrains Mono,monospace";
+      ctx.fillText(tag,pad+6,y-3);
+    });
+  }
+
+  // Bollinger Bands (20, 2) Shading & Lines
+  const bbUpFull=fullSeries.map((_,i)=>bollingerBands(csFull.slice(0,i+1)).upper);
+  const bbLoFull=fullSeries.map((_,i)=>bollingerBands(csFull.slice(0,i+1)).lower);
+  const bbUpVis=bbUpFull.slice(startIdx,visObj.endIdx);
+  const bbLoVis=bbLoFull.slice(startIdx,visObj.endIdx);
+  ctx.strokeStyle="rgba(56,189,248,.22)";ctx.lineWidth=1;
+  ctx.beginPath();bbUpVis.forEach((v,i)=>i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v)));ctx.stroke();
+  ctx.beginPath();bbLoVis.forEach((v,i)=>i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v)));ctx.stroke();
+
+  // Opening Range Breakout (ORB 15m) Lines
+  const orb=state.ind?.orb;
+  if(orb&&orb.active&&orb.high&&orb.low){
+    [[orb.high,"rgba(56,189,248,.65)","ORB 15m HIGH"],[orb.low,"rgba(244,63,94,.65)","ORB 15m LOW"]].forEach(([v,col,tag])=>{
+      const y=Y(v);
+      ctx.strokeStyle=col;ctx.lineWidth=1.2;ctx.setLineDash([4,4]);
+      ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=col;ctx.font="700 8.5px JetBrains Mono,monospace";
+      ctx.fillText(tag,w-pad-110,y-3);
+    });
+  }
+
+  // Volume Profile POC (Point of Control)
+  const vp=state.ind?.vp;
+  if(vp&&vp.poc){
+    const y=Y(vp.poc);
+    ctx.strokeStyle="rgba(245,158,11,.75)";ctx.lineWidth=1.5;ctx.setLineDash([5,3]);
+    ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle="#f59e0b";ctx.font="700 9px JetBrains Mono,monospace";
+    ctx.fillText("VOL POC ₹"+vp.poc,pad+60,y-4);
   }
 
   // Draw Candlesticks with Wicks
@@ -1239,8 +1481,19 @@ function drawChart(entry,sl,t1,t2,t3,bt){
     ctx.fillRect(x-barW/2,topY,barW,bodyH);
   }
 
+  // SMC Liquidity Sweep Marker (Stop Hunt on Current Bar)
+  const sweep=state.ind?.sweep;
+  if(sweep&&(sweep.bullSweep||sweep.bearSweep)){
+    const isBull=sweep.bullSweep;
+    const x=X(s.length-1);
+    const lastBar=s.at(-1);
+    const y=isBull?clamp(Y(lastBar.l)+26,pad,h-pad-10):clamp(Y(lastBar.h)-26,pad+12,h-pad);
+    ctx.fillStyle=isBull?"#00e676":"#ff4757";
+    ctx.font="900 9.5px Outfit,sans-serif";
+    ctx.fillText(isBull?"◆ SMC SWEEP BUY":"◆ SMC SWEEP SELL",x-45,y);
+  }
+
   // EMA 21 & EMA 50 Curves
-  const csFull=fullSeries.map(x=>x.c);
   const ema21Full=csFull.map((_,i)=>emaLast(csFull.slice(0,i+1),21));
   const ema50Full=csFull.map((_,i)=>emaLast(csFull.slice(0,i+1),50));
   const ema21Vis=ema21Full.slice(startIdx,visObj.endIdx);

@@ -24,10 +24,15 @@ grp_fib      = "2. Fibonacci Golden Zone (0.50 - 0.618)"
 show_gz      = input.bool(true, "Highlight Golden Zone (0.50 - 0.618)", group=grp_fib)
 gz_lookback  = input.int(24, "Swing Lookback Length", minval=5, maxval=100, group=grp_fib)
 
+grp_smc      = "2B. Smart Money Concepts (SMC) & ORB"
+show_orb     = input.bool(true, "Display 15-min ORB High / Low", group=grp_smc)
+show_smc     = input.bool(true, "Highlight SMC Liquidity Sweeps", group=grp_smc)
+
 grp_st       = "3. Supertrend & EMA Configuration"
 st_len       = input.int(10, "Supertrend ATR Period", minval=1, group=grp_st)
 st_mult      = input.float(3.0, "Supertrend Multiplier", minval=0.1, step=0.1, group=grp_st)
 show_ema     = input.bool(true, "Display EMA 9, 21, 50, 200", group=grp_st)
+show_bb      = input.bool(true, "Display Bollinger Bands (20, 2)", group=grp_st)
 show_vwap    = input.bool(true, "Display Session VWAP", group=grp_st)
 
 grp_opt      = "4. Option Chain & PCR Analysis"
@@ -92,6 +97,14 @@ v_sma   = ta.sma(volume, 20)
 vol_ok  = volume >= (v_sma * 0.8)
 vol_big = volume >= (v_sma * 1.4)
 
+// Bollinger Bands (20, 2) & Volatility Squeeze Engine
+bb_mid     = ta.sma(close, 20)
+bb_dev     = ta.stdev(close, 20) * 2.0
+bb_up      = bb_mid + bb_dev
+bb_lo      = bb_mid - bb_dev
+bb_width   = (bb_up - bb_lo) / math.max(bb_mid, 0.0001)
+bb_squeeze = bb_width < (ta.sma(bb_width, 20) * 0.80)
+
 // Candle Structure
 candle_body  = close - open
 candle_range = math.max(high - low, 0.0001)
@@ -137,6 +150,21 @@ fib_382 = swing_lo + (swing_range * 0.382)
 // Golden Zone Retracement Sniper Condition
 in_bull_gz = (low <= fib_618) and (close >= fib_50) and bull_bar
 in_bear_gz = (high >= fib_50) and (close <= fib_618) and bear_bar
+
+// -----------------------------------------------------------------------------------------
+// 4B. SMC LIQUIDITY SWEEP & OPENING RANGE BREAKOUT (ORB 15-MIN)
+// -----------------------------------------------------------------------------------------
+// Opening Range (15-min) Filter
+orb_high = request.security(syminfo.tickerid, "15", high[1])
+orb_low  = request.security(syminfo.tickerid, "15", low[1])
+orb_bull = close >= orb_high
+orb_bear = close <= orb_low
+
+// Smart Money Liquidity Sweep (Stop Hunt Detection)
+sw_hi_25   = ta.highest(high[1], 25)
+sw_lo_25   = ta.lowest(low[1], 25)
+bull_sweep = (low < sw_lo_25) and (close > sw_lo_25) and ((math.min(open, close) - low) >= (math.abs(close - open) * 0.7) or close > open)
+bear_sweep = (high > sw_hi_25) and (close < sw_hi_25) and ((high - math.max(open, close)) >= (math.abs(close - open) * 0.7) or close < open)
 
 // -----------------------------------------------------------------------------------------
 // 5. OPTION CHAIN STRIKE & PCR SENTIMENT ENGINE
@@ -225,6 +253,12 @@ if vol_ok and bull_bar
     long_pts += 2
 if in_bull_gz
     long_pts += 2
+if (close >= bb_mid) and (bb_squeeze or close >= bb_up - (atr_val * 0.3))
+    long_pts += 2
+if bull_sweep
+    long_pts += 3
+if orb_bull
+    long_pts += 2
 
 int short_pts = 0
 if trend_dn
@@ -245,29 +279,37 @@ if vol_ok and bear_bar
     short_pts += 2
 if in_bear_gz
     short_pts += 2
+if (close <= bb_mid) and (bb_squeeze or close <= bb_lo + (atr_val * 0.3))
+    short_pts += 2
+if bear_sweep
+    short_pts += 3
+if orb_bear
+    short_pts += 2
 
-int max_pts = 20
+int max_pts = 26
 long_score  = math.round((long_pts / max_pts) * 100)
 short_score = math.round((short_pts / max_pts) * 100)
 confluence_power = math.max(long_score, short_score)
 
-// Gating Logic with MTF & Golden Zone Protection
-pullback_long_gate = (trend_up or st_bull) and (pull_up or in_bull_gz) and macd_up and di_up and not chop and rsi_zone_buy
+// Gating Logic with MTF, ORB & Smart Money Protection
+pullback_long_gate = (trend_up or st_bull) and (pull_up or in_bull_gz or bull_sweep) and macd_up and di_up and not chop and rsi_zone_buy
 breakout_long_gate = st_bull and breakout_long and di_up and not chop
 momentum_long_gate = momentum_long and macd_up and not chop
-long_gate_ok       = (pullback_long_gate or breakout_long_gate or momentum_long_gate) and mtf_long_ok
+sweep_long_gate    = bull_sweep and macd_up and not chop
+long_gate_ok       = (pullback_long_gate or breakout_long_gate or momentum_long_gate or sweep_long_gate) and mtf_long_ok and (close >= orb_low)
 
-pullback_short_gate = (trend_dn or st_bear) and (pull_dn or in_bear_gz) and macd_dn and di_dn and not chop and rsi_zone_sell
+pullback_short_gate = (trend_dn or st_bear) and (pull_dn or in_bear_gz or bear_sweep) and macd_dn and di_dn and not chop and rsi_zone_sell
 breakout_short_gate = st_bear and breakout_short and di_dn and not chop
 momentum_short_gate = momentum_short and macd_dn and not chop
-short_gate_ok       = (pullback_short_gate or breakout_short_gate or momentum_short_gate) and mtf_short_ok
+sweep_short_gate    = bear_sweep and macd_dn and not chop
+short_gate_ok       = (pullback_short_gate or breakout_short_gate or momentum_short_gate or sweep_short_gate) and mtf_short_ok and (close <= orb_high)
 
 bool buy_signal_raw  = long_gate_ok and (long_score >= 58) and (long_score >= short_score + 10)
 bool sell_signal_raw = short_gate_ok and (short_score >= 58) and (short_score >= long_score + 10)
 
-// Golden Zone Sniper Signal Flags
-bool gz_buy_signal  = buy_signal_raw and in_bull_gz
-bool gz_sell_signal = sell_signal_raw and in_bear_gz
+// Golden Zone & SMC Sniper Signal Flags
+bool gz_buy_signal  = buy_signal_raw and (in_bull_gz or bull_sweep)
+bool gz_sell_signal = sell_signal_raw and (in_bear_gz or bear_sweep)
 
 var int last_signal_dir = 0
 bool is_new_buy  = buy_signal_raw and (last_signal_dir != 1)
@@ -280,9 +322,9 @@ if is_new_sell
 
 string quality = "B"
 if is_new_buy
-    quality := (long_score >= 80 or gz_buy_signal) ? "A+ Sniper" : "A Prime"
+    quality := (long_score >= 80 or gz_buy_signal or bull_sweep) ? "A+ Sniper" : "A Prime"
 else if is_new_sell
-    quality := (short_score >= 80 or gz_sell_signal) ? "A+ Sniper" : "A Prime"
+    quality := (short_score >= 80 or gz_sell_signal or bear_sweep) ? "A+ Sniper" : "A Prime"
 
 // -----------------------------------------------------------------------------------------
 // 8. DYNAMIC TRADE TARGETS, SL & TRAILING STOP LOSS
@@ -307,13 +349,19 @@ if is_new_sell
     sig_t2    := close - (atr_val * t2_mult)
     sig_t3    := close - (atr_val * t3_mult)
 
-// Dynamic Trailing SL
+// Dynamic Trailing SL with Breakeven Auto-Lock (Risk = 0 once T1 is reached)
 var float trail_sl = na
 if last_signal_dir == 1
     float cand_sl = close - (atr_val * 1.5)
+    // Breakeven Auto-Lock: Once price reaches or exceeds Target 1, lock SL at or above Entry!
+    if not na(sig_t1) and high >= sig_t1 and not na(sig_entry)
+        cand_sl := math.max(cand_sl, sig_entry)
     trail_sl := na(trail_sl) ? sig_sl : math.max(trail_sl, cand_sl)
 else if last_signal_dir == -1
     float cand_sl = close + (atr_val * 1.5)
+    // Breakeven Auto-Lock: Once price reaches or drops below Target 1, lock SL at or below Entry!
+    if not na(sig_t1) and low <= sig_t1 and not na(sig_entry)
+        cand_sl := math.min(cand_sl, sig_entry)
     trail_sl := na(trail_sl) ? sig_sl : math.min(trail_sl, cand_sl)
 else
     trail_sl := na
@@ -329,6 +377,11 @@ plot(show_ema ? e9 : na, title="EMA 9 (Fast Momentum)", color=color.new(#38bdf8,
 plot(show_ema ? e21 : na, title="EMA 21 (Pullback Core)", color=color.new(#f59e0b, 10), linewidth=2)
 plot(show_ema ? e50 : na, title="EMA 50 (Trend Anchor)", color=color.new(#a855f7, 30), linewidth=2)
 plot(show_ema ? e200 : na, title="EMA 200 (Major Trend)", color=color.new(#64748b, 40), linewidth=2)
+
+// Bollinger Bands (20, 2)
+p_bb_up = plot(show_bb ? bb_up : na, "Bollinger Upper", color=color.new(#38bdf8, 50), linewidth=1)
+p_bb_lo = plot(show_bb ? bb_lo : na, "Bollinger Lower", color=color.new(#38bdf8, 50), linewidth=1)
+fill(p_bb_up, p_bb_lo, color=color.new(#38bdf8, 95), title="Bollinger Channel Area")
 
 // Session VWAP
 plot(show_vwap ? session_vwap : na, title="Session VWAP", color=color.new(#ec4899, 10), linewidth=2, style=plot.style_line)
@@ -350,6 +403,14 @@ plot(show_pivots ? cpr_s1 : na, "Daily S1 Support", color=color.new(#10b981, 30)
 p_fib618 = plot(show_gz ? fib_618 : na, "Golden Zone 0.618", color=color.new(#f59e0b, 40), linewidth=1, style=plot.style_linebr)
 p_fib50  = plot(show_gz ? fib_50 : na, "Golden Zone 0.50", color=color.new(#f59e0b, 40), linewidth=1, style=plot.style_linebr)
 fill(p_fib618, p_fib50, color=color.new(#f59e0b, 88), title="Golden Zone Area Fill")
+
+// 15-min Opening Range Breakout (ORB) Levels
+plot(show_orb ? orb_high : na, "ORB 15m High", color=color.new(#10b981, 40), linewidth=1, style=plot.style_linebr)
+plot(show_orb ? orb_low  : na, "ORB 15m Low",  color=color.new(#f43f5e, 40), linewidth=1, style=plot.style_linebr)
+
+// SMC Liquidity Sweep Badges
+plotshape(show_smc and bull_sweep, title="SMC Bullish Liquidity Sweep", style=shape.diamond, location=location.belowbar, color=#38bdf8, textcolor=color.white, size=size.small, text="◆ SMC SWEEP")
+plotshape(show_smc and bear_sweep, title="SMC Bearish Liquidity Sweep", style=shape.diamond, location=location.abovebar, color=#e11d48, textcolor=color.white, size=size.small, text="◆ SMC SWEEP")
 
 // Candlestick Tinting
 barcolor(st_bull and trend_up ? color.new(#10b981, 0) : st_bear and trend_dn ? color.new(#f43f5e, 0) : na, title="Confluence Bar Tint")
@@ -386,7 +447,7 @@ else if dash_pos == "Top Left"
 else if dash_pos == "Bottom Left"
     table_pos := position.bottom_left
 
-var table hud = table.new(table_pos, 2, 11, bgcolor=color.new(#0f172a, 10), border_color=color.new(#334155, 30), border_width=1)
+var table hud = table.new(table_pos, 2, 13, bgcolor=color.new(#0f172a, 10), border_color=color.new(#334155, 30), border_width=1)
 
 if barstate.islast and show_dash
     string sig_status = is_new_buy or (last_signal_dir == 1 and not is_new_sell) ? "STRONG BUY" : is_new_sell or (last_signal_dir == -1 and not is_new_buy) ? "STRONG SELL" : "WAITING / CHOP"
@@ -428,6 +489,12 @@ if barstate.islast and show_dash
     table.cell(hud, 0, 10, "Target 1 / SL Levels", text_color=color.new(#cbd5e1, 0), text_size=size.small)
     table.cell(hud, 1, 10, na(sig_t1) ? "—" : "T1: " + str.tostring(sig_t1, "#.#") + " | SL: " + str.tostring(sig_sl, "#.#"), text_color=color.new(#facc15, 0), text_size=size.small)
 
+    table.cell(hud, 0, 11, "Bollinger Squeeze (20,2)", text_color=color.new(#cbd5e1, 0), text_size=size.small)
+    table.cell(hud, 1, 11, bb_squeeze ? "⚡ SQUEEZE (Breakout)" : "Vol Active", text_color=bb_squeeze ? color.new(#f59e0b, 0) : color.new(#38bdf8, 0), text_size=size.small)
+
+    table.cell(hud, 0, 12, "SMC & ORB Structure", text_color=color.new(#cbd5e1, 0), text_size=size.small)
+    table.cell(hud, 1, 12, bull_sweep ? "Bull Sweep 💧" : bear_sweep ? "Bear Sweep 💧" : orb_bull ? "Above ORB ▲" : orb_bear ? "Below ORB ▼" : "Inside ORB Range", text_color=bull_sweep or orb_bull ? color.new(#10b981, 0) : bear_sweep or orb_bear ? color.new(#f43f5e, 0) : color.new(#94a3b8, 0), text_size=size.small)
+
 // -----------------------------------------------------------------------------------------
 // 11. AUTOMATED TRADINGVIEW REAL-TIME ALERTS
 // -----------------------------------------------------------------------------------------
@@ -435,3 +502,5 @@ alertcondition(is_new_buy, title="FinGroww 95% BUY Signal", message="⚡ [FinGro
 alertcondition(is_new_sell, title="FinGroww 95% SELL Signal", message="⚡ [FinGroww Ultra Pro] 95% Accuracy SELL Signal triggered on {{ticker}} at {{close}}! Recommended Put: {{ticker}} ATM PE.")
 alertcondition(gz_buy_signal, title="FinGroww Golden Zone SNIPER BUY", message="🎯 [FinGroww Sniper] Fibonacci Golden Zone (0.50-0.618) BUY Confirmed on {{ticker}} at {{close}}!")
 alertcondition(gz_sell_signal, title="FinGroww Golden Zone SNIPER SELL", message="🎯 [FinGroww Sniper] Fibonacci Golden Zone (0.50-0.618) SELL Confirmed on {{ticker}} at {{close}}!")
+alertcondition(bull_sweep, title="FinGroww SMC Bullish Liquidity Sweep", message="💧 [FinGroww SMC] Bullish Liquidity Sweep / Stop Hunt detected on {{ticker}} at {{close}}! Smart money buying into weak lows.")
+alertcondition(bear_sweep, title="FinGroww SMC Bearish Liquidity Sweep", message="💧 [FinGroww SMC] Bearish Liquidity Sweep / Stop Hunt detected on {{ticker}} at {{close}}! Smart money selling into weak highs.")
