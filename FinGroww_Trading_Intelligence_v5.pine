@@ -291,21 +291,25 @@ long_score  = math.round((long_pts / max_pts) * 100)
 short_score = math.round((short_pts / max_pts) * 100)
 confluence_power = math.max(long_score, short_score)
 
-// Gating Logic with MTF, ORB & Smart Money Protection
+// 200 EMA Institutional Trend Shield
+ema200_long_ok  = close >= e200
+ema200_short_ok = close <= e200
+
+// Gating Logic with MTF, ORB, 200 EMA & Smart Money Protection
 pullback_long_gate = (trend_up or st_bull) and (pull_up or in_bull_gz or bull_sweep) and macd_up and di_up and not chop and rsi_zone_buy
 breakout_long_gate = st_bull and breakout_long and di_up and not chop
 momentum_long_gate = momentum_long and macd_up and not chop
 sweep_long_gate    = bull_sweep and macd_up and not chop
-long_gate_ok       = (pullback_long_gate or breakout_long_gate or momentum_long_gate or sweep_long_gate) and mtf_long_ok and (close >= orb_low)
+long_gate_ok       = (pullback_long_gate or breakout_long_gate or momentum_long_gate or sweep_long_gate) and mtf_long_ok and (close >= orb_low) and ema200_long_ok
 
 pullback_short_gate = (trend_dn or st_bear) and (pull_dn or in_bear_gz or bear_sweep) and macd_dn and di_dn and not chop and rsi_zone_sell
 breakout_short_gate = st_bear and breakout_short and di_dn and not chop
 momentum_short_gate = momentum_short and macd_dn and not chop
 sweep_short_gate    = bear_sweep and macd_dn and not chop
-short_gate_ok       = (pullback_short_gate or breakout_short_gate or momentum_short_gate or sweep_short_gate) and mtf_short_ok and (close <= orb_high)
+short_gate_ok       = (pullback_short_gate or breakout_short_gate or momentum_short_gate or sweep_short_gate) and mtf_short_ok and (close <= orb_high) and ema200_short_ok
 
-bool buy_signal_raw  = long_gate_ok and (long_score >= 58) and (long_score >= short_score + 10)
-bool sell_signal_raw = short_gate_ok and (short_score >= 58) and (short_score >= long_score + 10)
+bool buy_signal_raw  = long_gate_ok and (long_score >= 70) and (long_score >= short_score + 10) and (adx_val >= 18)
+bool sell_signal_raw = short_gate_ok and (short_score >= 70) and (short_score >= long_score + 10) and (adx_val >= 18)
 
 // Golden Zone & SMC Sniper Signal Flags
 bool gz_buy_signal  = buy_signal_raw and (in_bull_gz or bull_sweep)

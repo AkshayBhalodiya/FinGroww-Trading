@@ -996,26 +996,28 @@ function buildSetup(ctx){
   const breakoutLongGate=stBull&&breakoutLong&&diUp&&!chop;
   const momentumLongGate=momentumLong&&macdUp&&!chop;
   const sweepLongGate=sweep?.bullSweep&&macdUp&&!chop;
+  const ema200Long=p>=e200;
+  const ema200Short=p<=e200;
   const orbLongFilter=orb?.active?p>=orb.low:true;
-  const longGates=(pullbackLongGate||breakoutLongGate||momentumLongGate||sweepLongGate)&&orbLongFilter;
+  const longGates=(pullbackLongGate||breakoutLongGate||momentumLongGate||sweepLongGate)&&orbLongFilter&&ema200Long;
 
   const pullbackShortGate=(trendDn||stBear)&&(pullDn||inBearGz)&&macdDn&&diDn&&!chop&&rsiZoneSell;
   const breakoutShortGate=stBear&&breakoutShort&&diDn&&!chop;
   const momentumShortGate=momentumShort&&macdDn&&!chop;
   const sweepShortGate=sweep?.bearSweep&&macdDn&&!chop;
   const orbShortFilter=orb?.active?p<=orb.high:true;
-  const shortGates=(pullbackShortGate||breakoutShortGate||momentumShortGate||sweepShortGate)&&orbShortFilter;
+  const shortGates=(pullbackShortGate||breakoutShortGate||momentumShortGate||sweepShortGate)&&orbShortFilter&&ema200Short;
 
   let sig="WAIT",quality="C";
   const isSniper=longScore>=78||inBullGz||sweep?.bullSweep;
   const isSniperShort=shortScore>=78||inBearGz||sweep?.bearSweep;
-  if(longGates&&longScore>=58&&longScore>=shortScore+8){
+  if(longGates&&longScore>=68&&longScore>=shortScore+10&&ad.adx>=18){
     sig="BUY";quality=isSniper?"A+ Sniper":"A Prime";
-  }else if(shortGates&&shortScore>=58&&shortScore>=longScore+8){
+  }else if(shortGates&&shortScore>=68&&shortScore>=longScore+10&&ad.adx>=18){
     sig="SELL";quality=isSniperShort?"A+ Sniper":"A Prime";
-  }else if(longGates&&longScore>=50){
+  }else if(longGates&&longScore>=55){
     quality="B";
-  }else if(shortGates&&shortScore>=50){
+  }else if(shortGates&&shortScore>=55){
     quality="B";
   }
 
