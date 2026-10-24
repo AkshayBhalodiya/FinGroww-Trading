@@ -247,6 +247,7 @@ header.site-header {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 .brand-icon {
   width: 44px;
@@ -287,18 +288,20 @@ header.site-header {
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 16px;
   list-style: none;
 }
 .nav-links a {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--text-muted);
   transition: var(--transition-fast);
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
+  padding: 6px 4px;
+  white-space: nowrap;
 }
 .nav-links a:hover,
 .nav-links a.active {
@@ -313,6 +316,11 @@ header.site-header {
   height: 2px;
   background: var(--accent-blue);
   border-radius: 2px;
+}
+
+@media (max-width: 1140px) {
+  .nav-links { gap: 10px; }
+  .nav-links a { font-size: 12.5px; padding: 4px 2px; }
 }
 
 .nav-actions {
@@ -448,6 +456,14 @@ header.site-header {
   height: 40px;
   font-size: 20px;
   color: var(--text-main);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+.mobile-toggle:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-card-hover);
 }
 .mobile-drawer {
   display: none;
@@ -457,22 +473,43 @@ header.site-header {
   right: 0;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-card);
-  padding: 24px;
-  z-index: 998;
-  box-shadow: var(--shadow-card);
+  padding: 20px 24px 28px;
+  z-index: 99999;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  max-height: calc(100vh - 74px);
+  overflow-y: auto;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
-.mobile-drawer.open { display: block; }
+.mobile-drawer.open {
+  display: block;
+  animation: slideDrawerDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideDrawerDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .mobile-nav-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  text-align: center;
+  gap: 8px;
+  text-align: left;
 }
 .mobile-nav-list a {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-main);
-  padding: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: var(--transition-fast);
+}
+.mobile-nav-list a:hover,
+.mobile-nav-list a.active {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue) !important;
 }
 
 /* Global Footer */
@@ -574,14 +611,20 @@ footer.site-footer {
   font-weight: 900;
 }
 
-@media (max-width: 900px) {
-  .nav-links { display: none; }
-  .mobile-toggle { display: block; }
+@media (max-width: 992px) {
+  .nav-links { display: none !important; }
+  .mobile-toggle { display: inline-flex !important; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
   .footer-grid { grid-template-columns: 1fr; }
   .floating-whatsapp-btn { bottom: 20px; right: 20px; width: 48px; height: 48px; font-size: 22px; }
+}
+@media (max-width: 480px) {
+  .brand-badge { display: none; }
+  .nav-wrap { height: 64px; }
+  .mobile-drawer { top: 64px; max-height: calc(100vh - 64px); }
+  .btn-launch span { display: none; }
 }
 
 /* Light & Dark Mode Universal High-Contrast & Typography Fixes */
@@ -931,3 +974,65 @@ select option {
 }
 
 
+
+/* MongoDB Atlas Live Signal Indicator & Card Enhancements */
+.db-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--accent-green);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+.db-live-pill i {
+  font-size: 9px;
+  animation: pulseNeon 2s infinite;
+}
+
+/* Universal Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-card);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-active);
+}
+
+/* Light Mode Card & Panel Polish */
+[data-theme="light"] .trade-card,
+[data-theme="light"] .price-card,
+[data-theme="light"] .stat-box,
+[data-theme="light"] .lmp-box,
+[data-theme="light"] .m-card,
+[data-theme="light"] .calc-wrapper,
+[data-theme="light"] .hero-card,
+[data-theme="light"] .chart-container-box {
+  background: #ffffff !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 10px 30px -8px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="light"] .stat-num,
+[data-theme="light"] .page-title,
+[data-theme="light"] .section-title,
+[data-theme="light"] .brand-name {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .footer-brand p,
+[data-theme="light"] .hero-desc,
+[data-theme="light"] .page-desc {
+  color: #475569 !important;
+}

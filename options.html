@@ -459,15 +459,16 @@ table.chain-table tbody tr:hover {
 </div>
 
 <!-- Header HUD -->
+<!-- Header / Navigation HUD -->
 <header class="site-header">
   <div class="container nav-wrap">
     <a href="index.html" class="brand">
-      <div class="brand-icon"><i class="fa-solid fa-layer-group"></i></div>
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
       <div>
         <div class="brand-name">Fin<span>Groww</span></div>
         <div class="brand-meta">
           <span class="live-feed-dot"></span>
-          <span class="brand-badge">Options Intelligence</span>
+          <span class="brand-badge">Trading Intelligence</span>
         </div>
       </div>
     </a>
@@ -476,24 +477,47 @@ table.chain-table tbody tr:hover {
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
       <li><a href="today-options.html" style="color:var(--accent-gold,#f59e0b);font-weight:800"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> 🔥 Today's Options</a></li>
       <li><a href="options.html" class="active" style="color:var(--accent-purple,#a78bfa);font-weight:800"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> 🎯 Options Intel</a></li>
-      <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Trading Arena</a></li>
-      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Setups</a></li>
-      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Pro Plans</a></li>
-      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
     </ul>
 
     <div class="nav-actions">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
+      <!-- Light / Dark Mode Toggle Button -->
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
         <span class="theme-icon">☀️</span>
       </button>
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm">
+
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Open Real-Time NSE Trading Arena">
         <i class="fa-solid fa-rocket"></i>
-        <span>Live Arena</span>
+        <span>Launch Terminal</span>
       </a>
-      <button type="button" class="mobile-toggle" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i></button>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
     </div>
   </div>
 </header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="today-options.html" style="color:var(--accent-gold,#f59e0b)"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options</a>
+    <a href="options.html" class="active" style="color:var(--accent-purple,#a78bfa)"><i class="fa-solid fa-layer-group"></i> 🎯 Options Intel</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Algo Engine</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="flex:1;text-align:center;">🚀 Launch Live Terminal</a>
+    </div>
+  </div>
+</div>
 
 <main class="container">
   <!-- Hero Section -->
@@ -718,8 +742,72 @@ table.chain-table tbody tr:hover {
   </section>
 </main>
 
-<footer style="text-align:center; padding:30px 20px; color:var(--text-dim); font-size:12px; border-top:1px solid var(--border-subtle)">
-  FinGroww Options Intelligence Terminal • Connected to Real-Time Proxy Server (NSE & Yahoo Finance) • For Educational Purposes Only
+<!-- Global Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand" style="margin-bottom:14px;">
+          <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-meta">
+              <span class="live-feed-dot"></span>
+              <span class="brand-badge">Trading Intelligence</span>
+            </div>
+          </div>
+        </a>
+        <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted);line-height:1.65;max-width:320px;">
+          Empowering Indian retail traders with institutional-grade algorithmic intelligence, multi-timeframe confluence, and strict risk preservation.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h5>Trading Intelligence</h5>
+        <ul>
+          <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Intel</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Platform & Arena</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Trading Terminal</a></li>
+          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+          <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Compliance & Help</h5>
+        <ul>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="color:var(--accent-blue);font-size:12px;"></i> Support Desk</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-scale-balanced" style="font-size:11px;"></i> SEBI & Legal Compliance</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="font-size:12px;"></i> support@fingroww.com</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:12px;"></i> WhatsApp Support</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI Regulatory Disclosure -->
+    <div class="sebi-disclaimer-box" style="margin-top:30px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11.5px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    </div>
+
+    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:20px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
+      <div style="display:flex;gap:16px;">
+        <a href="disclaimer.html">Terms & Compliance</a>
+        <a href="contact.html">Support</a>
+        <a href="mailto:support@fingroww.com">Email</a>
+      </div>
+    </div>
+  </div>
 </footer>
 
 <script>
@@ -787,16 +875,20 @@ async function fetchApi(path, options = {}) {
   const secondary = isLocalHost ? CLOUD_API : LOCAL_API;
 
   try {
-    const r = await fetchWithTimeout(primary + path, options, 2200);
+    const r = await fetchWithTimeout(primary + path, options, isLocalHost ? 1200 : 6500);
     if (r.ok) return r;
   } catch (e) {}
 
   try {
-    const r = await fetchWithTimeout(secondary + path, options, 2200);
+    const r = await fetchWithTimeout(secondary + path, options, 6500);
     if (r.ok) return r;
   } catch (e) {}
 
-  return { ok: false };
+  return {
+    ok: false,
+    status: 503,
+    json: async () => ({ error: "Server connecting or offline" })
+  };
 }
 
 function getExpiriesForSymbol(symbol) {
