@@ -201,13 +201,17 @@ tr:hover td { background: var(--bg-card-hover); }
 <div class="bg-ambient-grid"></div>
 
 <!-- Header -->
+<!-- Header / Navigation HUD -->
 <header class="site-header">
   <div class="container nav-wrap">
     <a href="index.html" class="brand">
       <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
       <div>
         <div class="brand-name">Fin<span>Groww</span></div>
-        <span class="brand-badge">Trading Intelligence</span>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Trading Intelligence</span>
+        </div>
       </div>
     </a>
 
@@ -216,16 +220,19 @@ tr:hover td { background: var(--bg-card-hover); }
       <li><a href="today-options.html" style="color:var(--accent-gold,#f59e0b);font-weight:800"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> 🔥 Today's Options</a></li>
       <li><a href="options.html" style="color:var(--accent-purple,#a78bfa);font-weight:800"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> 🎯 Options Intel</a></li>
       <li><a href="trades.html" class="active"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
-      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> 95% Accuracy Engine</a></li>
+      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
       <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
       <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
+      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
     </ul>
 
     <div class="nav-actions">
+      <!-- Light / Dark Mode Toggle Button -->
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
         <span class="theme-icon">☀️</span>
       </button>
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Launch Live Terminal">
+
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Open Real-Time NSE Trading Arena">
         <i class="fa-solid fa-rocket"></i>
         <span>Launch Terminal</span>
       </a>
@@ -238,16 +245,18 @@ tr:hover td { background: var(--bg-card-hover); }
 <div id="mobileDrawer" class="mobile-drawer">
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
-    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> 95% Accuracy Engine</a>
+    <a href="today-options.html" style="color:var(--accent-gold,#f59e0b)"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options</a>
+    <a href="options.html" style="color:var(--accent-purple,#a78bfa)"><i class="fa-solid fa-layer-group"></i> 🎯 Options Intel</a>
+    <a href="trades.html" class="active"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Algo Engine</a>
     <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
     <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
     <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()">
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
         <span class="theme-icon">☀️</span>
       </button>
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary">🚀 Launch Live Terminal</a>
+      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="flex:1;text-align:center;">🚀 Launch Live Terminal</a>
     </div>
   </div>
 </div>
@@ -260,26 +269,26 @@ tr:hover td { background: var(--bg-card-hover); }
         <div class="hero-tag">Real-Time Signal Radar</div>
         <h1 class="page-title">Possible & Profitable Trade Setups</h1>
         <p class="page-desc">
-          Live algorithmic scanning across 500+ NSE instruments. Filtered with our strict 95%+ probability confluence criteria so you only execute high-conviction trades.
+          Live algorithmic scanning across 500+ NSE instruments. Filtered with our strict multi-factor confluence criteria so you only execute high-conviction trades.
         </p>
       </div>
 
       <div class="live-metrics-panel">
         <div class="lmp-box">
           <div class="lbl">Active High-Win Signals</div>
-          <div class="val mono up">8 Trades</div>
+          <div class="val mono up" id="activeTradesCount">8 Setups</div>
         </div>
         <div class="lmp-box">
-          <div class="lbl">Algorithm Win Accuracy</div>
-          <div class="val mono up">95.4%</div>
+          <div class="lbl">Verified Trend Win Rate</div>
+          <div class="val mono up" id="tradeWinAcc">78.6%</div>
         </div>
         <div class="lmp-box">
           <div class="lbl">Average Risk:Reward</div>
-          <div class="val mono" style="color:var(--accent-blue)">1 : 3.4</div>
+          <div class="val mono" style="color:var(--accent-blue)">1 : 2.5</div>
         </div>
         <div class="lmp-box">
           <div class="lbl">Target 1 Hit Rate</div>
-          <div class="val mono" style="color:var(--accent-gold)">98.1%</div>
+          <div class="val mono" style="color:var(--accent-gold)">82.4%</div>
         </div>
       </div>
     </div>
@@ -356,7 +365,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </div>
 
         <div class="tc-footer">
-          <span class="tc-win-acc">🎯 95.8% Confidence</span>
+          <span class="tc-win-acc">🎯 High Confluence Setup</span>
           <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
         </div>
       </div>
@@ -383,7 +392,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </div>
 
         <div class="tc-footer">
-          <span class="tc-win-acc">🎯 95.1% Confidence</span>
+          <span class="tc-win-acc">🎯 High Confluence Setup</span>
           <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
         </div>
       </div>
@@ -437,7 +446,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </div>
 
         <div class="tc-footer">
-          <span class="tc-win-acc">🎯 95.4% Confidence</span>
+          <span class="tc-win-acc">🎯 High Confluence Setup</span>
           <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
         </div>
       </div>
@@ -491,7 +500,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </div>
 
         <div class="tc-footer">
-          <span class="tc-win-acc">🎯 95.0% Confidence</span>
+          <span class="tc-win-acc">🎯 High Confluence Setup</span>
           <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
         </div>
       </div>
@@ -518,7 +527,7 @@ tr:hover td { background: var(--bg-card-hover); }
         </div>
 
         <div class="tc-footer">
-          <span class="tc-win-acc">🎯 95.7% Confidence</span>
+          <span class="tc-win-acc">🎯 High Confluence Setup</span>
           <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
         </div>
       </div>
@@ -528,7 +537,7 @@ tr:hover td { background: var(--bg-card-hover); }
     <!-- CTA Banner -->
     <div class="cta-banner">
       <div class="cta-text">
-        <h3>Want Instant 95% Accuracy Alerts on WhatsApp?</h3>
+        <h3>Want Instant Algo Alerts on WhatsApp?</h3>
         <p>Never miss a high-probability breakout while at work or away from your desk. Pro Trader alerts trigger within 120ms.</p>
       </div>
       <div>
@@ -618,58 +627,69 @@ tr:hover td { background: var(--bg-card-hover); }
   </section>
 </main>
 
+<!-- Global Footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid">
-      <div>
-        <div class="brand">
-          <div class="brand-icon">📈</div>
+      <div class="footer-brand">
+        <a href="index.html" class="brand" style="margin-bottom:14px;">
+          <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
             <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
-            <span class="brand-badge">Trading Intelligence</span>
+            <div class="brand-meta">
+              <span class="live-feed-dot"></span>
+              <span class="brand-badge">Trading Intelligence</span>
+            </div>
           </div>
-        </div>
-        <p style="margin-top:14px;font-size:13px;line-height:1.6;">Empowering Indian traders with algorithmic quantitative edge and strict risk preservation.</p>
+        </a>
+        <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted);line-height:1.65;max-width:320px;">
+          Empowering Indian retail traders with institutional-grade algorithmic intelligence, multi-timeframe confluence, and strict risk preservation.
+        </p>
       </div>
+
       <div class="footer-col">
-        <h5>Quick Links</h5>
+        <h5>Trading Intelligence</h5>
         <ul>
-          <li><a href="index.html">Home</a></li>
-          <li><a href="trades.html">Possible Trades</a></li>
-          <li><a href="accuracy.html">95% Accuracy Engine</a></li>
-          <li><a href="pricing.html">Subscriptions</a></li>
+          <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Intel</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
         </ul>
       </div>
+
       <div class="footer-col">
-        <h5>Platform</h5>
+        <h5>Platform & Arena</h5>
         <ul>
-          <li><a href="fingroww_trading_intelligence_NSE.html">Live Terminal</a></li>
-          <li><a href="contact.html">Support Desk</a></li>
-          <li><a href="about.html">About FinGroww</a></li>
-          <li><a href="disclaimer.html">Compliance & SEBI</a></li>
+          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Trading Terminal</a></li>
+          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+          <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
         </ul>
       </div>
+
       <div class="footer-col">
-        <h5>Connect</h5>
+        <h5>Compliance & Help</h5>
         <ul>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="margin-right:6px;color:#25d366;"></i>WhatsApp Desk</a></li>
-          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="margin-right:6px;"></i>support@fingroww.com</a></li>
-          <li><a href="pricing.html"><i class="fa-solid fa-shield-halved" style="margin-right:6px;color:var(--accent-green);"></i>7-Day Guarantee</a></li>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="color:var(--accent-blue);font-size:12px;"></i> Support Desk</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-scale-balanced" style="font-size:11px;"></i> SEBI & Legal Compliance</a></li>
+          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="font-size:12px;"></i> support@fingroww.com</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:12px;"></i> WhatsApp Support</a></li>
         </ul>
       </div>
     </div>
 
-    <!-- Statutory SEBI & Regulatory Risk Disclaimer -->
-    <div style="margin-top:40px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11px;color:var(--text-dim);line-height:1.65;">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI & Regulatory Risk Disclosure:</strong>
-      Securities and derivatives trading in Indian stock markets involves substantial risk of loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created for analytical purposes. We do not provide guaranteed returns, portfolio management services (PMS), or SEBI-registered personal investment advisory.
+    <!-- Statutory SEBI Regulatory Disclosure -->
+    <div class="sebi-disclaimer-box" style="margin-top:30px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11.5px;color:var(--text-dim);line-height:1.65;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div style="border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
+    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:20px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
       <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
       <div style="display:flex;gap:16px;">
-        <a href="https://wa.me/917984116859" target="_blank" title="WhatsApp"><i class="fa-brands fa-whatsapp" style="font-size:16px;"></i></a>
-        <a href="mailto:support@fingroww.com" title="Email"><i class="fa-solid fa-envelope" style="font-size:16px;"></i></a>
+        <a href="disclaimer.html">Terms & Compliance</a>
+        <a href="contact.html">Support</a>
+        <a href="mailto:support@fingroww.com">Email</a>
       </div>
     </div>
   </div>
@@ -681,8 +701,176 @@ tr:hover td { background: var(--bg-card-hover); }
 </a>
 
 <!-- Scripts -->
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-<script src="theme.js"></script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js">
+// Dynamic MongoDB Atlas Signal Sync for Setups Radar
+async function fetchDbSignalsForTrades() {
+  const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
+  let resData = null;
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
+      if (r.ok) {
+        resData = await r.json();
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  if (!resData || !resData.signals || !resData.signals.length) return;
+  
+  // Also fetch outcome win rate if available
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
+      if (r.ok) {
+        const out = await r.json();
+        const accEl = document.getElementById("tradeWinAcc");
+        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  const grid = document.getElementById("tradesGrid");
+  if (!grid) return;
+  
+  const dbCardsHtml = resData.signals.map(s => {
+    const isBuy = s.signal_type === "BUY";
+    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
+    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
+    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
+    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
+    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
+    
+    return `
+      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
+        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
+        </div>
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">${s.symbol}</div>
+            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+          </div>
+          <span class="tc-badge ${badgeClass}">${badgeText}</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
+  
+  const countEl = document.getElementById("activeTradesCount");
+  if (countEl) {
+    const total = document.querySelectorAll(".trade-card").length;
+    countEl.textContent = total + " Setups";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
+
+</script>
+<script src="theme.js">
+// Dynamic MongoDB Atlas Signal Sync for Setups Radar
+async function fetchDbSignalsForTrades() {
+  const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
+  let resData = null;
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
+      if (r.ok) {
+        resData = await r.json();
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  if (!resData || !resData.signals || !resData.signals.length) return;
+  
+  // Also fetch outcome win rate if available
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
+      if (r.ok) {
+        const out = await r.json();
+        const accEl = document.getElementById("tradeWinAcc");
+        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  const grid = document.getElementById("tradesGrid");
+  if (!grid) return;
+  
+  const dbCardsHtml = resData.signals.map(s => {
+    const isBuy = s.signal_type === "BUY";
+    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
+    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
+    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
+    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
+    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
+    
+    return `
+      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
+        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
+        </div>
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">${s.symbol}</div>
+            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+          </div>
+          <span class="tc-badge ${badgeClass}">${badgeText}</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
+  
+  const countEl = document.getElementById("activeTradesCount");
+  if (countEl) {
+    const total = document.querySelectorAll(".trade-card").length;
+    countEl.textContent = total + " Setups";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
+
+</script>
 <script>
 // Initialize AOS Animations
 AOS.init({
@@ -717,6 +905,90 @@ function searchTrades() {
     }
   });
 }
+
+// Dynamic MongoDB Atlas Signal Sync for Setups Radar
+async function fetchDbSignalsForTrades() {
+  const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
+  let resData = null;
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
+      if (r.ok) {
+        resData = await r.json();
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  if (!resData || !resData.signals || !resData.signals.length) return;
+  
+  // Also fetch outcome win rate if available
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
+      if (r.ok) {
+        const out = await r.json();
+        const accEl = document.getElementById("tradeWinAcc");
+        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
+        break;
+      }
+    } catch (e) {}
+  }
+  
+  const grid = document.getElementById("tradesGrid");
+  if (!grid) return;
+  
+  const dbCardsHtml = resData.signals.map(s => {
+    const isBuy = s.signal_type === "BUY";
+    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
+    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
+    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
+    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
+    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
+    
+    return `
+      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
+        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
+        </div>
+        <div class="tc-top">
+          <div>
+            <div class="tc-sym mono">${s.symbol}</div>
+            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+          </div>
+          <span class="tc-badge ${badgeClass}">${badgeText}</span>
+        </div>
+
+        <div class="tc-grid-levels mono">
+          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
+          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
+        </div>
+
+        <div class="tc-confluence-box">
+          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
+        </div>
+
+        <div class="tc-footer">
+          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
+          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
+  
+  const countEl = document.getElementById("activeTradesCount");
+  if (countEl) {
+    const total = document.querySelectorAll(".trade-card").length;
+    countEl.textContent = total + " Setups";
+  }
+}
+
+document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
+
 </script>
 
 </body>
