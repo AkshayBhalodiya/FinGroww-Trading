@@ -96,7 +96,7 @@
 .trades-section { padding-bottom: 70px; }
 .trades-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 24px;
 }
 .trade-card {
@@ -195,6 +195,19 @@ tr:hover td { background: var(--bg-card-hover); }
 
 @media (max-width: 900px) {
   .page-hero-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .live-metrics-panel { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .lmp-box { padding: 10px 12px; }
+  .lmp-box .val { font-size: 1.35rem; }
+  .trades-grid { grid-template-columns: 1fr; }
+  .radar-controls { flex-direction: column; align-items: stretch; gap: 12px; }
+  .filter-group { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .radar-tab { flex-shrink: 0; padding: 6px 14px; font-size: 12px; }
+  .search-box { width: 100%; min-width: 0; }
+  .tc-grid-levels { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+  .cta-banner { flex-direction: column; text-align: center; padding: 22px 18px; }
+  .cta-banner .btn { width: 100%; }
 }
 </style>
 <body>

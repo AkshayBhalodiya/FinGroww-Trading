@@ -407,6 +407,16 @@
 @media (max-width: 480px) {
   .options-grid { grid-template-columns: 1fr; }
 }
+@media (max-width: 600px) {
+  .radar-head-grid { gap: 16px; }
+  .controls-row-top { flex-direction: column; align-items: stretch; }
+  .status-tabs-group { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .status-tab-btn { flex-shrink: 0; padding: 6px 12px; font-size: 11.5px; }
+  .card-top-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .card-levels-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+  .drawer-header { padding: 10px 14px; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .drawer-summary-pills { width: 100%; justify-content: space-between; font-size: 11px; flex-wrap: wrap; }
+}
 
 /* Option Setup Card */
 .op-card {

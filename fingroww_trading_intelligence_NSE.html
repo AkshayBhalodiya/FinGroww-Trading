@@ -383,12 +383,27 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
   .actions{grid-column:1/-1}
 }
 @media(max-width:767px){
-  header{padding:10px 14px}
-  #dataStatus{max-width:100%;text-align:left;width:100%;order:3}
-  .status-hud{width:100%}
+  header{padding:8px 12px; gap:8px}
+  .status-hud{
+    width:100%;
+    display:flex;
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    padding-bottom:4px;
+    gap:6px;
+    justify-content:flex-start;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .status-hud::-webkit-scrollbar{display:none}
+  .live-pill{flex-shrink:0;font-size:10.5px;padding:4px 10px}
+  .chip{flex-shrink:0}
+  #clock, #dataStatus{display:none}
   .hero-price{width:100%;text-align:left;margin-top:8px}
   .actions{flex-direction:column}
-  .btn-scan{order:-1}
+  .btn-scan{order:-1;width:100%}
+  .hud{grid-template-columns:repeat(2,1fr);gap:8px}
+  .chartbox{height:340px;min-height:260px}
 }
 </style>
 </head>
