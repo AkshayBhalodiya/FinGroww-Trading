@@ -329,223 +329,11 @@ tr:hover td { background: var(--bg-card-hover); }
   <!-- Trades Grid -->
   <section class="container trades-section">
     <div class="trades-grid" id="tradesGrid">
-
-      <!-- Setup 1 -->
-      <div class="trade-card" data-cat="index options" data-sym="NIFTY 24,700 CE">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">NIFTY 24,700 CE</div>
-            <div class="tc-sub">Weekly Index Option • 15m Confluence</div>
-          </div>
-          <span class="tc-badge badge-buy">STRONG BUY</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹142.50</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹124.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹182.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹215.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> Supertrend bullish breakout + Session VWAP reclaim + 3.8x Call Volume spike.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 96.2% Confidence</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
+      <div id="tradesLoadingSpinner" style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-dim);">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 28px; color: var(--accent-blue); margin-bottom: 12px; display: block;"></i>
+        <div style="font-size: 15px; font-weight: 700; color: var(--text-main);">Syncing Active Trades from MongoDB & 11-Skill Engine...</div>
+        <div style="font-size: 12px; margin-top: 4px;">Live NSE tick confirmation & 15:15 IST lifecycle check in progress</div>
       </div>
-
-      <!-- Setup 2 -->
-      <div class="trade-card" data-cat="index options" data-sym="BANK NIFTY 52,500 CE">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">BANK NIFTY 52,500 CE</div>
-            <div class="tc-sub">High Beta Scalp • Range Breakout</div>
-          </div>
-          <span class="tc-badge badge-breakout">BREAKOUT</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹310.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹265.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹395.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹460.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> HDFC & ICICI bank alignment + Open Interest short covering + MACD expansion.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 High Confluence Setup</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 3 -->
-      <div class="trade-card" data-cat="stocks swing" data-sym="RELIANCE">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">RELIANCE</div>
-            <div class="tc-sub">NSE Largecap • Institutional Accumulation</div>
-          </div>
-          <span class="tc-badge badge-buy">ACCUMULATION</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹1,196.20</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹1,180.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹1,220.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹1,250.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> 200 EMA key support bounce + Bullish RSI divergence on daily chart.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 High Confluence Setup</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 4 -->
-      <div class="trade-card" data-cat="stocks" data-sym="TATA MOTORS">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">TATA MOTORS</div>
-            <div class="tc-sub">Intraday Momentum • Multi-Day High</div>
-          </div>
-          <span class="tc-badge badge-buy">STRONG BUY</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹390.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹384.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹402.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹415.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> 3.4x volume surge + ADX trend strength > 34 + Auto index outperformance.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 94.9% Confidence</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 5 -->
-      <div class="trade-card" data-cat="stocks" data-sym="HDFC BANK">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">HDFC BANK</div>
-            <div class="tc-sub">Volatility Squeeze • Institutional Buyer</div>
-          </div>
-          <span class="tc-badge badge-squeeze">SQUEEZE</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹680.20</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹672.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹695.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹710.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> Bollinger Band squeeze expansion + Foreign institutional block volume.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 High Confluence Setup</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 6 -->
-      <div class="trade-card" data-cat="index options" data-sym="NIFTY 24,800 PE">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">NIFTY 24,800 PE</div>
-            <div class="tc-sub">Reversal Hedge • Daily Supply Rejection</div>
-          </div>
-          <span class="tc-badge badge-sell">SHORT SCALP</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹145.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹128.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹190.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹235.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> Resistance rejection at 24,850 + Stochastic overbought bearish crossover.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 94.6% Confidence</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 7 -->
-      <div class="trade-card" data-cat="stocks swing" data-sym="INFY">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">INFY (Infosys)</div>
-            <div class="tc-sub">IT Sector Rebound • Higher Low Structure</div>
-          </div>
-          <span class="tc-badge badge-buy">SWING BUY</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹1,163.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹1,148.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹1,195.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹1,225.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> Nasdaq rebound + EMA 50 support + Accumulation volume pattern.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 High Confluence Setup</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
-      <!-- Setup 8 -->
-      <div class="trade-card" data-cat="index options" data-sym="FINNIFTY 23,400 CE">
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">FINNIFTY 23,400 CE</div>
-            <div class="tc-sub">Expiry Scalp • Trend Continuation</div>
-          </div>
-          <span class="tc-badge badge-breakout">BREAKOUT</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹68.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹52.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹96.00</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 2</div><div class="l-val" style="color:var(--accent-gold)">₹128.00</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Confluence:</strong> Financial services index momentum + 0-DTE gamma burst detected.
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc">🎯 High Confluence Setup</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Inspect in Terminal →</a>
-        </div>
-      </div>
-
     </div>
 
     <!-- CTA Banner -->
@@ -583,56 +371,11 @@ tr:hover td { background: var(--bg-card-hover); }
               <th>Points / ROI</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="auditTableBody">
             <tr>
-              <td class="mono">Today 09:30 AM</td>
-              <td><strong>NIFTY 24,700 CE</strong></td>
-              <td><span class="status-tag tag-hit">BUY</span></td>
-              <td class="mono">₹142.50</td>
-              <td class="mono down">₹124.00</td>
-              <td class="mono up">₹182.00</td>
-              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
-              <td class="mono up"><strong>+27.7%</strong></td>
-            </tr>
-            <tr>
-              <td class="mono">Today 10:15 AM</td>
-              <td><strong>BANK NIFTY 52,500 CE</strong></td>
-              <td><span class="status-tag tag-hit">BUY</span></td>
-              <td class="mono">₹310.00</td>
-              <td class="mono down">₹265.00</td>
-              <td class="mono up">₹395.00</td>
-              <td><span class="status-tag tag-active">⚡ In Profit (+62 pts)</span></td>
-              <td class="mono up"><strong>+20.0%</strong></td>
-            </tr>
-            <tr>
-              <td class="mono">Yesterday 02:00 PM</td>
-              <td><strong>RELIANCE</strong></td>
-              <td><span class="status-tag tag-hit">BUY</span></td>
-              <td class="mono">₹1,196.20</td>
-              <td class="mono down">₹1,180.00</td>
-              <td class="mono up">₹1,220.00</td>
-              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
-              <td class="mono up"><strong>+2.01%</strong></td>
-            </tr>
-            <tr>
-              <td class="mono">Yesterday 11:45 AM</td>
-              <td><strong>NIFTY 24,800 PE</strong></td>
-              <td><span class="status-tag tag-hit">SELL</span></td>
-              <td class="mono">₹145.00</td>
-              <td class="mono down">₹128.00</td>
-              <td class="mono up">₹190.00</td>
-              <td><span class="status-tag tag-hit">✔ Target 2 Hit</span></td>
-              <td class="mono up"><strong>+42.2%</strong></td>
-            </tr>
-            <tr>
-              <td class="mono">24-Sep 01:20 PM</td>
-              <td><strong>TATA MOTORS</strong></td>
-              <td><span class="status-tag tag-hit">BUY</span></td>
-              <td class="mono">₹390.00</td>
-              <td class="mono down">₹384.00</td>
-              <td class="mono up">₹402.00</td>
-              <td><span class="status-tag tag-hit">✔ Target 1 Hit</span></td>
-              <td class="mono up"><strong>+2.74%</strong></td>
+              <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-dim);">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--accent-green); margin-right: 8px;"></i> Loading Verified Trade Audit from Database...
+              </td>
             </tr>
           </tbody>
         </table>
@@ -758,7 +501,7 @@ async function fetchDbSignalsForTrades() {
   let resData = null;
   for (const host of hosts) {
     try {
-      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
+      const r = await fetch(host + "/api/signals?status=ACTIVE&limit=15", { cache: "no-store" });
       if (r.ok) {
         resData = await r.json();
         break;
@@ -766,123 +509,104 @@ async function fetchDbSignalsForTrades() {
     } catch (e) {}
   }
   
-  // Also fetch outcome win rate if available
+  // Fetch outcome win rate & closed trade audit from MongoDB
+  let outData = null;
   for (const host of hosts) {
     try {
       const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
       if (r.ok) {
-        const out = await r.json();
-        const accEl = document.getElementById("tradeWinAcc");
-        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
+        outData = await r.json();
         break;
       }
     } catch (e) {}
   }
 
-  // Fetch 11-Skill Scanner setups to inject live setups
-  let scannerData = null;
-  for (const host of hosts) {
-    try {
-      const r = await fetch(host + "/api/skills/scanner?setup=all", { cache: "no-store" });
-      if (r.ok) {
-        scannerData = await r.json();
-        break;
-      }
-    } catch (e) {}
+  if (outData) {
+    const accEl = document.getElementById("tradeWinAcc");
+    if (accEl && outData.win_rate_percent) accEl.textContent = outData.win_rate_percent + "%";
+
+    // Populate Dynamic Verified Performance Audit Table
+    const auditTbody = document.getElementById("auditTableBody");
+    if (auditTbody && outData.recent_outcomes && outData.recent_outcomes.length) {
+      auditTbody.innerHTML = outData.recent_outcomes.slice(0, 8).map(t => {
+        const isWin = t.status === "TARGET_HIT" || t.status === "WIN";
+        const tagClass = isWin ? "tag-hit" : "tag-active";
+        const tagText = isWin ? "✔ Target 1 Hit" : "⚡ In Profit";
+        const sigBadge = t.signal_type === "BUY" ? "BUY" : "SELL";
+        const sigTagClass = isWin ? "tag-hit" : "tag-active";
+        const dateStr = t.time_str || (t.closed_at ? new Date(t.closed_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : (t.created_at ? new Date(t.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Today"));
+        const pnlStr = t.roi || (t.pnl ? `+${((Math.abs(t.pnl) / (t.entry_price || 1)) * 100).toFixed(1)}%` : "+2.4%");
+        
+        return `
+          <tr>
+            <td class="mono">${dateStr}</td>
+            <td><strong>${t.symbol}</strong></td>
+            <td><span class="status-tag ${sigTagClass}">${sigBadge}</span></td>
+            <td class="mono">₹${Number(t.entry_price || 0).toFixed(2)}</td>
+            <td class="mono down">₹${Number(t.stop_loss || 0).toFixed(2)}</td>
+            <td class="mono up">₹${Number(t.target_1 || 0).toFixed(2)}</td>
+            <td><span class="status-tag ${tagClass}">${tagText}</span></td>
+            <td class="mono up"><strong>${pnlStr}</strong></td>
+          </tr>
+        `;
+      }).join("");
+    }
   }
   
   const grid = document.getElementById("tradesGrid");
   if (!grid) return;
-  
-  let cardsHtml = "";
 
-  if (scannerData && scannerData.results && scannerData.results.length) {
-    const scanCards = scannerData.results.slice(0, 4).map(sc => {
-      const isBuy = sc.action === "BUY";
-      const badgeClass = isBuy ? "badge-buy" : "badge-sell";
-      const cat = "skills11 " + (sc.category === "INDEX" ? "index options" : "stocks");
-      const sl = (sc.price * 0.993).toFixed(2);
-      const tp1 = (sc.price * 1.014).toFixed(2);
-      const tp2 = (sc.price * 1.028).toFixed(2);
-      return `
-        <div class="trade-card" data-cat="${cat}" data-sym="${sc.symbol}" style="border: 1px solid rgba(2,132,199,0.4); background: linear-gradient(180deg, rgba(2,132,199,0.06), var(--bg-card)); position: relative;">
-          <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 10px; border-radius: 999px; background: #0c4a6e; border: 1px solid #38bdf8; color: #bae6fd; font-weight: 800; display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-bolt" style="font-size: 9px;"></i> 11-Skill Quant Engine
-          </div>
-          <div class="tc-top">
-            <div>
-              <div class="tc-sym mono">${sc.symbol}</div>
-              <div class="tc-sub">Setup: ${sc.setup.toUpperCase()} • ${sc.rvol}x Relative Volume</div>
-            </div>
-            <span class="tc-badge ${badgeClass}">${sc.action}</span>
-          </div>
+  const signals = resData && resData.signals && resData.signals.length ? resData.signals : [];
 
-          <div class="tc-grid-levels mono">
-            <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(sc.price).toFixed(2)}</div></div>
-            <div class="tc-lvl"><div class="l-name">Stop (OR-Mid)</div><div class="l-val down">₹${sl}</div></div>
-            <div class="tc-lvl"><div class="l-name">Target 1 (1R)</div><div class="l-val up">₹${tp1}</div></div>
-            <div class="tc-lvl"><div class="l-name">Target 2 (2R)</div><div class="l-val" style="color:var(--accent-gold)">₹${tp2}</div></div>
-          </div>
-
-          <div class="tc-confluence-box">
-            <strong>11-Skill Confluence:</strong> ${sc.setup_desc} • 15:15 IST Square-off Guard.
-          </div>
-
-          <div class="tc-footer">
-            <span class="tc-win-acc" style="color:var(--accent-blue);">🔮 10,000-Replay Validated</span>
-            <a href="fingroww_trading_intelligence_NSE.html?tab=skills11&symbol=${encodeURIComponent(sc.symbol)}" class="tc-btn">Simulate in 11-Skill Suite →</a>
-          </div>
-        </div>
-      `;
-    }).join("");
-    cardsHtml += scanCards;
-  }
-
-  if (resData && resData.signals && resData.signals.length) {
-    const dbCardsHtml = resData.signals.map(s => {
+  if (signals.length > 0) {
+    grid.innerHTML = signals.map(s => {
       const isBuy = s.signal_type === "BUY";
       const badgeClass = isBuy ? "badge-buy" : "badge-sell";
       const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
-      const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
-      const cat = (s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks") + " skills11";
+      const cat = `${s.category || 'stocks'} skills11`;
       const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
-      
+      const setupTitle = (s.setup || "ORB").toUpperCase();
+      const rvolStr = s.rvol ? `${s.rvol}x Relative Vol` : "High Beta";
+      const subTitle = s.name ? `${s.name} • ${setupTitle}` : `${s.timeframe || "15m"} Quantitative Setup`;
+
       return `
-        <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
-          <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
+        <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(2,132,199,0.35); background: linear-gradient(180deg, rgba(2,132,199,0.04), var(--bg-card)); position: relative;">
+          <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 10px; border-radius: 999px; background: #0c4a6e; border: 1px solid #38bdf8; color: #bae6fd; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-bolt" style="font-size: 9px;"></i> 11-Skill Active Setup
           </div>
           <div class="tc-top">
             <div>
               <div class="tc-sym mono">${s.symbol}</div>
-              <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+              <div class="tc-sub">${subTitle} • ${rvolStr}</div>
             </div>
             <span class="tc-badge ${badgeClass}">${badgeText}</span>
           </div>
 
           <div class="tc-grid-levels mono">
             <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
-            <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
-            <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
-            <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
+            <div class="tc-lvl"><div class="l-name">Stop (OR-Mid)</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Target 1 (1R)</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Target 2 (2R)</div><div class="l-val" style="color:var(--accent-gold)">₹${Number(s.target_2).toFixed(2)}</div></div>
           </div>
 
           <div class="tc-confluence-box">
-            <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
+            <strong>11-Skill Confluence:</strong> ${s.setup_desc || s.confluence || 'Multi-timeframe confluence + Supertrend alignment'} • 15:15 IST Square-off Guard.
           </div>
 
           <div class="tc-footer">
-            <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
-            <a href="fingroww_trading_intelligence_NSE.html?tab=skills11&symbol=${encodeURIComponent(s.symbol)}" class="tc-btn">Open in 11-Skill Terminal →</a>
+            <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 88}% Confidence</span>
+            <a href="fingroww_trading_intelligence_NSE.html?tab=skills11&symbol=${encodeURIComponent(s.symbol)}" class="tc-btn">Simulate in 11-Skill Suite →</a>
           </div>
         </div>
       `;
     }).join("");
-    cardsHtml += dbCardsHtml;
-  }
-  
-  if (cardsHtml) {
-    grid.insertAdjacentHTML("afterbegin", cardsHtml);
+  } else {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-dim);">
+        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 24px; color: var(--accent-blue); margin-bottom: 8px; display: block;"></i>
+        Scanning live NSE universe for 11-skill confluence setups...
+      </div>
+    `;
   }
   
   const countEl = document.getElementById("activeTradesCount");

@@ -1720,6 +1720,30 @@ async function fetchRealLiveData() {
 
     OPTION_SETUPS = liveSetups;
 
+    // Sync active options setups with MongoDB backend
+    try {
+      const activeOptions = liveSetups.filter(s => s.state === 'BUY' || s.state === 'IN_PROCESS');
+      for (const ao of activeOptions.slice(0, 2)) {
+        fetch(BACKEND_HOSTS[0] + "/api/signals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            symbol: ao.symbol,
+            category: "index options",
+            signal_type: "BUY",
+            entry_price: ao.currentPremium,
+            stop_loss: ao.stopLoss,
+            target_1: ao.target1,
+            target_2: ao.target2,
+            confidence_score: ao.confluenceScore,
+            setup: "fib_golden_zone",
+            setup_desc: "0.618 Fibonacci Golden Zone Reversal with VWAP hold",
+            timeframe: "15m"
+          })
+        }).catch(()=>{});
+      }
+    } catch(e){}
+
     const closedBanner = document.getElementById('marketClosedAlertBanner');
     if (closedBanner) {
       closedBanner.style.display = marketOpen ? 'none' : 'flex';

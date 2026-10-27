@@ -765,7 +765,7 @@
     <div class="t-item"><span class="t-val">TATA MOTORS</span> ₹390.00 <span class="up">▲ +2.10%</span></div>
     <div class="t-item"><span class="t-val">SENSEX</span> 74,500.20 <span class="up">▲ +0.76%</span></div>
     <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> ALGO ACCURACY:</span> <span class="up" style="font-weight:800">CONFLUENCE VERIFIED</span></div>
-    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bell" style="color:var(--accent-blue)"></i> ACTIVE SIGNAL:</span> NIFTY 22,750 CE (TARGET 1 REACHED)</div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bell" style="color:var(--accent-blue)"></i> ACTIVE SIGNAL:</span> <span class="active-sig-dyn">NIFTY 22,750 CE @ ₹125 (ACTIVE)</span></div>
     <!-- Duplicate for infinite scroll -->
     <div class="t-item"><span class="t-val">NIFTY 50</span> 22,749.75 <span class="up">▲ +0.84%</span></div>
     <div class="t-item"><span class="t-val">BANK NIFTY</span> 53,974.90 <span class="up">▲ +1.12%</span></div>
@@ -773,6 +773,7 @@
     <div class="t-item"><span class="t-val">HDFCBANK</span> ₹680.20 <span class="up">▲ +0.95%</span></div>
     <div class="t-item"><span class="t-val">TATA MOTORS</span> ₹390.00 <span class="up">▲ +2.10%</span></div>
     <div class="t-item"><span class="t-val">SENSEX</span> 74,500.20 <span class="up">▲ +0.76%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bell" style="color:var(--accent-blue)"></i> ACTIVE SIGNAL:</span> <span class="active-sig-dyn">NIFTY 22,750 CE @ ₹125 (ACTIVE)</span></div>
     <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> ALGO ACCURACY:</span> <span class="up" style="font-weight:800">CONFLUENCE VERIFIED</span></div>
   </div>
 </div>
@@ -1758,6 +1759,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  // Dynamic MongoDB Active Signal Ticker Sync
+  (async function syncHomeSignal() {
+    for (const host of ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"]) {
+      try {
+        const r = await fetch(host + "/api/signals?status=ACTIVE&limit=1", { cache: "no-store" });
+        if (r.ok) {
+          const d = await r.json();
+          if (d.signals && d.signals.length) {
+            const top = d.signals[0];
+            const text = `${top.symbol} @ ₹${Number(top.entry_price).toFixed(2)} (${top.signal_type} • ${top.setup.toUpperCase()})`;
+            document.querySelectorAll(".active-sig-dyn").forEach(el => el.textContent = text);
+          }
+          break;
+        }
+      } catch(e) {}
+    }
+  })();
 });
 </script>
 
