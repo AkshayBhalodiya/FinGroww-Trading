@@ -120,6 +120,36 @@ class TestFinGrowwProductionReadiness(unittest.TestCase):
         self.assertEqual(me_r.status_code, 200)
         self.assertEqual(me_r.json().get("user", {}).get("email"), unique_email)
 
+    def test_08_11_skills_suite(self):
+        """Pillar 9: Test complete 11-skill quantitative suite integration."""
+        r = requests.get(f"{BASE_URL}/api/skills/suite?symbol=RELIANCE", timeout=10)
+        self.assertEqual(r.status_code, 200)
+        data = r.json()
+        self.assertEqual(data.get("status"), "SUCCESS")
+        skills = data.get("skills", {})
+        
+        # Verify all 11 skills are present
+        expected_skills = [
+            "scanner", "news", "entry", "exit", "timemachine",
+            "budget", "risk", "broker", "alerts", "analyst", "institutional"
+        ]
+        for sk in expected_skills:
+            self.assertIn(sk, skills, f"Missing skill: {sk}")
+
+        # Check Monte Carlo Time Machine simulation results
+        tm = skills.get("timemachine", {})
+        self.assertIn("target_hits_pct", tm)
+        self.assertIn("verdict", tm)
+
+        # Check pre-trade risk supervisor
+        risk = skills.get("risk", {})
+        self.assertIn("verdict", risk)
+
+        # Check budget manager
+        budget = skills.get("budget", {})
+        self.assertIn("bracket_order", budget)
+
 if __name__ == "__main__":
     unittest.main()
+
 

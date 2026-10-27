@@ -1007,8 +1007,201 @@ def system_status():
         "version": "FinGroww Core Engine v7.0"
     })
 
+# -------------------------------------------------------------------------
+# PHASE 3: 11-SKILL QUANTITATIVE DAY TRADING INTELLIGENCE SUITE
+# -------------------------------------------------------------------------
+try:
+    from fingroww_skills_engine import (
+        IndianMarketScanner,
+        IndianMarketNews,
+        IndianEntryTimer,
+        IndianExitPlanner,
+        IndianTimeMachine,
+        IndianBudgetManager,
+        IndianRiskSupervisor,
+        IndianBrokerExecutor,
+        IndianAlertsManager,
+        IndianEarningsAnalyst,
+        IndianInstitutionalTracker,
+        get_full_11_skill_suite,
+    )
+except ImportError:
+    pass
+
+
+@app.get("/api/skills/suite")
+def skills_suite():
+    """Returns end-to-end synchronized intelligence across all 11 day-trading skills."""
+    sym = normalize_symbol(request.args.get("symbol", "NIFTY 50"))
+    capital = float(request.args.get("capital", 100000.0))
+    max_loss = float(request.args.get("max_loss", 2000.0))
+    try:
+        quote_data = resolve_quote(sym) or {}
+        price = float(quote_data.get("lastPrice") or 0.0)
+        suite = get_full_11_skill_suite(sym, price if price > 0 else None, capital, max_loss)
+        return jsonify(suite)
+    except Exception as exc:
+        return jsonify({"error": str(exc), "symbol": sym}), 500
+
+
+@app.get("/api/skills/scanner")
+def skills_scanner():
+    """Skill 1: Scans Indian universe for ORB 15m, 20D Breakouts, Bull Flags, Reclaims & Oversold Bounces."""
+    setup = request.args.get("setup", "all").lower().strip()
+    try:
+        # Optionally populate live quotes if cached
+        res = IndianMarketScanner.scan(setup_filter=setup)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.get("/api/skills/timemachine")
+def skills_timemachine():
+    """Skill 5: 10,000-run Monte Carlo simulation to evaluate target vs stop odds & expected value."""
+    sym = normalize_symbol(request.args.get("symbol", "NIFTY 50"))
+    entry = float(request.args.get("entry", 0.0))
+    stop = float(request.args.get("stop", 0.0))
+    target = float(request.args.get("target", 0.0))
+    replays = int(request.args.get("replays", 10000))
+
+    if entry <= 0:
+        quote_data = resolve_quote(sym) or {}
+        entry = float(quote_data.get("lastPrice") or 25000.0)
+    if stop <= 0:
+        stop = round(entry * 0.993, 2)
+    if target <= 0:
+        target = round(entry * 1.014, 2)
+
+    try:
+        res = IndianTimeMachine.run_simulation(sym, entry, stop, target, replays=replays)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.post("/api/skills/budget")
+def skills_budget():
+    """Skill 6: Professional Indian capital & F&O lot sizing engine."""
+    data = request.get_json(silent=True) or {}
+    sym = normalize_symbol(data.get("symbol", "NIFTY 50"))
+    entry = float(data.get("entry", 0.0))
+    stop = float(data.get("stop", 0.0))
+    target = float(data.get("target", 0.0))
+    capital = float(data.get("capital", 100000.0))
+    max_loss = float(data.get("max_loss", 2000.0))
+    is_fo = bool(data.get("is_fo", False))
+
+    if entry <= 0:
+        quote_data = resolve_quote(sym) or {}
+        entry = float(quote_data.get("lastPrice") or 25000.0)
+    if stop <= 0:
+        stop = round(entry * 0.993, 2)
+    if target <= 0:
+        target = round(entry * 1.014, 2)
+
+    try:
+        res = IndianBudgetManager.size_position(sym, entry, stop, target, capital, max_loss, is_fo)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.post("/api/skills/risk-check")
+def skills_risk_check():
+    """Skill 7: Pre-trade risk check (Daily Loss Limit, Window, Overtrading, R:R)."""
+    data = request.get_json(silent=True) or {}
+    order = data.get("order") or data
+    daily_pnl = float(data.get("daily_pnl", 0.0))
+    trade_count = int(data.get("trade_count", 1))
+    loss_limit = float(data.get("daily_loss_limit", 5000.0))
+    try:
+        res = IndianRiskSupervisor.check_order(order, daily_pnl, trade_count, loss_limit)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.post("/api/skills/paper-order")
+def skills_paper_order():
+    """Skill 8: Executes paper trade order or produces broker ticket."""
+    data = request.get_json(silent=True) or {}
+    sym = normalize_symbol(data.get("symbol", "NIFTY 50"))
+    entry = float(data.get("entry_price") or data.get("limit_price") or 24800.0)
+    sl = float(data.get("stop_loss") or data.get("stop_loss_trigger") or 24650.0)
+    tp = float(data.get("target_1") or data.get("target_trigger") or 25100.0)
+    qty = int(data.get("quantity", 25))
+
+    order_doc = {
+        "order_id": f"ORD-PAPER-{uuid.uuid4().hex[:8].upper()}",
+        "symbol": sym,
+        "side": data.get("side", "BUY"),
+        "quantity": qty,
+        "entry_price": entry,
+        "stop_loss": sl,
+        "target_price": tp,
+        "status": "FILLED (PAPER)",
+        "filled_at": datetime.now(timezone.utc).isoformat(),
+        "execution_engine": "FinGroww Paper Trading v7"
+    }
+
+    # Save to datastore
+    local_datastore["trade_outcomes"].append(order_doc)
+    if mongo_db is not None:
+        try:
+            mongo_db["trade_outcomes"].insert_one(dict(order_doc))
+        except Exception:
+            pass
+
+    return jsonify({"ok": True, "order": order_doc}), 201
+
+
+@app.get("/api/skills/institutional")
+def skills_institutional():
+    """Skill 11: Indian Pelosi tracker — FII / DII net cash & F&O flows, Bulk & Block deals."""
+    try:
+        res = IndianInstitutionalTracker.get_institutional_flow()
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.get("/api/skills/analyst")
+def skills_analyst():
+    """Skill 10: Quarterly earnings & margin scorecard for NSE stock."""
+    sym = normalize_symbol(request.args.get("symbol", "RELIANCE"))
+    try:
+        res = IndianEarningsAnalyst.get_fundamentals(sym)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.get("/api/skills/news")
+def skills_news():
+    """Skill 2: Company announcements & catalyst news."""
+    sym = normalize_symbol(request.args.get("symbol", "NIFTY 50"))
+    try:
+        res = IndianMarketNews.get_news(sym)
+        return jsonify(res)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.get("/api/skills/alerts")
+def skills_alerts():
+    """Skill 9: Real-time price alerts & 15:15 IST flatten watchers."""
+    sym = request.args.get("symbol")
+    try:
+        res = IndianAlertsManager.get_alerts(sym)
+        return jsonify({"alerts": res})
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 500
+
 
 if __name__ == "__main__":
     print("FinGroww market server: http://127.0.0.1:8787")
     print("  GET /api/live?symbol=RELIANCE&interval=15m")
+    print("  GET /api/skills/suite?symbol=RELIANCE")
     app.run(host="127.0.0.1", port=8787, debug=False)
+

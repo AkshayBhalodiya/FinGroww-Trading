@@ -11,7 +11,7 @@ strategy("FinGroww Ultra Pro — Institutional Sniper Strategy [v7]", shorttitle
 // 1. INPUT PARAMETERS & STRATEGY PRESETS
 // -----------------------------------------------------------------------------------------
 grp_mode     = "★ 1. STRATEGY PRESET & DIRECTION ★"
-strat_preset = input.string("Institutional Sniper (75-85% Win Rate)", "Execution Mode", options=["Institutional Sniper (75-85% Win Rate)", "Balanced Trend Runner (1:1.5 R:R)", "Custom ATR Parameters"], group=grp_mode)
+strat_preset = input.string("Institutional Sniper (75-85% Win Rate)", "Execution Mode", options=["Institutional Sniper (75-85% Win Rate)", "11-Skill ORB Breakout (15m)", "Balanced Trend Runner (1:1.5 R:R)", "Custom ATR Parameters"], group=grp_mode)
 trade_dir    = input.string("Trend Alignment Only (Long > 200, Short < 200)", "Trade Direction Filter", options=["Trend Alignment Only (Long > 200, Short < 200)", "Long Only (Bull Market Winner)", "Both (Aggressive Long & Short)", "Short Only (Bearish Bias)"], group=grp_mode)
 use_ema200   = input.bool(true, "200 EMA Institutional Trend Anchor", group=grp_mode)
 use_dip_only = input.bool(true, "Require Pullback to EMA 21 / Golden Zone (Never Chase Tops)", group=grp_mode)
@@ -20,8 +20,8 @@ grp_targets  = "★ 2. TARGETS & STOP LOSS (ATR) ★"
 atr_period   = input.int(14, "ATR Period", minval=1, group=grp_targets)
 
 // Adaptive presets
-preset_tp = strat_preset == "Institutional Sniper (75-85% Win Rate)" ? 0.80 : strat_preset == "Balanced Trend Runner (1:1.5 R:R)" ? 1.50 : 1.00
-preset_sl = strat_preset == "Institutional Sniper (75-85% Win Rate)" ? 1.80 : strat_preset == "Balanced Trend Runner (1:1.5 R:R)" ? 1.20 : 1.50
+preset_tp = strat_preset == "Institutional Sniper (75-85% Win Rate)" ? 0.80 : strat_preset == "11-Skill ORB Breakout (15m)" ? 1.40 : strat_preset == "Balanced Trend Runner (1:1.5 R:R)" ? 1.50 : 1.00
+preset_sl = strat_preset == "Institutional Sniper (75-85% Win Rate)" ? 1.80 : strat_preset == "11-Skill ORB Breakout (15m)" ? 1.00 : strat_preset == "Balanced Trend Runner (1:1.5 R:R)" ? 1.20 : 1.50
 
 custom_tp   = input.float(0.80, "Custom Target Multiplier (x ATR)", minval=0.4, maxval=5.0, step=0.05, group=grp_targets)
 custom_sl   = input.float(1.80, "Custom Stop Loss Multiplier (x ATR)", minval=0.5, maxval=4.0, step=0.1, group=grp_targets)
@@ -127,13 +127,30 @@ dip_short_ok = use_dip_only ? (pullback_to_e21_short or in_bear_gz or bear_sweep
 reversal_long_ok  = bull_bar and (close > e21) and (rsi_val >= 42 and rsi_val <= 68) and (rsi_val > rsi_val[1])
 reversal_short_ok = bear_bar and (close < e21) and (rsi_val >= 32 and rsi_val <= 58) and (rsi_val < rsi_val[1])
 
-// 4. Directional Filter
-allow_long  = (trade_dir == "Trend Alignment Only (Long > 200, Short < 200)" and macro_bull) or trade_dir == "Long Only (Bull Market Winner)" or trade_dir == "Both (Aggressive Long & Short)"
-allow_short = (trade_dir == "Trend Alignment Only (Long > 200, Short < 200)" and macro_bear) or trade_dir == "Short Only (Bearish Bias)" or trade_dir == "Both (Aggressive Long & Short)"
+// -------------------------------------------------------------------------
+// 11-SKILL OPENING RANGE BREAKOUT (ORB 15-MIN)
+// -------------------------------------------------------------------------
+in_orb_window = not na(time(timeframe.period, "0915-0930", "Asia/Kolkata"))
+var float orb_hi = na
+var float orb_lo = na
+
+if ta.change(time("D")) != 0
+    orb_hi := na
+    orb_lo := na
+
+if in_orb_window
+    orb_hi := na(orb_hi) ? high : math.max(orb_hi, high)
+    orb_lo := na(orb_lo) ? low : math.min(orb_lo, low)
+
+orb_mid = not na(orb_hi) and not na(orb_lo) ? (orb_hi + orb_lo) / 2.0 : na
+vol_spike = volume > ta.sma(volume, 20) * 1.2
+orb_buy_trigger  = not in_orb_window and not na(orb_hi) and ta.crossover(close, orb_hi) and vol_spike
+orb_sell_trigger = not in_orb_window and not na(orb_lo) and ta.crossunder(close, orb_lo) and vol_spike
 
 // Raw Bar Confirmation
-bool buy_signal_raw  = barstate.isconfirmed and allow_long and macro_bull and dip_long_ok and reversal_long_ok and in_entry_session
-bool sell_signal_raw = barstate.isconfirmed and allow_short and macro_bear and dip_short_ok and reversal_short_ok and in_entry_session
+bool is_orb_mode     = strat_preset == "11-Skill ORB Breakout (15m)"
+bool buy_signal_raw  = barstate.isconfirmed and allow_long and (is_orb_mode ? orb_buy_trigger : (macro_bull and dip_long_ok and reversal_long_ok)) and in_entry_session
+bool sell_signal_raw = barstate.isconfirmed and allow_short and (is_orb_mode ? orb_sell_trigger : (macro_bear and dip_short_ok and reversal_short_ok)) and in_entry_session
 
 // Cooldown Engine (Prevent overtrading & whipsaw duplicate losses)
 var int last_trade_bar = -999

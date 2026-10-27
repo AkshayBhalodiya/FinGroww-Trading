@@ -375,6 +375,62 @@ td{font-weight:600}
 td b{font-family:"JetBrains Mono",monospace}
 
 #riskResult{margin-top:14px;padding:14px;border-radius:var(--radius-sm);background:rgba(56,189,248,.08);border:1px solid var(--line);font-size:13px;line-height:1.6}
+
+/* 11-Skill Quantitative Day Trading Intelligence Suite Styles */
+.skills-container{display:flex;flex-direction:column;gap:16px}
+.skills-nav{
+  display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;
+  border-bottom:1px solid var(--line2);-webkit-overflow-scrolling:touch;scrollbar-width:thin;
+}
+.skill-pill{
+  flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:11px;font-weight:700;
+  border:1px solid var(--line2);background:var(--panel2);color:var(--muted);cursor:pointer;
+  transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:inherit;
+}
+.skill-pill:hover{color:var(--text);border-color:var(--blue)}
+.skill-pill.active{color:#fff;background:linear-gradient(135deg,#0284c7,#2563eb);border-color:transparent;box-shadow:0 4px 14px rgba(37,99,235,.35)}
+.subskill-pane{display:none}
+.subskill-pane.active{display:block}
+
+.skills-grid-2{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:860px){.skills-grid-2{grid-template-columns:1.2fr 0.8fr}}
+
+.skills-grid-3{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:768px){.skills-grid-3{grid-template-columns:repeat(3,1fr)}}
+
+.skill-box{
+  background:rgba(15,23,42,.6);border:1px solid var(--line2);border-radius:var(--radius-sm);
+  padding:16px;position:relative;
+}
+.skill-box-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.skill-box-title{font-size:13px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:6px}
+.skill-badge{
+  font-size:10px;font-weight:800;text-transform:uppercase;padding:3px 8px;border-radius:6px;
+  background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:var(--blue);
+}
+.badge-pass{background:rgba(0,230,118,.15);border-color:rgba(0,230,118,.4);color:var(--green)}
+.badge-block{background:rgba(255,71,87,.15);border-color:rgba(255,71,87,.4);color:var(--red)}
+.badge-wait{background:rgba(255,193,7,.15);border-color:rgba(255,193,7,.35);color:var(--yellow)}
+
+.progress-track{height:8px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;border-radius:999px;transition:width .4s ease}
+.fill-green{background:var(--green)}
+.fill-red{background:var(--red)}
+.fill-blue{background:var(--blue)}
+.fill-gold{background:var(--gold)}
+
+.code-ticket{
+  background:#090d16;border:1px solid var(--line2);border-radius:6px;padding:12px;
+  font-family:"JetBrains Mono",monospace;font-size:11px;color:#a5b4fc;overflow-x:auto;line-height:1.45;
+}
+.btn-approve{
+  background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:800;
+  padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;
+  display:inline-flex;align-items:center;gap:6px;transition:transform .12s,box-shadow .2s;
+  box-shadow:0 4px 14px rgba(16,185,129,.35);
+}
+.btn-approve:hover{box-shadow:0 6px 20px rgba(16,185,129,.45)}
+
 footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;line-height:1.5;opacity:.85}
 
 @media(min-width:768px){
@@ -572,7 +628,8 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
   </section>
 
   <div class="tabs" role="tablist">
-    <button type="button" class="tab active" data-tab="indicators">Indicators</button>
+    <button type="button" class="tab active" data-tab="skills11" id="tabSkills11" style="background:linear-gradient(135deg,#0284c7,#4338ca);border-color:transparent;color:#fff;font-weight:800;box-shadow:0 4px 15px rgba(2,132,199,.4);">⚡ 11-Skill Day Trading Suite</button>
+    <button type="button" class="tab" data-tab="indicators">Indicators</button>
     <button type="button" class="tab" data-tab="levels">Levels</button>
     <button type="button" class="tab" data-tab="optionchain" style="background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(56,189,248,.2));border-color:var(--purple);color:#fff">🎯 Option Chain</button>
     <button type="button" class="tab" data-tab="risk">Risk calc</button>
@@ -580,7 +637,340 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
     <button type="button" class="tab" data-tab="mongodb" style="background:rgba(16,185,129,.18);border-color:var(--green);color:#10b981;font-weight:700">☁️ MongoDB Cloud Signals</button>
   </div>
 
-  <section id="indicators" class="panel tabpanel active">
+  <section id="skills11" class="panel tabpanel active">
+    <!-- Header of 11-Skill Suite -->
+    <div class="panel-head" style="flex-wrap:wrap;gap:12px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <h3 style="font-size:1.15rem;font-weight:900;letter-spacing:-0.02em;">⚡ 11-Skill Quantitative Day Trading Intelligence Suite</h3>
+          <span class="skill-badge" style="background:rgba(16,185,129,.18);color:var(--green);border-color:rgba(16,185,129,.4)">15:15 IST Compliant</span>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;">
+          Adapted for Indian Market (NSE/BSE): Scanner • News • Entry Machine • Exit Planner • 10,000-Run Time Machine • Budget • Risk Guard • Broker Ticket • Active Alerts • Analyst • Institutional Radar
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button type="button" class="chip" id="btnSyncAllSkills" style="background:linear-gradient(135deg,#0284c7,#2563eb);color:#fff;font-weight:800;border:none;">🔄 Sync 11 Skills</button>
+      </div>
+    </div>
+
+    <!-- 11 Subskills Navigation Bar -->
+    <div class="skills-nav" id="subskillsNav">
+      <button type="button" class="skill-pill active" onclick="showSubSkill('skill_scanner')">🔭 1. Scanner</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_entry_exit')">⏳ 2-4. Entry & Exit</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_timemachine')">🔮 5. Time Machine</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_budget_risk')">💰 6-7. Budget & Risk</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_broker')">⚡ 8. Broker & Paper</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_alerts')">🔔 9. Alerts</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_analyst')">📊 10. Analyst (Q2)</button>
+      <button type="button" class="skill-pill" onclick="showSubSkill('skill_institutional')">🏛️ 11. Institutional / Pelosi</button>
+    </div>
+
+    <div class="skills-container" style="margin-top:14px;">
+      <!-- SUBPANE 1: SCANNER -->
+      <div id="subpane_skill_scanner" class="subskill-pane active">
+        <div class="skill-box">
+          <div class="skill-box-head">
+            <div>
+              <div class="skill-box-title">🔭 Indian Market Universe Scanner (NSE Equities & Indices)</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">Scans charts for ORB (15m), 20D Breakouts, Bull Flags, 20 EMA Reclaims & RSI Oversold Bounces</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" class="chip active" onclick="filterScannerSetups('all', this)">All Setups</button>
+              <button type="button" class="chip" onclick="filterScannerSetups('orb', this)">⚡ ORB (15m)</button>
+              <button type="button" class="chip" onclick="filterScannerSetups('breakout_20d', this)">🚀 20D High</button>
+              <button type="button" class="chip" onclick="filterScannerSetups('bull_flag', this)">🚩 Bull Flag</button>
+              <button type="button" class="chip" onclick="filterScannerSetups('reclaim_ma20', this)">📈 20 EMA Reclaim</button>
+              <button type="button" class="chip" onclick="filterScannerSetups('oversold_bounce', this)">🔥 RSI Bounce</button>
+            </div>
+          </div>
+          <div class="tablewrap" style="max-height:360px;overflow-y:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Category</th>
+                  <th>LTP ₹</th>
+                  <th>Chg %</th>
+                  <th>Setup Detected</th>
+                  <th>RVOL</th>
+                  <th>Confidence</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="scannerTableBody">
+                <tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted)">Scanning Indian Market Universe…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 2: ENTRY & EXIT (Skills 2, 3, 4) -->
+      <div id="subpane_skill_entry_exit" class="subskill-pane">
+        <div class="skills-grid-2">
+          <!-- Entry State Machine -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">⏳ Bar-by-Bar Entry Machine</div>
+              <span id="entryStatusBadge" class="skill-badge badge-wait">WAITING</span>
+            </div>
+            <div style="font-size:12px;color:var(--text);margin-bottom:14px;line-height:1.5;" id="entryReasonText">
+              Opening Range 15m forming. Watching for confirmed 5m candle close above OR High.
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+              <div class="metric"><div class="mini">15m OR High</div><div class="v green" id="entryOrHigh">₹—</div></div>
+              <div class="metric"><div class="mini">15m OR Midpoint</div><div class="v yellow" id="entryOrMid">₹—</div></div>
+              <div class="metric"><div class="mini">15m OR Low</div><div class="v red" id="entryOrLow">₹—</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);background:rgba(0,0,0,.25);padding:10px;border-radius:6px;border:1px solid var(--line2)">
+              🔒 <strong>Strict Rule:</strong> An entry order is valid ONLY when the bar completes and closes beyond the boundary with volume confirmation (&gt; 1.3x 20-bar avg).
+            </div>
+          </div>
+
+          <!-- Exit Planner -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">🎯 Pre-Trade Exit Planner</div>
+              <span class="skill-badge" style="background:rgba(255,213,79,.15);color:var(--gold);border-color:rgba(255,213,79,.3)">Strict 15:15 IST Flatten</span>
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px;">
+              <div class="metric"><div class="mini">Stop Loss (OR-Mid)</div><div class="v red" id="exitStopPrice">₹—</div><div class="mini" id="exitRiskPts">Risk: — pts</div></div>
+              <div class="metric"><div class="mini">Target 1 (1.0 R)</div><div class="v green" id="exitTarget1">₹—</div><div class="mini">1:1 Risk/Reward</div></div>
+              <div class="metric"><div class="mini">Target 2 (2.0 R)</div><div class="v green" id="exitTarget2">₹—</div><div class="mini">Institutional Standard</div></div>
+              <div class="metric"><div class="mini">Time-Stop Exit</div><div class="v yellow">15:15 IST</div><div class="mini">Mandatory MIS Square-off</div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.4;">
+              💡 Exit plan is finalized before entry. No emotional stop widening allowed.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 3: TIME MACHINE (Skill 5) -->
+      <div id="subpane_skill_timemachine" class="subskill-pane">
+        <div class="skill-box">
+          <div class="skill-box-head">
+            <div>
+              <div class="skill-box-title">🔮 Time Machine: 10,000-Run Intraday Monte Carlo Simulation</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">Replays the rest of the day 10,000 times using empirical 5-minute volatility distribution from past 60 sessions</div>
+            </div>
+            <button type="button" class="btn-approve" id="btnRunTimeMachine" onclick="triggerTimeMachineSim()">
+              <i class="fa-solid fa-play"></i> Run 10,000 Replays
+            </button>
+          </div>
+
+          <div class="skills-grid-3" style="margin-bottom:16px;">
+            <div class="metric">
+              <div class="mini">Target Hit First Odds</div>
+              <div class="v green" id="tmTargetOdds">--%</div>
+              <div class="progress-track"><div class="progress-fill fill-green" id="tmTargetBar" style="width:0%"></div></div>
+              <div class="mini" id="tmBreakevenNeeded">Breakeven Needed: 33.3% (at 2R)</div>
+            </div>
+            <div class="metric">
+              <div class="mini">Stop Loss First Odds</div>
+              <div class="v red" id="tmStopOdds">--%</div>
+              <div class="progress-track"><div class="progress-fill fill-red" id="tmStopBar" style="width:0%"></div></div>
+              <div class="mini">Conservative stop-first check</div>
+            </div>
+            <div class="metric">
+              <div class="mini">Still Open at 15:15 IST</div>
+              <div class="v yellow" id="tmOpenOdds">--%</div>
+              <div class="progress-track"><div class="progress-fill fill-gold" id="tmOpenBar" style="width:0%"></div></div>
+              <div class="mini" id="tmExpectedR">Expected Value: +0.00 R</div>
+            </div>
+          </div>
+
+          <div id="tmVerdictBox" style="background:rgba(2,132,199,.12);border:1px solid var(--line);border-radius:8px;padding:14px;font-size:13px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;">Mathematical Verdict</div>
+              <div id="tmVerdictText" style="font-size:15px;font-weight:800;color:#fff;margin-top:3px;">
+                Hit "Run 10,000 Replays" to compute empirical probabilities before risking ₹1.
+              </div>
+            </div>
+            <span class="skill-badge" id="tmEdgeBadge" style="font-size:11px;padding:5px 12px;">WAITING SIMULATION</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 4: BUDGET & RISK SUPERVISOR (Skills 6 & 7) -->
+      <div id="subpane_skill_budget_risk" class="subskill-pane">
+        <div class="skills-grid-2">
+          <!-- Budget Sizer -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">💰 Indian Capital & F&O Lot Sizer</div>
+              <span class="skill-badge" style="background:rgba(0,230,118,.15);color:var(--green)">Auto-Lot Rounding</span>
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px;">
+              <div class="metric"><div class="mini">Total Capital (₹)</div><div class="v"><input id="bgtCapital" type="number" value="100000" onchange="recalculateBudgetAndRisk()" style="font-size:15px;"></div></div>
+              <div class="metric"><div class="mini">Max Loss per Trade (₹)</div><div class="v"><input id="bgtMaxLoss" type="number" value="2000" onchange="recalculateBudgetAndRisk()" style="font-size:15px;"></div></div>
+              <div class="metric"><div class="mini">Calculated Quantity</div><div class="v blue" id="bgtQty">0 Shares</div><div class="mini" id="bgtLotsInfo">Lots: —</div></div>
+              <div class="metric"><div class="mini">Max Profit Potential (₹)</div><div class="v green" id="bgtProfit">₹0.00</div><div class="mini" id="bgtTotalCap">Required: ₹0.00</div></div>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin:0;">
+              Sizes position so that if the stop loss is touched at 15:15 IST or earlier, the loss is strictly capped at your max loss (₹2,000).
+            </p>
+          </div>
+
+          <!-- Risk Supervisor -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">🛡️ Pre-Trade Risk Supervisor</div>
+              <span id="riskVerdictBadge" class="skill-badge badge-pass">PASS</span>
+            </div>
+            <div id="riskChecksList" style="display:flex;flex-direction:column;gap:8px;font-size:12px;margin-bottom:14px;">
+              <div class="reason"><span>Session Window (09:15 - 15:15 IST)</span><span class="pill g">PASS</span></div>
+              <div class="reason"><span>Daily Loss Limit Guard (₹5,000)</span><span class="pill g">PASS</span></div>
+              <div class="reason"><span>Overtrading Guard (&lt; 6 trades/day)</span><span class="pill g">PASS</span></div>
+              <div class="reason"><span>Minimum Reward:Risk &gt;= 1.5:1</span><span class="pill g">PASS</span></div>
+            </div>
+            <div id="riskVerdictRationale" style="font-size:11px;color:var(--muted);background:rgba(0,0,0,.25);padding:10px;border-radius:6px;border:1px solid var(--line2)">
+              All institutional risk constraints satisfied. Trade passed to broker ticket engine.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 5: BROKER & PAPER TRADING (Skill 8) -->
+      <div id="subpane_skill_broker" class="subskill-pane">
+        <div class="skill-box">
+          <div class="skill-box-head">
+            <div>
+              <div class="skill-box-title">⚡ Indian Broker Execution Ticket & Paper Trading Engine</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">Formatted for Zerodha Kite Connect, Angel One SmartAPI & Paper Simulator</div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn-approve" id="btnExecutePaperOrder" onclick="executePaperOrder()">
+                <i class="fa-solid fa-bolt"></i> Approve & Paper Execute
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:12px;font-size:13px;font-weight:700;color:var(--text)" id="brokerSummaryLine">
+            BUY 50 NIFTY 50 @ ₹24,850.00 | Stop Loss: ₹24,700.00 | Target: ₹25,150.00
+          </div>
+
+          <div class="skills-grid-2">
+            <div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Zerodha Kite Connect MIS Bracket Payload:</div>
+              <pre class="code-ticket" id="kitePayloadCode">Loading bracket order…</pre>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Angel One SmartAPI ROBO Bracket Payload:</div>
+              <pre class="code-ticket" id="angelPayloadCode">Loading bracket order…</pre>
+            </div>
+          </div>
+          <div id="paperExecNotification" style="display:none;margin-top:12px;padding:12px;border-radius:6px;background:rgba(16,185,129,.15);border:1px solid #10b981;color:#a7f3d0;font-size:12px;align-items:center;gap:8px;">
+            <i class="fa-solid fa-circle-check"></i> <span id="paperExecText">Paper trade executed successfully at market price!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 6: ACTIVE ALERTS (Skill 9) -->
+      <div id="subpane_skill_alerts" class="subskill-pane">
+        <div class="skill-box">
+          <div class="skill-box-head">
+            <div class="skill-box-title">🔔 Active Price & Square-off Alerts HUD</div>
+            <span class="skill-badge" style="background:rgba(56,189,248,.18);color:var(--blue)">3 Active Watchers</span>
+          </div>
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Instrument</th>
+                  <th>Trigger Condition</th>
+                  <th>Trigger Level</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="alertsTableBody">
+                <tr><td colspan="6" style="padding:18px;text-align:center;color:var(--muted)">Loading active alerts…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 7: EARNINGS ANALYST & NEWS (Skills 2 & 10) -->
+      <div id="subpane_skill_analyst" class="subskill-pane">
+        <div class="skills-grid-2">
+          <!-- Analyst Scorecard -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">📊 Fundamental & Quarterly Scorecard (Q2)</div>
+              <span class="skill-badge" id="analystRatingBadge" style="background:rgba(0,230,118,.15);color:var(--green)">STRONG BUY</span>
+            </div>
+            <div class="metrics" style="grid-template-columns:repeat(2,1fr);margin-bottom:14px;">
+              <div class="metric"><div class="mini">Revenue Growth (YoY)</div><div class="v green" id="anaRevGrowth">+12.4%</div></div>
+              <div class="metric"><div class="mini">EBITDA Margin</div><div class="v blue" id="anaEbitda">18.5%</div></div>
+              <div class="metric"><div class="mini">Net Profit Margin</div><div class="v yellow" id="anaNetMargin">9.2%</div></div>
+              <div class="metric"><div class="mini">P/E Ratio</div><div class="v" id="anaPe">24.5x</div></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);line-height:1.5;" id="anaVerdictText">
+              Institutional conviction supported by healthy margins and double-digit revenue expansion.
+            </div>
+          </div>
+
+          <!-- News Monitor -->
+          <div class="skill-box">
+            <div class="skill-box-head">
+              <div class="skill-box-title">📰 News & Catalyst Monitor</div>
+              <span class="skill-badge" style="background:rgba(167,139,250,.15);color:var(--purple)">Catalyst Verified</span>
+            </div>
+            <div id="newsItemsList" style="display:flex;flex-direction:column;gap:10px;max-height:220px;overflow-y:auto;">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBPANE 8: INSTITUTIONAL / PELOSI TRACKER (Skill 11) -->
+      <div id="subpane_skill_institutional" class="subskill-pane">
+        <div class="skill-box">
+          <div class="skill-box-head">
+            <div>
+              <div class="skill-box-title">🏛️ Indian Institutional Radar (FII / DII Net Flows & Bulk Deals)</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">The Indian counterpart to Pelosi/Congress tracking: Institutional accumulation, Bulk & Block deals, Promoter SAST insider buying</div>
+            </div>
+            <span class="skill-badge" style="background:rgba(0,230,118,.18);color:var(--green)">ACCUMULATION DETECTED</span>
+          </div>
+
+          <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px;">
+            <div class="metric"><div class="mini">FII Net Cash Today</div><div class="v green" id="instFiiCash">+₹1,425.80 Cr</div><div class="mini">Foreign Institutional Investors</div></div>
+            <div class="metric"><div class="mini">DII Net Cash Today</div><div class="v green" id="instDiiCash">+₹2,180.45 Cr</div><div class="mini">Domestic Mutual Funds</div></div>
+            <div class="metric"><div class="mini">FII Index Futures Long %</div><div class="v blue" id="instFiiFutures">64.2%</div><div class="mini">Derivative Long/Short Ratio</div></div>
+          </div>
+
+          <div class="skills-grid-2">
+            <div>
+              <h4 style="font-size:11px;color:var(--muted);text-transform:uppercase;margin:0 0 8px;">Large Institutional Block Deals:</h4>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>Symbol</th><th>Client / Institution</th><th>Action</th><th>Shares</th></tr></thead>
+                  <tbody id="blockDealsBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h4 style="font-size:11px;color:var(--muted);text-transform:uppercase;margin:0 0 8px;">Promoter & Insider SAST Disclosures:</h4>
+              <div class="tablewrap">
+                <table>
+                  <thead><tr><th>Symbol</th><th>Entity</th><th>Action</th><th>Shares</th></tr></thead>
+                  <tbody id="sastDisclosuresBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section id="indicators" class="panel tabpanel">
     <div class="panel-head"><h3>Indicator board</h3></div>
     <div class="metrics" id="metrics"></div>
   </section>
@@ -2384,6 +2774,339 @@ function randomize(){
   setLiveStatus("","Practice","Demo candles — not live");
   updateChipActive(sym);
   if (activeTabId === "optionchain") fetchOptionChain(sym);
+  if (activeTabId === "skills11") fetch11SkillsSuite(sym);
+}
+
+// -------------------------------------------------------------------------
+// 11-SKILL QUANTITATIVE SUITE CONTROLLER
+// -------------------------------------------------------------------------
+let currentSubSkill = "skill_scanner";
+
+function showSubSkill(skillId) {
+  currentSubSkill = skillId;
+  document.querySelectorAll(".skill-pill").forEach(p => {
+    p.classList.toggle("active", p.getAttribute("onclick") && p.getAttribute("onclick").includes(skillId));
+  });
+  document.querySelectorAll(".subskill-pane").forEach(p => {
+    p.classList.remove("active");
+  });
+  const target = document.getElementById("subpane_" + skillId);
+  if (target) target.classList.add("active");
+}
+
+async function fetch11SkillsSuite(sym) {
+  sym = sym || activeSymbol();
+  const cap = $("bgtCapital") ? $("bgtCapital").value : 100000;
+  const maxL = $("bgtMaxLoss") ? $("bgtMaxLoss").value : 2000;
+  try {
+    const r = await fetchApi(`/api/skills/suite?symbol=${encodeURIComponent(sym)}&capital=${cap}&max_loss=${maxL}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!data || !data.skills) return;
+    state.skills11 = data.skills;
+    render11SkillsUI(data.skills);
+  } catch (err) {
+    console.warn("Error fetching 11-skill suite:", err);
+  }
+}
+
+function render11SkillsUI(skills) {
+  if (!skills) return;
+  if (skills.scanner) renderScannerTable(skills.scanner.results);
+  if (skills.entry && skills.exit) renderEntryAndExit(skills.entry, skills.exit);
+  if (skills.timemachine) renderTimeMachine(skills.timemachine);
+  if (skills.budget && skills.risk) renderBudgetAndRisk(skills.budget, skills.risk);
+  if (skills.broker) renderBrokerTickets(skills.broker);
+  if (skills.alerts) renderAlerts(skills.alerts);
+  if (skills.analyst) renderAnalyst(skills.analyst);
+  if (skills.news) renderNews(skills.news);
+  if (skills.institutional) renderInstitutional(skills.institutional);
+}
+
+function renderScannerTable(results) {
+  const tbody = $("scannerTableBody");
+  if (!tbody || !results) return;
+  tbody.innerHTML = results.map(item => `
+    <tr>
+      <td><b style="color:var(--blue);font-family:'JetBrains Mono',monospace;">${item.symbol}</b><br><span style="font-size:10px;color:var(--muted)">${item.name}</span></td>
+      <td><span class="skill-badge" style="font-size:9px;">${item.category}</span></td>
+      <td class="mono">₹${Number(item.price).toFixed(2)}</td>
+      <td class="mono" style="color:${item.pChange >= 0 ? 'var(--green)' : 'var(--red)'};">${item.pChange >= 0 ? '+' : ''}${item.pChange}%</td>
+      <td>
+        <span class="skill-badge" style="background:rgba(255,213,79,.12);color:var(--gold);border-color:rgba(255,213,79,.3);font-size:9px;">${item.setup.toUpperCase()}</span>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">${item.setup_desc}</div>
+      </td>
+      <td class="mono">${item.rvol}x</td>
+      <td><b style="color:var(--green)">${item.confidence}%</b></td>
+      <td>
+        <button type="button" class="chip" style="font-size:10px;padding:3px 8px;background:rgba(56,189,248,.15);color:var(--blue);border-color:rgba(56,189,248,.3);" onclick="selectScannedStock('${item.symbol}')">
+          Load Stock ⚡
+        </button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function selectScannedStock(sym) {
+  $("customSymbol").value = sym;
+  state.symbol = sym;
+  updateChipActive(sym);
+  loadLive();
+  window.scrollTo({ top: 120, behavior: 'smooth' });
+}
+
+async function filterScannerSetups(setup, btn) {
+  if (btn) {
+    btn.parentElement.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+  }
+  try {
+    const r = await fetchApi(`/api/skills/scanner?setup=${setup}`);
+    if (r.ok) {
+      const data = await r.json();
+      renderScannerTable(data.results);
+    }
+  } catch (e) {
+    console.warn("Scanner filter err:", e);
+  }
+}
+
+function renderEntryAndExit(entry, exit) {
+  if (entry) {
+    const badge = $("entryStatusBadge");
+    if (badge) {
+      badge.textContent = entry.status;
+      badge.className = "skill-badge " + (entry.status === "TRIGGERED" ? "badge-pass" : entry.status === "BREAKDOWN" ? "badge-block" : "badge-wait");
+    }
+    if ($("entryReasonText")) $("entryReasonText").textContent = entry.reason;
+    if ($("entryOrHigh")) $("entryOrHigh").textContent = "₹" + Number(entry.or_high).toFixed(2);
+    if ($("entryOrMid")) $("entryOrMid").textContent = "₹" + Number(entry.or_mid).toFixed(2);
+    if ($("entryOrLow")) $("entryOrLow").textContent = "₹" + Number(entry.or_low).toFixed(2);
+  }
+  if (exit) {
+    if ($("exitStopPrice")) $("exitStopPrice").textContent = "₹" + Number(exit.stop_loss).toFixed(2);
+    if ($("exitRiskPts")) $("exitRiskPts").textContent = "Risk: " + exit.risk_pts + " pts (" + exit.risk_pct + "%)";
+    if ($("exitTarget1")) $("exitTarget1").textContent = "₹" + Number(exit.target_1).toFixed(2);
+    if ($("exitTarget2")) $("exitTarget2").textContent = "₹" + Number(exit.target_2).toFixed(2);
+  }
+}
+
+function renderTimeMachine(tm) {
+  if (!tm) return;
+  if ($("tmTargetOdds")) $("tmTargetOdds").textContent = tm.target_hits_pct + "%";
+  if ($("tmStopOdds")) $("tmStopOdds").textContent = tm.stop_hits_pct + "%";
+  if ($("tmOpenOdds")) $("tmOpenOdds").textContent = tm.open_at_close_pct + "%";
+  
+  if ($("tmTargetBar")) $("tmTargetBar").style.width = tm.target_hits_pct + "%";
+  if ($("tmStopBar")) $("tmStopBar").style.width = tm.stop_hits_pct + "%";
+  if ($("tmOpenBar")) $("tmOpenBar").style.width = tm.open_at_close_pct + "%";
+
+  if ($("tmBreakevenNeeded")) $("tmBreakevenNeeded").textContent = `Breakeven Needed: ${tm.breakeven_needed_pct}% (Empirical: ${tm.effective_win_rate}%)`;
+  if ($("tmExpectedR")) $("tmExpectedR").textContent = `Expected Value: ${tm.expected_r_value >= 0 ? '+' : ''}${tm.expected_r_value} R`;
+  if ($("tmVerdictText")) $("tmVerdictText").textContent = tm.verdict;
+  
+  const edge = $("tmEdgeBadge");
+  if (edge) {
+    edge.textContent = tm.math_edge + " EDGE";
+    edge.className = "skill-badge " + (tm.math_edge === "POSITIVE" ? "badge-pass" : "badge-block");
+  }
+}
+
+async function triggerTimeMachineSim() {
+  const btn = $("btnRunTimeMachine");
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Simulating 10,000 Paths…'; }
+  const sym = activeSymbol();
+  const entry = state.levels?.entry || state.price || 24800;
+  const sl = state.levels?.sl || (entry * 0.993);
+  const tp = state.levels?.t2 || (entry * 1.014);
+
+  try {
+    const r = await fetchApi(`/api/skills/timemachine?symbol=${encodeURIComponent(sym)}&entry=${entry}&stop=${sl}&target=${tp}&replays=10000`);
+    if (r.ok) {
+      const res = await r.json();
+      renderTimeMachine(res);
+    }
+  } catch (err) {
+    console.warn("Time machine err:", err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Run 10,000 Replays'; }
+  }
+}
+
+function renderBudgetAndRisk(bgt, risk) {
+  if (bgt) {
+    if ($("bgtQty")) $("bgtQty").textContent = bgt.calculated_qty + " Shares";
+    if ($("bgtLotsInfo")) $("bgtLotsInfo").textContent = bgt.lots_count ? `${bgt.lots_count} Lots (${bgt.lot_unit} / lot)` : "Equity Shares";
+    if ($("bgtProfit") && bgt.bracket_order) $("bgtProfit").textContent = "₹" + Number(bgt.bracket_order.max_reward_inr).toFixed(2);
+    if ($("bgtTotalCap") && bgt.bracket_order) $("bgtTotalCap").textContent = "Required: ₹" + Number(bgt.bracket_order.total_capital_required_inr).toFixed(2);
+    
+    if (bgt.bracket_order && $("brokerSummaryLine")) {
+      const bo = bgt.bracket_order;
+      $("brokerSummaryLine").textContent = `${bo.side} ${bo.quantity} ${bo.symbol} @ ₹${Number(bo.limit_price).toFixed(2)} | Stop Loss: ₹${Number(bo.stop_loss_trigger).toFixed(2)} | Target: ₹${Number(bo.target_trigger).toFixed(2)}`;
+    }
+  }
+  if (risk) {
+    const b = $("riskVerdictBadge");
+    if (b) {
+      b.textContent = risk.verdict;
+      b.className = "skill-badge " + (risk.verdict === "PASS" ? "badge-pass" : "badge-block");
+    }
+    const checksList = $("riskChecksList");
+    if (checksList && risk.checks) {
+      checksList.innerHTML = risk.checks.map(c => `
+        <div class="reason">
+          <span>${c.rule}: ${c.reason}</span>
+          <span class="pill ${c.status === 'PASS' ? 'g' : 'r'}">${c.status}</span>
+        </div>
+      `).join("");
+    }
+    if ($("riskVerdictRationale")) {
+      $("riskVerdictRationale").textContent = risk.action_allowed 
+        ? "All institutional pre-trade risk constraints satisfied. Order approved for execution."
+        : "Risk constraints triggered a block. Check rules above to protect capital.";
+    }
+  }
+}
+
+async function recalculateBudgetAndRisk() {
+  const sym = activeSymbol();
+  const cap = $("bgtCapital") ? +$("bgtCapital").value : 100000;
+  const maxL = $("bgtMaxLoss") ? +$("bgtMaxLoss").value : 2000;
+  const entry = state.levels?.entry || state.price || 24800;
+  const sl = state.levels?.sl || (entry * 0.993);
+  const tp = state.levels?.t2 || (entry * 1.014);
+
+  try {
+    const r = await fetchApi("/api/skills/budget", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: sym, entry, stop: sl, target: tp, capital: cap, max_loss: maxL })
+    });
+    if (r.ok) {
+      const bgtRes = await r.json();
+      const riskR = await fetchApi("/api/skills/risk-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: bgtRes.bracket_order })
+      });
+      const riskRes = await riskR.json();
+      renderBudgetAndRisk(bgtRes, riskRes);
+    }
+  } catch (e) {
+    console.warn("Budget recalc err:", e);
+  }
+}
+
+function renderBrokerTickets(broker) {
+  if (!broker) return;
+  if ($("kitePayloadCode") && broker.broker_formats?.zerodha_kite) {
+    $("kitePayloadCode").textContent = JSON.stringify(broker.broker_formats.zerodha_kite, null, 2);
+  }
+  if ($("angelPayloadCode") && broker.broker_formats?.angel_smartapi) {
+    $("angelPayloadCode").textContent = JSON.stringify(broker.broker_formats.angel_smartapi, null, 2);
+  }
+}
+
+async function executePaperOrder() {
+  const btn = $("btnExecutePaperOrder");
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Executing…'; }
+  const sym = activeSymbol();
+  const entry = state.levels?.entry || state.price || 24800;
+  const sl = state.levels?.sl || (entry * 0.993);
+  const tp = state.levels?.t2 || (entry * 1.014);
+  const qty = state.skills11?.budget?.calculated_qty || 25;
+
+  try {
+    const r = await fetchApi("/api/skills/paper-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: sym, entry_price: entry, stop_loss: sl, target_1: tp, quantity: qty })
+    });
+    const res = await r.json();
+    if (res.ok) {
+      const notif = $("paperExecNotification");
+      if (notif) {
+        notif.style.display = "flex";
+        $("paperExecText").textContent = `Order #${res.order.order_id} FILLED! BUY ${qty} ${sym} @ ₹${Number(entry).toFixed(2)} (SL: ₹${Number(sl).toFixed(2)}, Target: ₹${Number(tp).toFixed(2)})`;
+        setTimeout(() => { notif.style.display = "none"; }, 5000);
+      }
+    }
+  } catch (err) {
+    alert("Execution error: " + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Approve & Paper Execute'; }
+  }
+}
+
+function renderAlerts(alerts) {
+  const tbody = $("alertsTableBody");
+  if (!tbody || !alerts) return;
+  tbody.innerHTML = alerts.map(a => `
+    <tr>
+      <td class="mono" style="font-size:11px;">${a.id}</td>
+      <td><b>${a.symbol}</b></td>
+      <td>${a.message}</td>
+      <td class="mono">${typeof a.level === 'number' ? '₹' + a.level.toFixed(2) : a.level}</td>
+      <td><span class="skill-badge badge-pass" style="font-size:9px;">${a.status}</span></td>
+      <td><button type="button" class="chip" style="font-size:9px;padding:2px 6px;" onclick="alert('Alert Active: ' + '${a.message}')">Inspect</button></td>
+    </tr>
+  `).join("");
+}
+
+function renderAnalyst(analyst) {
+  if (!analyst || !analyst.metrics) return;
+  const m = analyst.metrics;
+  if ($("anaRevGrowth")) $("anaRevGrowth").textContent = (m.rev_growth_yoy >= 0 ? '+' : '') + m.rev_growth_yoy + "%";
+  if ($("anaEbitda")) $("anaEbitda").textContent = m.ebitda_margin + "%";
+  if ($("anaNetMargin")) $("anaNetMargin").textContent = m.net_margin + "%";
+  if ($("anaPe")) $("anaPe").textContent = m.pe_ratio + "x";
+  if ($("analystRatingBadge")) $("analystRatingBadge").textContent = m.rating || "BUY";
+  if ($("anaVerdictText")) $("anaVerdictText").textContent = analyst.analyst_verdict;
+}
+
+function renderNews(news) {
+  const container = $("newsItemsList");
+  if (!container || !news || !news.items) return;
+  container.innerHTML = news.items.map(n => `
+    <div style="background:rgba(0,0,0,.25);border:1px solid var(--line2);border-radius:6px;padding:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <span class="skill-badge" style="font-size:9px;">${n.tag}</span>
+        <span style="font-size:9px;color:${n.sentiment === 'BULLISH' || n.sentiment === 'VERY BULLISH' ? 'var(--green)' : 'var(--muted)'};font-weight:700;">${n.sentiment}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text);line-height:1.4;">${n.title}</div>
+    </div>
+  `).join("");
+}
+
+function renderInstitutional(inst) {
+  if (!inst) return;
+  if ($("instFiiCash")) $("instFiiCash").textContent = (inst.fii_net_cash_inr_crores >= 0 ? '+₹' : '-₹') + Math.abs(inst.fii_net_cash_inr_crores).toFixed(2) + " Cr";
+  if ($("instDiiCash")) $("instDiiCash").textContent = (inst.dii_net_cash_inr_crores >= 0 ? '+₹' : '-₹') + Math.abs(inst.dii_net_cash_inr_crores).toFixed(2) + " Cr";
+  if ($("instFiiFutures")) $("instFiiFutures").textContent = inst.fii_index_futures_oi_long_pct + "%";
+
+  const blockBody = $("blockDealsBody");
+  if (blockBody && inst.bulk_block_deals) {
+    blockBody.innerHTML = inst.bulk_block_deals.map(b => `
+      <tr>
+        <td class="mono"><b>${b.symbol}</b></td>
+        <td style="font-size:11px;">${b.client}</td>
+        <td><span class="pill g">${b.action}</span></td>
+        <td class="mono">${b.quantity} @ ₹${b.price}</td>
+      </tr>
+    `).join("");
+  }
+
+  const sastBody = $("sastDisclosuresBody");
+  if (sastBody && inst.insider_sast_disclosures) {
+    sastBody.innerHTML = inst.insider_sast_disclosures.map(s => `
+      <tr>
+        <td class="mono"><b>${s.symbol}</b></td>
+        <td style="font-size:11px;">${s.person}</td>
+        <td><span class="pill g" style="font-size:8px;">${s.action}</span></td>
+        <td class="mono">${s.shares}</td>
+      </tr>
+    `).join("");
+  }
 }
 
 function showTab(id){
@@ -2393,6 +3116,9 @@ function showTab(id){
   const el=$(id);if(el)el.classList.add("active");
   if(id === "optionchain"){
     fetchOptionChain(activeSymbol());
+  }
+  if(id === "skills11"){
+    fetch11SkillsSuite(activeSymbol());
   }
 }
 function calcRisk(){
@@ -2669,11 +3395,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     setFoFilter(true);
   }
 
+  if ($("btnSyncAllSkills")) $("btnSyncAllSkills").addEventListener("click", () => fetch11SkillsSuite(activeSymbol()));
+
   updateChipActive("NIFTY 50");
   loadLive();
 
   if (params.get("tab") === "optionchain") {
     showTab("optionchain");
+  } else if (params.get("tab") === "skills11" || activeTabId === "skills11") {
+    showTab("skills11");
+    fetch11SkillsSuite("NIFTY 50");
+  } else {
+    fetch11SkillsSuite("NIFTY 50");
   }
 });
 setInterval(()=>{$("clock").textContent=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"})},1000);

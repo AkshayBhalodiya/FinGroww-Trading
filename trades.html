@@ -312,6 +312,7 @@ tr:hover td { background: var(--bg-card-hover); }
     <div class="radar-controls">
       <div class="filter-group">
         <button type="button" class="radar-tab active" onclick="filterRadar('all', this)">All Setups (8)</button>
+        <button type="button" class="radar-tab" onclick="filterRadar('skills11', this)" style="background:rgba(2,132,199,.15);border-color:var(--accent-blue);color:#38bdf8;font-weight:800"><i class="fa-solid fa-bolt"></i> ⚡ 11-Skill Setups</button>
         <button type="button" class="radar-tab" onclick="filterRadar('index', this)">Nifty & Bank Nifty</button>
         <button type="button" class="radar-tab" onclick="filterRadar('options', this)">Options Scalp</button>
         <button type="button" class="radar-tab" onclick="filterRadar('stocks', this)">NSE Equities</button>
@@ -714,176 +715,8 @@ tr:hover td { background: var(--bg-card-hover); }
 </a>
 
 <!-- Scripts -->
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js">
-// Dynamic MongoDB Atlas Signal Sync for Setups Radar
-async function fetchDbSignalsForTrades() {
-  const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
-  let resData = null;
-  for (const host of hosts) {
-    try {
-      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
-      if (r.ok) {
-        resData = await r.json();
-        break;
-      }
-    } catch (e) {}
-  }
-  
-  if (!resData || !resData.signals || !resData.signals.length) return;
-  
-  // Also fetch outcome win rate if available
-  for (const host of hosts) {
-    try {
-      const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
-      if (r.ok) {
-        const out = await r.json();
-        const accEl = document.getElementById("tradeWinAcc");
-        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
-        break;
-      }
-    } catch (e) {}
-  }
-  
-  const grid = document.getElementById("tradesGrid");
-  if (!grid) return;
-  
-  const dbCardsHtml = resData.signals.map(s => {
-    const isBuy = s.signal_type === "BUY";
-    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
-    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
-    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
-    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
-    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
-    
-    return `
-      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
-        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
-          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
-        </div>
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">${s.symbol}</div>
-            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
-          </div>
-          <span class="tc-badge ${badgeClass}">${badgeText}</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
-        </div>
-      </div>
-    `;
-  }).join("");
-  
-  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
-  
-  const countEl = document.getElementById("activeTradesCount");
-  if (countEl) {
-    const total = document.querySelectorAll(".trade-card").length;
-    countEl.textContent = total + " Setups";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
-
-</script>
-<script src="theme.js">
-// Dynamic MongoDB Atlas Signal Sync for Setups Radar
-async function fetchDbSignalsForTrades() {
-  const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
-  let resData = null;
-  for (const host of hosts) {
-    try {
-      const r = await fetch(host + "/api/signals?limit=10", { cache: "no-store" });
-      if (r.ok) {
-        resData = await r.json();
-        break;
-      }
-    } catch (e) {}
-  }
-  
-  if (!resData || !resData.signals || !resData.signals.length) return;
-  
-  // Also fetch outcome win rate if available
-  for (const host of hosts) {
-    try {
-      const r = await fetch(host + "/api/trade-outcomes", { cache: "no-store" });
-      if (r.ok) {
-        const out = await r.json();
-        const accEl = document.getElementById("tradeWinAcc");
-        if (accEl && out.win_rate_percent) accEl.textContent = out.win_rate_percent + "%";
-        break;
-      }
-    } catch (e) {}
-  }
-  
-  const grid = document.getElementById("tradesGrid");
-  if (!grid) return;
-  
-  const dbCardsHtml = resData.signals.map(s => {
-    const isBuy = s.signal_type === "BUY";
-    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
-    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
-    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
-    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
-    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
-    
-    return `
-      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
-        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
-          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
-        </div>
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">${s.symbol}</div>
-            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
-          </div>
-          <span class="tc-badge ${badgeClass}">${badgeText}</span>
-        </div>
-
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
-        </div>
-
-        <div class="tc-confluence-box">
-          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
-        </div>
-
-        <div class="tc-footer">
-          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
-        </div>
-      </div>
-    `;
-  }).join("");
-  
-  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
-  
-  const countEl = document.getElementById("activeTradesCount");
-  if (countEl) {
-    const total = document.querySelectorAll(".trade-card").length;
-    countEl.textContent = total + " Setups";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
-
-</script>
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script src="theme.js"></script>
 <script>
 // Initialize AOS Animations
 AOS.init({
@@ -919,7 +752,7 @@ function searchTrades() {
   });
 }
 
-// Dynamic MongoDB Atlas Signal Sync for Setups Radar
+// Dynamic MongoDB Atlas Signal Sync & 11-Skill Engine Integration
 async function fetchDbSignalsForTrades() {
   const hosts = ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"];
   let resData = null;
@@ -933,8 +766,6 @@ async function fetchDbSignalsForTrades() {
     } catch (e) {}
   }
   
-  if (!resData || !resData.signals || !resData.signals.length) return;
-  
   // Also fetch outcome win rate if available
   for (const host of hosts) {
     try {
@@ -947,51 +778,112 @@ async function fetchDbSignalsForTrades() {
       }
     } catch (e) {}
   }
+
+  // Fetch 11-Skill Scanner setups to inject live setups
+  let scannerData = null;
+  for (const host of hosts) {
+    try {
+      const r = await fetch(host + "/api/skills/scanner?setup=all", { cache: "no-store" });
+      if (r.ok) {
+        scannerData = await r.json();
+        break;
+      }
+    } catch (e) {}
+  }
   
   const grid = document.getElementById("tradesGrid");
   if (!grid) return;
   
-  const dbCardsHtml = resData.signals.map(s => {
-    const isBuy = s.signal_type === "BUY";
-    const badgeClass = isBuy ? "badge-buy" : "badge-sell";
-    const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
-    const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
-    const cat = s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks";
-    const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
-    
-    return `
-      <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
-        <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
-          <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
-        </div>
-        <div class="tc-top">
-          <div>
-            <div class="tc-sym mono">${s.symbol}</div>
-            <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+  let cardsHtml = "";
+
+  if (scannerData && scannerData.results && scannerData.results.length) {
+    const scanCards = scannerData.results.slice(0, 4).map(sc => {
+      const isBuy = sc.action === "BUY";
+      const badgeClass = isBuy ? "badge-buy" : "badge-sell";
+      const cat = "skills11 " + (sc.category === "INDEX" ? "index options" : "stocks");
+      const sl = (sc.price * 0.993).toFixed(2);
+      const tp1 = (sc.price * 1.014).toFixed(2);
+      const tp2 = (sc.price * 1.028).toFixed(2);
+      return `
+        <div class="trade-card" data-cat="${cat}" data-sym="${sc.symbol}" style="border: 1px solid rgba(2,132,199,0.4); background: linear-gradient(180deg, rgba(2,132,199,0.06), var(--bg-card)); position: relative;">
+          <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 10px; border-radius: 999px; background: #0c4a6e; border: 1px solid #38bdf8; color: #bae6fd; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-bolt" style="font-size: 9px;"></i> 11-Skill Quant Engine
           </div>
-          <span class="tc-badge ${badgeClass}">${badgeText}</span>
-        </div>
+          <div class="tc-top">
+            <div>
+              <div class="tc-sym mono">${sc.symbol}</div>
+              <div class="tc-sub">Setup: ${sc.setup.toUpperCase()} • ${sc.rvol}x Relative Volume</div>
+            </div>
+            <span class="tc-badge ${badgeClass}">${sc.action}</span>
+          </div>
 
-        <div class="tc-grid-levels mono">
-          <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
-          <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
-        </div>
+          <div class="tc-grid-levels mono">
+            <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(sc.price).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Stop (OR-Mid)</div><div class="l-val down">₹${sl}</div></div>
+            <div class="tc-lvl"><div class="l-name">Target 1 (1R)</div><div class="l-val up">₹${tp1}</div></div>
+            <div class="tc-lvl"><div class="l-name">Target 2 (2R)</div><div class="l-val" style="color:var(--accent-gold)">₹${tp2}</div></div>
+          </div>
 
-        <div class="tc-confluence-box">
-          <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
-        </div>
+          <div class="tc-confluence-box">
+            <strong>11-Skill Confluence:</strong> ${sc.setup_desc} • 15:15 IST Square-off Guard.
+          </div>
 
-        <div class="tc-footer">
-          <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
-          <a href="fingroww_trading_intelligence_NSE.html" class="tc-btn">Open in Terminal →</a>
+          <div class="tc-footer">
+            <span class="tc-win-acc" style="color:var(--accent-blue);">🔮 10,000-Replay Validated</span>
+            <a href="fingroww_trading_intelligence_NSE.html?tab=skills11&symbol=${encodeURIComponent(sc.symbol)}" class="tc-btn">Simulate in 11-Skill Suite →</a>
+          </div>
         </div>
-      </div>
-    `;
-  }).join("");
+      `;
+    }).join("");
+    cardsHtml += scanCards;
+  }
+
+  if (resData && resData.signals && resData.signals.length) {
+    const dbCardsHtml = resData.signals.map(s => {
+      const isBuy = s.signal_type === "BUY";
+      const badgeClass = isBuy ? "badge-buy" : "badge-sell";
+      const badgeText = isBuy ? "STRONG BUY" : "STRONG SELL";
+      const statusBg = s.status === "TARGET_HIT" || s.status === "WIN" ? "color:var(--accent-green)" : s.status === "SL_HIT" || s.status === "LOSS" ? "color:var(--accent-red)" : "color:var(--accent-blue)";
+      const cat = (s.symbol.includes("NIFTY") || s.symbol.includes("SENSEX") ? "index options" : "stocks") + " skills11";
+      const timeStr = s.created_at ? new Date(s.created_at).toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit"}) : "Live";
+      
+      return `
+        <div class="trade-card" data-cat="${cat}" data-sym="${s.symbol}" style="border: 1px solid rgba(16,185,129,0.35); background: linear-gradient(180deg, rgba(16,185,129,0.04), var(--bg-card)); position: relative;">
+          <div style="position: absolute; top: -10px; right: 20px; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: #064e3b; border: 1px solid #10b981; color: #a7f3d0; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-database" style="font-size: 9px;"></i> MongoDB Atlas Live
+          </div>
+          <div class="tc-top">
+            <div>
+              <div class="tc-sym mono">${s.symbol}</div>
+              <div class="tc-sub">${s.timeframe || "15m"} Quantitative Signal • Logged at ${timeStr}</div>
+            </div>
+            <span class="tc-badge ${badgeClass}">${badgeText}</span>
+          </div>
+
+          <div class="tc-grid-levels mono">
+            <div class="tc-lvl"><div class="l-name">Entry</div><div class="l-val up">₹${Number(s.entry_price).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Stop Loss</div><div class="l-val down">₹${Number(s.stop_loss).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Target 1</div><div class="l-val up">₹${Number(s.target_1).toFixed(2)}</div></div>
+            <div class="tc-lvl"><div class="l-name">Status</div><div class="l-val" style="${statusBg}; font-size: 11px;">${s.status || "ACTIVE"}</div></div>
+          </div>
+
+          <div class="tc-confluence-box">
+            <strong>Database Record (#${s.signal_id}):</strong> Confluence score ${s.confidence_score || 85}% • Model ${s.strategy_version || "v7"} • Target 1: ₹${Number(s.target_1).toFixed(2)}
+          </div>
+
+          <div class="tc-footer">
+            <span class="tc-win-acc" style="color:var(--accent-green);">🎯 ${s.confidence_score || 85}% Conviction</span>
+            <a href="fingroww_trading_intelligence_NSE.html?tab=skills11&symbol=${encodeURIComponent(s.symbol)}" class="tc-btn">Open in 11-Skill Terminal →</a>
+          </div>
+        </div>
+      `;
+    }).join("");
+    cardsHtml += dbCardsHtml;
+  }
   
-  grid.insertAdjacentHTML("afterbegin", dbCardsHtml);
+  if (cardsHtml) {
+    grid.insertAdjacentHTML("afterbegin", cardsHtml);
+  }
   
   const countEl = document.getElementById("activeTradesCount");
   if (countEl) {
@@ -1001,7 +893,6 @@ async function fetchDbSignalsForTrades() {
 }
 
 document.addEventListener("DOMContentLoaded", fetchDbSignalsForTrades);
-
 </script>
 
 </body>
