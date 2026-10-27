@@ -61,21 +61,21 @@ class IndianMarketScanner:
     """Scans Indian stock universe for high-probability setups."""
     
     WATCHLIST_UNIVERSE = [
-        {"symbol": "NIFTY 50", "name": "Nifty 50 Index", "category": "INDEX", "default_price": 24850.0},
-        {"symbol": "BANK NIFTY", "name": "Nifty Bank Index", "category": "INDEX", "default_price": 52600.0},
-        {"symbol": "FINNIFTY", "name": "Nifty Financial Services", "category": "INDEX", "default_price": 23450.0},
-        {"symbol": "RELIANCE", "name": "Reliance Industries Ltd", "category": "STOCK", "default_price": 2980.0},
-        {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "category": "STOCK", "default_price": 1690.0},
-        {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "category": "STOCK", "default_price": 1285.0},
-        {"symbol": "INFY", "name": "Infosys Ltd", "category": "STOCK", "default_price": 1890.0},
-        {"symbol": "TCS", "name": "Tata Consultancy Services", "category": "STOCK", "default_price": 4150.0},
-        {"symbol": "SBIN", "name": "State Bank of India", "category": "STOCK", "default_price": 845.0},
-        {"symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "category": "STOCK", "default_price": 995.0},
-        {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "category": "STOCK", "default_price": 1680.0},
-        {"symbol": "ITC", "name": "ITC Ltd", "category": "STOCK", "default_price": 495.0},
-        {"symbol": "LT", "name": "Larsen & Toubro Ltd", "category": "STOCK", "default_price": 3620.0},
-        {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "category": "STOCK", "default_price": 7250.0},
-        {"symbol": "MARUTI", "name": "Maruti Suzuki India", "category": "STOCK", "default_price": 12450.0},
+        {"symbol": "NIFTY 50", "name": "Nifty 50 Index", "category": "INDEX", "default_price": 22749.75},
+        {"symbol": "BANK NIFTY", "name": "Nifty Bank Index", "category": "INDEX", "default_price": 53974.90},
+        {"symbol": "FINNIFTY", "name": "Nifty Financial Services", "category": "INDEX", "default_price": 24303.75},
+        {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "category": "STOCK", "default_price": 680.20},
+        {"symbol": "RELIANCE", "name": "Reliance Industries Ltd", "category": "STOCK", "default_price": 1196.20},
+        {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "category": "STOCK", "default_price": 1386.90},
+        {"symbol": "INFY", "name": "Infosys Ltd", "category": "STOCK", "default_price": 1163.00},
+        {"symbol": "TCS", "name": "Tata Consultancy Services", "category": "STOCK", "default_price": 2496.90},
+        {"symbol": "SBIN", "name": "State Bank of India", "category": "STOCK", "default_price": 945.10},
+        {"symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "category": "STOCK", "default_price": 390.00},
+        {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "category": "STOCK", "default_price": 1978.80},
+        {"symbol": "ITC", "name": "ITC Ltd", "category": "STOCK", "default_price": 260.00},
+        {"symbol": "LT", "name": "Larsen & Toubro Ltd", "category": "STOCK", "default_price": 3665.10},
+        {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "category": "STOCK", "default_price": 912.00},
+        {"symbol": "MARUTI", "name": "Maruti Suzuki India", "category": "STOCK", "default_price": 11450.00},
     ]
 
     @classmethod
@@ -683,9 +683,9 @@ class IndianInstitutionalTracker:
             "fii_index_futures_oi_long_pct": 64.2, # FII Long/Short Ratio
             "sentiment": "AGGRESSIVELY BULLISH INSTITUTIONAL ACCUMULATION",
             "bulk_block_deals": [
-                {"symbol": "HDFCBANK", "client": "GIC Private Limited (Sovereign Wealth)", "action": "BUY", "quantity": "1,850,000", "price": 1682.50, "deal_type": "BLOCK"},
-                {"symbol": "RELIANCE", "client": "Morgan Stanley Asia Singapore", "action": "BUY", "quantity": "950,000", "price": 2975.00, "deal_type": "BULK"},
-                {"symbol": "ICICIBANK", "client": "SBI Mutual Fund - Bluechip Scheme", "action": "BUY", "quantity": "1,200,000", "price": 1280.00, "deal_type": "BLOCK"}
+                {"symbol": "HDFCBANK", "client": "GIC Private Limited (Sovereign Wealth)", "action": "BUY", "quantity": "1,850,000", "price": 680.20, "deal_type": "BLOCK"},
+                {"symbol": "RELIANCE", "client": "Morgan Stanley Asia Singapore", "action": "BUY", "quantity": "950,000", "price": 1196.20, "deal_type": "BULK"},
+                {"symbol": "ICICIBANK", "client": "SBI Mutual Fund - Bluechip Scheme", "action": "BUY", "quantity": "1,200,000", "price": 1386.90, "deal_type": "BLOCK"}
             ],
             "insider_sast_disclosures": [
                 {"symbol": "TATAMOTORS", "person": "Tata Sons Private Limited (Promoter)", "action": "PROMOTER ACQUISITION", "shares": "500,000", "mode": "Open Market Purchase"},
@@ -698,9 +698,15 @@ class IndianInstitutionalTracker:
 # COMPREHENSIVE SUITE COORDINATOR
 # -------------------------------------------------------------------------
 def get_full_11_skill_suite(symbol="NIFTY 50", last_price=None, capital=100000.0, max_loss=2000.0):
-    """Generates an end-to-end synchronized output across all 11 skills."""
     sym = (symbol or "NIFTY 50").upper().strip()
-    price = float(last_price) if last_price else (24850.0 if "NIFTY" in sym else 2980.0)
+    if last_price and float(last_price) > 0:
+        price = float(last_price)
+    else:
+        matched = next((u["price"] for u in IndianMarketScanner.WATCHLIST_UNIVERSE if u["symbol"] == sym), None)
+        if matched:
+            price = float(matched)
+        else:
+            price = 22749.75 if "NIFTY" in sym else 1000.0
     
     # 1. Scanner
     scan_info = IndianMarketScanner.scan(setup_filter="all")

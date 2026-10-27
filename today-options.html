@@ -909,11 +909,11 @@
 <!-- Global Ticker Bar -->
 <div class="global-ticker-bar">
   <div class="ticker-track" id="globalTickerTrack">
-    <div class="t-item"><span class="t-val">NIFTY 50</span> <span id="tickNifty">22,520.45</span> <span class="up" id="chgNifty">▲ +0.84%</span></div>
-    <div class="t-item"><span class="t-val">BANK NIFTY</span> <span id="tickBank">55,256.65</span> <span class="up" id="chgBank">▲ +1.12%</span></div>
-    <div class="t-item"><span class="t-val">RELIANCE</span> <span id="tickRel">₹1,170.30</span> <span class="up" id="chgRel">▲ +1.45%</span></div>
-    <div class="t-item"><span class="t-val">HDFCBANK</span> <span id="tickHdfc">₹707.25</span> <span class="up" id="chgHdfc">▲ +0.95%</span></div>
-    <div class="t-item"><span class="t-val">SBIN</span> <span id="tickSbin">₹959.10</span> <span class="up" id="chgSbin">▲ +0.78%</span></div>
+    <div class="t-item"><span class="t-val">NIFTY 50</span> <span id="tickNifty">22,749.75</span> <span class="up" id="chgNifty">▲ +0.84%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> <span id="tickBank">53,974.90</span> <span class="up" id="chgBank">▲ +1.12%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> <span id="tickRel">₹1,196.20</span> <span class="up" id="chgRel">▲ +1.45%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> <span id="tickHdfc">₹680.20</span> <span class="up" id="chgHdfc">▲ +0.95%</span></div>
+    <div class="t-item"><span class="t-val">SBIN</span> <span id="tickSbin">₹945.10</span> <span class="up" id="chgSbin">▲ +0.78%</span></div>
     <div class="t-item"><span class="t-val"><i class="fa-solid fa-wifi" style="color:var(--accent-green)"></i> LIVE MARKET SYNC:</span> CONNECTED TO REAL-TIME FLASK PROXY & YAHOO FINANCE</div>
   </div>
 </div>
@@ -1273,7 +1273,7 @@
           <div style="font-weight:900; color:#38bdf8; font-size:16px">NSE</div>
           <div>
             <div style="font-weight:800; color:var(--text-main); font-size:13px">HDFCBANK</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-top:2px">Real Spot Price: ₹707.25 ➔ ATM Strike: HDFCBANK 710 CE</div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:2px">Real Spot Price: ₹680.20 ➔ ATM Strike: HDFCBANK 680 CE</div>
           </div>
         </div>
       </div>
@@ -1445,14 +1445,14 @@ const BACKEND_HOSTS = [
 
 // Exact Real Market Spec Registry
 const CONTRACT_SPECS = [
-  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 250, exp: "29-OCT-2026", defaultSpot: 1170.30, strikeStep: 10 },
-  { symbol: "NIFTY 50", nseSym: "NIFTY", yahooTicker: "^NSEI", kind: "index", lot: 65, exp: "13-OCT-2026", defaultSpot: 22520.45, strikeStep: 50 },
-  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 550, exp: "29-OCT-2026", defaultSpot: 707.25, strikeStep: 5 },
-  { symbol: "BANK NIFTY", nseSym: "BANKNIFTY", yahooTicker: "^NSEBANK", kind: "index", lot: 30, exp: "14-OCT-2026", defaultSpot: 55256.65, strikeStep: 100 },
+  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 250, exp: "29-OCT-2026", defaultSpot: 1196.20, strikeStep: 10 },
+  { symbol: "NIFTY 50", nseSym: "NIFTY", yahooTicker: "^NSEI", kind: "index", lot: 65, exp: "13-OCT-2026", defaultSpot: 22749.75, strikeStep: 50 },
+  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 550, exp: "29-OCT-2026", defaultSpot: 680.20, strikeStep: 5 },
+  { symbol: "BANK NIFTY", nseSym: "BANKNIFTY", yahooTicker: "^NSEBANK", kind: "index", lot: 30, exp: "14-OCT-2026", defaultSpot: 53974.90, strikeStep: 100 },
   { symbol: "TATAMOTORS", nseSym: "TATAMOTORS", yahooTicker: "TATAMOTORS.NS", kind: "stock", lot: 1425, exp: "29-OCT-2026", defaultSpot: 390.00, strikeStep: 5 },
-  { symbol: "SBIN", nseSym: "SBIN", yahooTicker: "SBIN.NS", kind: "stock", lot: 750, exp: "29-OCT-2026", defaultSpot: 959.10, strikeStep: 10 },
-  { symbol: "TCS", nseSym: "TCS", yahooTicker: "TCS.NS", kind: "stock", lot: 175, exp: "29-OCT-2026", defaultSpot: 2156.00, strikeStep: 20 },
-  { symbol: "INFYS", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1023.40, strikeStep: 10 }
+  { symbol: "SBIN", nseSym: "SBIN", yahooTicker: "SBIN.NS", kind: "stock", lot: 750, exp: "29-OCT-2026", defaultSpot: 945.10, strikeStep: 10 },
+  { symbol: "TCS", nseSym: "TCS", yahooTicker: "TCS.NS", kind: "stock", lot: 175, exp: "29-OCT-2026", defaultSpot: 2496.90, strikeStep: 20 },
+  { symbol: "INFYS", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1163.00, strikeStep: 10 }
 ];
 
 let OPTION_SETUPS = [];

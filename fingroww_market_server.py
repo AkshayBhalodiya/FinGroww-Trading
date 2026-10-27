@@ -83,6 +83,7 @@ YAHOO_TICKERS = {
     "NIFTY 50": "^NSEI",
     "NIFTY BANK": "^NSEBANK",
     "BANK NIFTY": "^NSEBANK",
+    "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
     "SENSEX": "^BSESN",
 }
 
@@ -331,16 +332,26 @@ def resolve_quote(symbol):
         pass
 
     DEFAULT_SPOTS = {
-        "RELIANCE": 1170.30,
-        "NIFTY 50": 22520.45,
-        "NIFTY": 22520.45,
-        "HDFCBANK": 707.25,
-        "BANK NIFTY": 55256.65,
-        "BANKNIFTY": 55256.65,
+        "RELIANCE": 1196.20,
+        "NIFTY 50": 22749.75,
+        "NIFTY": 22749.75,
+        "HDFCBANK": 680.20,
+        "BANK NIFTY": 53974.90,
+        "BANKNIFTY": 53974.90,
+        "FINNIFTY": 24303.75,
+        "SENSEX": 74500.00,
         "TATAMOTORS": 390.00,
-        "SBIN": 959.10,
-        "TCS": 2156.00,
-        "INFY": 1023.40
+        "SBIN": 945.10,
+        "TCS": 2496.90,
+        "INFY": 1163.00,
+        "ICICIBANK": 1386.90,
+        "BHARTIARTL": 1978.80,
+        "ITC": 260.00,
+        "LT": 3665.10,
+        "BAJFINANCE": 912.00,
+        "MARUTI": 11450.00,
+        "AXISBANK": 1150.00,
+        "VEDL": 440.00
     }
     fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
     return {
@@ -1029,6 +1040,47 @@ except ImportError:
     pass
 
 
+# Live Quotes Cache for Scanner Universe (Non-blocking async parallel worker)
+scanner_quotes_cache = {"at": 0, "quotes": {}}
+_scanner_fetching = False
+
+def _refresh_scanner_quotes_async():
+    global scanner_quotes_cache, _scanner_fetching
+    if _scanner_fetching:
+        return
+    _scanner_fetching = True
+    try:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from fingroww_skills_engine import IndianMarketScanner
+        quotes = {}
+        symbols = [item["symbol"] for item in IndianMarketScanner.WATCHLIST_UNIVERSE]
+        
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_sym = {executor.submit(resolve_quote, s): s for s in symbols}
+            for fut in as_completed(future_to_sym, timeout=6.0):
+                s = future_to_sym[fut]
+                try:
+                    q = fut.result()
+                    if q and q.get("lastPrice"):
+                        quotes[s] = q
+                except Exception:
+                    pass
+        if quotes:
+            scanner_quotes_cache = {"at": time.time(), "quotes": quotes}
+    except Exception as e:
+        print(f"[WARN] Async scanner quotes refresh: {e}")
+    finally:
+        _scanner_fetching = False
+
+def get_scanner_live_quotes():
+    global scanner_quotes_cache
+    now = time.time()
+    if now - scanner_quotes_cache["at"] > 60:
+        import threading
+        threading.Thread(target=_refresh_scanner_quotes_async, daemon=True).start()
+    return dict(scanner_quotes_cache.get("quotes", {}))
+
+
 @app.get("/api/skills/suite")
 def skills_suite():
     """Returns end-to-end synchronized intelligence across all 11 day-trading skills."""
@@ -1039,6 +1091,13 @@ def skills_suite():
         quote_data = resolve_quote(sym) or {}
         price = float(quote_data.get("lastPrice") or 0.0)
         suite = get_full_11_skill_suite(sym, price if price > 0 else None, capital, max_loss)
+        
+        # Inject live scanner quotes so all 15 symbols show genuine live prices
+        live_quotes = get_scanner_live_quotes()
+        if live_quotes:
+            if price > 0 and sym not in live_quotes:
+                live_quotes[sym] = quote_data
+            suite["skills"]["scanner"] = IndianMarketScanner.scan(setup_filter="all", custom_quotes=live_quotes)
         return jsonify(suite)
     except Exception as exc:
         return jsonify({"error": str(exc), "symbol": sym}), 500
@@ -1049,8 +1108,8 @@ def skills_scanner():
     """Skill 1: Scans Indian universe for ORB 15m, 20D Breakouts, Bull Flags, Reclaims & Oversold Bounces."""
     setup = request.args.get("setup", "all").lower().strip()
     try:
-        # Optionally populate live quotes if cached
-        res = IndianMarketScanner.scan(setup_filter=setup)
+        live_quotes = get_scanner_live_quotes()
+        res = IndianMarketScanner.scan(setup_filter=setup, custom_quotes=live_quotes)
         return jsonify(res)
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500

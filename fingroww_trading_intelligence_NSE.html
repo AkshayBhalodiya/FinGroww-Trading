@@ -1670,7 +1670,7 @@ function estimateProbability(a,levelDir,bt){
   return clamp(p,0.40,0.85);
 }
 function genSeries(base=24200,n=180){let a=[],p=base;for(let i=0;i<n;i++){let drift=Math.sin(i/20)*2+(Math.random()-.47)*35;p+=drift;a.push({o:p-drift,h:p+Math.abs(rnd(2,25)),l:p-Math.abs(rnd(2,25)),c:p,v:Math.round(rnd(7e4,2.4e5))})}return a}
-function baseFor(sym){return {"NIFTY 50":24200,"NIFTY":24200,"BANK NIFTY":51800,"BANKNIFTY":51800,"SENSEX":80700,"RELIANCE":1410,"HDFCBANK":1720,"TCS":3500,"VEDL":510,"INFY":1510,"SBIN":930,"ICICIBANK":1450,"BHARTIARTL":1770,"ITC":450,"LT":3600,"AXISBANK":1250,"MARUTI":12200,"BAJFINANCE":7100,"M&M":2900,"TITAN":3400,"TATAMOTORS":920}[sym]||1000}
+function baseFor(sym){return {"NIFTY 50":22749.75,"NIFTY":22749.75,"BANK NIFTY":53974.9,"BANKNIFTY":53974.9,"FINNIFTY":24303.75,"SENSEX":74500,"RELIANCE":1196.2,"HDFCBANK":680.2,"TCS":2496.9,"INFY":1163.0,"SBIN":945.1,"ICICIBANK":1386.9,"BHARTIARTL":1978.8,"ITC":260.0,"LT":3665.1,"AXISBANK":1150.0,"MARUTI":11450.0,"BAJFINANCE":912.0,"TATAMOTORS":390.0,"VEDL":440.0,"M&M":2850.0,"TITAN":3350.0}[sym]||1000}
 
 function setLiveStatus(mode,label,text){
   const pill=$("livePill");
@@ -2252,11 +2252,11 @@ async function fetchApi(path, options = {}) {
                       window.location.protocol === "file:" || 
                       !window.location.hostname;
 
-  // 1. If running locally, try local Python server with short 1200ms timeout
+  // 1. If running locally, try local Python server with 4500ms timeout
   if (isLocalHost) {
     for (const host of ["http://127.0.0.1:8787", "http://localhost:8787"]) {
       try {
-        const r = await fetchWithTimeout(host + path, options, 1200);
+        const r = await fetchWithTimeout(host + path, options, 4500);
         if (r.ok) return r;
       } catch (e) {}
     }
