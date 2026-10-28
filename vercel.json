@@ -3,6 +3,9 @@
   "rewrites": [
     { "source": "/terminal", "destination": "/fingroww_trading_intelligence_NSE.html" },
     { "source": "/arena", "destination": "/fingroww_trading_intelligence_NSE.html" },
-    { "source": "/app", "destination": "/fingroww_trading_intelligence_NSE.html" }
+    { "source": "/app", "destination": "/fingroww_trading_intelligence_NSE.html" },
+    { "source": "/paper-trading", "destination": "/ai-auto-paper-trading.html" },
+    { "source": "/auto-trading", "destination": "/ai-auto-paper-trading.html" },
+    { "source": "/ai-paper", "destination": "/ai-auto-paper-trading.html" }
   ]
 }

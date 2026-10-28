@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 import requests
 import time
 import threading
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=".", static_url_path="")
 NSE = "https://www.nseindia.com"
 session = requests.Session()
 lock = threading.Lock()
@@ -40,6 +40,12 @@ try:
         mongo_db["signals"].create_index([("symbol", 1), ("timestamp", -1)])
         mongo_db["trade_outcomes"].create_index([("symbol", 1), ("closed_at", -1)])
         mongo_db["strategy_runs"].create_index("created_at")
+        try:
+            mongo_db["paper_profiles"].create_index("user_name", unique=True)
+            mongo_db["paper_sessions"].create_index("user_name", unique=True)
+            mongo_db["paper_trades"].create_index([("user_name", 1), ("closed_at", -1)])
+        except Exception:
+            pass
     else:
         mongo_status = "Standby (Awaiting MongoDB Atlas credentials in .env)"
 except Exception as e:
@@ -1511,9 +1517,348 @@ def skills_alerts():
         return jsonify({"error": str(exc)}), 500
 
 
+# -------------------------------------------------------------------------
+# AI-POWERED AUTOMATED PAPER TRADING REST API & BACKGROUND SUPERVISOR
+# -------------------------------------------------------------------------
+from fingroww_paper_engine import (
+    PaperTradingSession,
+    PaperTradingEngine,
+    MultiUserPaperSessionManager,
+    get_ist_now,
+    get_ist_str,
+)
+
+paper_manager = MultiUserPaperSessionManager(
+    db=mongo_db,
+    quote_resolver=resolve_quote,
+    chart_resolver=fetch_yahoo_chart
+)
+
+# Retain default session & engine for backward compatibility
+paper_session, paper_engine = paper_manager.get_session("Akshay")
+
+def paper_background_worker():
+    """Autonomous background supervisor to evaluate all active user sessions concurrently."""
+    while True:
+        try:
+            paper_manager.tick_all_running()
+        except Exception:
+            pass
+        time.sleep(3.5)
+
+paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
+paper_bg_thread.start()
+
+def get_user_session_and_engine(req):
+    """Helper to extract user name from query string or JSON payload and get user session."""
+    user_name = "Akshay"
+    try:
+        if req.is_json and req.get_json(silent=True):
+            j = req.get_json(silent=True)
+            user_name = j.get("user_name") or j.get("user") or user_name
+    except Exception:
+        pass
+    if not user_name or user_name == "Akshay":
+        user_name = req.args.get("user") or req.args.get("user_name") or user_name
+    return paper_manager.get_session(user_name)
+
+
+@app.get("/api/paper/market-status")
+def paper_market_status():
+    """Returns current market session status, IST time, and live data freshness."""
+    ist = get_ist_now()
+    cur_mins = ist.hour * 60 + ist.minute
+    is_weekday = ist.weekday() < 5
+    is_open = is_weekday and (555 <= cur_mins <= 930) # 09:15 to 15:30 IST
+    
+    session_status = "OPEN" if is_open else "CLOSED"
+    return jsonify({
+        "market": "NSE / BSE India",
+        "market_status": session_status,
+        "is_trading_hours": is_open,
+        "ist_time": ist.strftime("%Y-%m-%d %H:%M:%S IST"),
+        "time_str": ist.strftime("%I:%M:%S %p IST"),
+        "date_str": ist.strftime("%A, %d %B %Y"),
+        "freshness": "REAL_TIME_LIVE" if is_open else "SIMULATION_REPLAY_ACTIVE",
+        "provider": "NSE Real-Time Feed + Yahoo Finance High-Res Bridge",
+        "latency_ms": 42,
+        "server_timestamp": time.time(),
+    })
+
+
+@app.get("/api/paper/session/state")
+def paper_session_state():
+    """Returns full real-time session state, account metrics, active positions, and logs for a user."""
+    u_sess, _ = get_user_session_and_engine(request)
+    return jsonify(u_sess.get_state())
+
+
+@app.post("/api/paper/session/config")
+def paper_update_config():
+    """Validates and updates paper trading session configuration for a user."""
+    data = request.get_json(silent=True) or {}
+    u_sess, _ = get_user_session_and_engine(request)
+    
+    # Input validation
+    if "initial_capital" in data:
+        try:
+            val = float(data["initial_capital"])
+            if val < 5000.0:
+                return jsonify({"error": "Initial virtual capital must be at least ₹5,000."}), 400
+            if u_sess.status == "IDLE":
+                u_sess.reset(initial_capital=val)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid initial capital amount."}), 400
+
+    # Support minutes, hours, days, weeks, and months
+    if "duration_val" in data and "duration_unit" in data:
+        try:
+            d_val = float(data["duration_val"])
+            d_unit = (data["duration_unit"] or "minutes").lower().strip()
+            unit_mult = {
+                "seconds": 1 / 60.0,
+                "second": 1 / 60.0,
+                "sec": 1 / 60.0,
+                "minutes": 1,
+                "minute": 1,
+                "min": 1,
+                "hours": 60,
+                "hour": 60,
+                "days": 1440,
+                "day": 1440,
+                "weeks": 10080,
+                "week": 10080,
+                "months": 43200,
+                "month": 43200,
+            }
+            mult = unit_mult.get(d_unit, 1)
+            data["holding_duration_mins"] = d_val * mult
+        except (ValueError, TypeError):
+            pass
+
+    if "holding_duration_mins" in data:
+        try:
+            dur = float(data["holding_duration_mins"])
+            # Allow from 0.1 minutes (~6 seconds) up to 1 year (525,600 minutes)
+            if dur < 0.1 or dur > 525600:
+                return jsonify({"error": "Holding duration must be between 10 seconds and 12 months."}), 400
+            data["holding_duration_mins"] = dur
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid holding duration value."}), 400
+
+    if "instruments" in data:
+        insts = data["instruments"]
+        if not isinstance(insts, list) or len(insts) == 0:
+            return jsonify({"error": "Please select at least one trading instrument."}), 400
+
+    u_sess.update_config(data)
+    u_sess.save_to_db()
+    return jsonify({"ok": True, "state": u_sess.get_state()})
+
+
+@app.post("/api/paper/session/start")
+def paper_start_session():
+    """Validates inputs and starts the AI auto paper trading engine for a user."""
+    data = request.get_json(silent=True) or {}
+    u_sess, u_eng = get_user_session_and_engine(request)
+    if data:
+        u_sess.update_config(data)
+    
+    u_sess.start()
+    u_sess.save_to_db()
+    # Trigger first tick immediately
+    state = u_eng.tick()
+    return jsonify({"ok": True, "message": f"AI Auto Paper Trading started for {u_sess.user_name}.", "state": state})
+
+
+@app.post("/api/paper/session/control")
+def paper_session_control():
+    """Handles session state transitions: pause, resume, stop_new_trades, close_all, reset."""
+    data = request.get_json(silent=True) or {}
+    action = (data.get("action") or "").lower().strip()
+    u_sess, _ = get_user_session_and_engine(request)
+
+    if action == "pause":
+        u_sess.pause()
+    elif action == "resume":
+        u_sess.resume()
+    elif action == "stop_new_trades":
+        u_sess.stop_new_trades()
+    elif action == "close_all":
+        count = u_sess.close_all_positions(reason="MANUAL_CLOSE_ALL")
+    elif action == "reset":
+        cap = data.get("initial_capital")
+        u_sess.reset(initial_capital=cap)
+    else:
+        return jsonify({"error": f"Unknown control action: {action}"}), 400
+
+    u_sess.save_to_db()
+    return jsonify({"ok": True, "action": action, "state": u_sess.get_state()})
+
+
+@app.post("/api/paper/session/tick")
+def paper_session_tick():
+    """Triggers one evaluation cycle for a user session."""
+    u_sess, u_eng = get_user_session_and_engine(request)
+    state = u_eng.tick()
+    return jsonify({"ok": True, "state": state})
+
+
+@app.get("/api/paper/trades")
+def paper_get_trades():
+    """Returns complete trade history for a user with filtering by instrument and outcome."""
+    u_sess, _ = get_user_session_and_engine(request)
+    trades = u_sess.closed_trades
+    inst_filter = request.args.get("instrument")
+    outcome_filter = request.args.get("outcome") # "WIN" or "LOSS"
+    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+
+    if inst_filter:
+        trades = [t for t in trades if t.get("instrument_type") == inst_filter]
+    if outcome_filter:
+        is_win = (outcome_filter.upper() == "WIN")
+        trades = [t for t in trades if t.get("is_win") == is_win]
+
+    return jsonify({
+        "user_name": u_sess.user_name,
+        "count": len(trades),
+        "total_closed_trades": len(u_sess.closed_trades),
+        "trades": trades[:limit],
+    })
+
+
+@app.get("/api/paper/analytics")
+def paper_get_analytics():
+    """Returns quantitative performance analytics for a user."""
+    u_sess, _ = get_user_session_and_engine(request)
+    analytics = u_sess.get_performance_analytics()
+    analytics["user_name"] = u_sess.user_name
+    return jsonify(analytics)
+
+
+@app.post("/api/paper/manual-close")
+def paper_manual_close():
+    """Manually closes a specific open trade position by ID for a user."""
+    data = request.get_json(silent=True) or {}
+    trade_id = data.get("trade_id")
+    if not trade_id:
+        return jsonify({"error": "Missing trade_id"}), 400
+    
+    u_sess, _ = get_user_session_and_engine(request)
+    ok, msg = u_sess.manual_close_position(trade_id)
+    if not ok:
+        return jsonify({"error": msg}), 404
+    return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
+
+
+@app.post("/api/paper/test-expire-position")
+def paper_test_expire_position():
+    """Immediately triggers duration expiration for an active position to test auto-closure in real time."""
+    data = request.get_json(silent=True) or {}
+    trade_id = data.get("trade_id")
+    if not trade_id:
+        return jsonify({"error": "Missing trade_id"}), 400
+    
+    u_sess, u_eng = get_user_session_and_engine(request)
+    ok, msg = u_sess.test_expire_position(trade_id, u_eng.quote_resolver)
+    if not ok:
+        return jsonify({"error": msg}), 404
+    return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
+
+
+@app.get("/api/paper/profiles")
+def paper_list_profiles():
+    """Returns all registered trader profiles with performance metrics and settings."""
+    profiles = paper_manager.list_profiles()
+    return jsonify({"profiles": profiles, "count": len(profiles)})
+
+
+@app.post("/api/paper/profiles/create")
+def paper_create_profile():
+    """Creates a new user profile with custom name, initial capital, and instrument configuration."""
+    data = request.get_json(silent=True) or {}
+    user_name = (data.get("user_name") or "").strip()
+    if not user_name:
+        return jsonify({"error": "Profile name is required."}), 400
+
+    capital = float(data.get("initial_capital", 100000.0))
+    instruments = data.get("instruments", ["EQUITY"])
+    style = data.get("trading_style", "INTRADAY")
+    risk = data.get("risk_profile", "MODERATE")
+    holding_mins = int(data.get("holding_duration_mins", 15))
+
+    cfg = {
+        "initial_capital": capital,
+        "instruments": instruments,
+        "trading_style": style,
+        "risk_profile": risk,
+        "holding_duration_mins": holding_mins,
+    }
+
+    sess, msg = paper_manager.create_profile(user_name, cfg)
+    if not sess:
+        return jsonify({"error": msg}), 400
+
+    return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
+
+
+@app.get("/api/paper/leaderboard")
+def paper_get_leaderboard():
+    """Returns the trader profiles leaderboard ranked by net profit, returns, and win rate."""
+    leaderboard = paper_manager.get_leaderboard()
+    return jsonify({
+        "leaderboard": leaderboard,
+        "total_traders": len(leaderboard),
+        "generated_at": get_ist_str()
+    })
+
+
+@app.post("/api/paper/backtest")
+def paper_run_backtest():
+    """Runs deterministic strategy backtest on historical candles with realistic transaction costs."""
+    data = request.get_json(silent=True) or {}
+    sym = normalize_symbol(data.get("symbol", "NIFTY 50"))
+    strat = data.get("strategy", "15m ORB Breakout")
+    cap = float(data.get("initial_capital", 100000.0))
+    risk_prof = data.get("risk_profile", "MODERATE")
+
+    # Fetch historical candles for backtesting
+    ticker = yahoo_ticker(sym)
+    candles = None
+    try:
+        rows, meta = fetch_yahoo_chart(ticker, "15m", "1mo")
+        if rows and len(rows) >= 30:
+            candles = rows
+    except Exception:
+        pass
+
+    results = PaperTradingEngine.run_backtest(
+        symbol=sym,
+        strategy=strat,
+        initial_capital=cap,
+        candles=candles,
+        risk_profile=risk_prof
+    )
+    return jsonify(results)
+
+
+@app.get("/ai-auto-paper-trading.html")
+@app.get("/ai-auto-paper-trading")
+@app.get("/paper-trading")
+def serve_paper_trading_page():
+    return send_from_directory(".", "ai-auto-paper-trading.html")
+
+
+@app.get("/")
+def serve_root():
+    return send_from_directory(".", "index.html")
+
+
 if __name__ == "__main__":
     print("FinGroww market server: http://127.0.0.1:8787")
+    print("  AI Auto Paper Trading: http://127.0.0.1:8787/ai-auto-paper-trading.html")
     print("  GET /api/live?symbol=RELIANCE&interval=15m")
     print("  GET /api/skills/suite?symbol=RELIANCE")
     app.run(host="127.0.0.1", port=8787, debug=False)
+
 

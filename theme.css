@@ -242,6 +242,8 @@ header.site-header {
   align-items: center;
   justify-content: space-between;
   height: 74px;
+  max-width: 1400px;
+  width: 100%;
 }
 .brand {
   display: flex;
@@ -288,11 +290,11 @@ header.site-header {
 .nav-links {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   list-style: none;
 }
 .nav-links a {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
   transition: var(--transition-fast);
@@ -300,7 +302,7 @@ header.site-header {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 4px;
+  padding: 6px 6px;
   white-space: nowrap;
 }
 .nav-links a:hover,
@@ -326,7 +328,8 @@ header.site-header {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* Theme Toggle Button */
@@ -611,9 +614,11 @@ footer.site-footer {
   font-weight: 900;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1180px) {
   .nav-links { display: none !important; }
   .mobile-toggle { display: inline-flex !important; }
+}
+@media (max-width: 992px) {
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
