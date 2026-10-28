@@ -2181,6 +2181,9 @@ function showToast(message, type = "info") {
   }, 3500);
 }
 
+// Active API host cache to eliminate redundant/failed requests
+let activePaperApiHost = null;
+
 // API Helper adhering to FinGroww dual-host pattern
 async function fetchPaperApi(path, options = {}) {
   const isLocalHost = window.location.hostname === "127.0.0.1" || 
@@ -2188,28 +2191,42 @@ async function fetchPaperApi(path, options = {}) {
                       window.location.protocol === "file:" || 
                       !window.location.hostname;
 
-  // 1. Try local Python Flask server (Port 8787)
+  // Build candidate list based on environment
+  let candidateHosts = [];
+  
+  // 1. If we already found a working host, use it immediately (0ms waste, 0 failed requests)
+  if (activePaperApiHost) {
+    candidateHosts.push(activePaperApiHost);
+  }
+
   if (isLocalHost) {
-    for (const host of ["http://127.0.0.1:8787", "http://localhost:8787"]) {
-      try {
-        const r = await fetch(host + path, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
-        if (r.ok) return await r.json();
-      } catch (e) {}
+    if (!candidateHosts.includes("http://127.0.0.1:8787")) candidateHosts.push("http://127.0.0.1:8787");
+    if (!candidateHosts.includes("http://localhost:8787")) candidateHosts.push("http://localhost:8787");
+    if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
+  } else {
+    // When hosted online (e.g. Vercel, Netlify, Custom domain), route directly to Render Cloud backend
+    if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
+    if (!candidateHosts.includes("https://fingroww-trading-server.onrender.com")) candidateHosts.push("https://fingroww-trading-server.onrender.com");
+    // Only try relative path if on the same origin as the backend (e.g. Render direct)
+    if (window.location.hostname.includes("onrender.com") && !candidateHosts.includes("")) {
+      candidateHosts.push("");
     }
   }
 
-  // 2. Try current relative origin
-  try {
-    const r = await fetch(path, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
-    if (r.ok) return await r.json();
-  } catch (e) {}
-
-  // 3. Try Render Cloud Host
-  for (const host of ["https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"]) {
+  for (const host of candidateHosts) {
     try {
-      const r = await fetch(host + path, { ...options, headers: { "Content-Type": "application/json", ...options.headers } });
-      if (r.ok) return await r.json();
-    } catch (e) {}
+      const url = host ? (host + path) : path;
+      const r = await fetch(url, { 
+        ...options, 
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) } 
+      });
+      if (r.ok) {
+        activePaperApiHost = host;
+        return await r.json();
+      }
+    } catch (e) {
+      // Fallback to next candidate
+    }
   }
 
   return null;
@@ -2956,11 +2973,11 @@ function renderActivePositions(positions) {
         </td>
         <td><span style="font-size:11px;padding:2px 6px;border-radius:3px;background:var(--bg-surface);border:1px solid var(--border-subtle);">${pos.instrument_type}</span></td>
         <td><span class="trade-badge ${isBuy ? 'badge-buy' : 'badge-sell'}">${pos.side}</span></td>
-        <td style="font-family:var(--font-mono);">₹${pos.entry_price.toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);font-weight:800;color:var(--text-main);">₹${pos.current_price.toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);">${pos.quantity} ${pos.lots ? `(${pos.lots}L)` : ''}</td>
-        <td style="font-family:var(--font-mono);color:var(--accent-green);">₹${pos.target_price.toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);color:var(--accent-red);">₹${pos.stop_loss.toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);">₹${(Number(pos.entry_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);font-weight:800;color:var(--text-main);">₹${(Number(pos.current_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);">${pos.quantity || 0} ${pos.lots ? `(${pos.lots}L)` : ''}</td>
+        <td style="font-family:var(--font-mono);color:var(--accent-green);">₹${(Number(pos.target_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);color:var(--accent-red);">₹${(Number(pos.stop_loss) || 0).toFixed(2)}</td>
         <td style="font-size:12px;font-family:var(--font-mono);">
           <div class="live-countdown-val" data-target="${pos.target_exit_timestamp}" data-trade-id="${pos.trade_id}" style="font-weight:700;">${timeDisplay}</div>
           <div style="font-size:10.5px;color:var(--text-dim);">Plan: ${totalDurationDisplay}</div>
@@ -2971,8 +2988,8 @@ function renderActivePositions(positions) {
           </div>
         </td>
         <td style="font-family:var(--font-mono);font-weight:800;" class="${pnlClass}">
-          ${sign}₹${pnl.toFixed(2)}
-          <div style="font-size:10.5px;font-weight:600;">(${sign}${(pos.pnl_pct || 0).toFixed(2)}%)</div>
+          ${sign}₹${(Number(pnl) || 0).toFixed(2)}
+          <div style="font-size:10.5px;font-weight:600;">(${sign}${(Number(pos.pnl_pct) || 0).toFixed(2)}%)</div>
         </td>
         <td>
           <div style="display:flex;gap:4px;align-items:center;">
@@ -3078,13 +3095,13 @@ function renderHistoryTable(trades) {
         <td style="font-weight:800;color:var(--text-main);">${t.symbol}</td>
         <td><span style="font-size:11px;padding:2px 6px;border-radius:3px;background:var(--bg-surface);border:1px solid var(--border-subtle);">${t.instrument_type}</span></td>
         <td><span class="trade-badge ${t.side === 'BUY' ? 'badge-buy' : 'badge-sell'}">${t.side}</span></td>
-        <td style="font-family:var(--font-mono);">₹${t.entry_price.toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);font-weight:700;">₹${t.exit_price.toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);">${t.quantity}</td>
-        <td style="font-family:var(--font-mono);">₹${(t.gross_pnl || 0).toFixed(2)}</td>
-        <td style="font-family:var(--font-mono);color:var(--accent-gold);">₹${(t.charges || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);">₹${(Number(t.entry_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);font-weight:700;">₹${(Number(t.exit_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);">${t.quantity || 0}</td>
+        <td style="font-family:var(--font-mono);">₹${(Number(t.gross_pnl) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);color:var(--accent-gold);">₹${(Number(t.charges) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);font-weight:800;" class="${pnlClass}">
-          ${sign}₹${pnl.toFixed(2)}
+          ${sign}₹${(Number(pnl) || 0).toFixed(2)}
         </td>
         <td style="font-size:12px;font-family:var(--font-mono);font-weight:700;">${t.holding_duration_str || '--'}</td>
         <td style="font-size:11.5px;">
