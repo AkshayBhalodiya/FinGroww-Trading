@@ -6,7 +6,7 @@ import re
 import os
 import hashlib
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +18,10 @@ lock = threading.Lock()
 last_init = 0
 indices_cache = {"at": 0, "rows": []}
 symbols_cache = {"at": 0, "items": []}
+paper_market_cache = {"at": 0, "status": None}
+paper_live_quote_cache = {}
+paper_chart_cache = {}
+paper_quote_cache_lock = threading.Lock()
 
 # -------------------------------------------------------------------------
 # MONGODB ATLAS & RESILIENT DATASTORE CONFIGURATION (PHASE 2)
@@ -223,7 +227,7 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
 def nse_index_rows():
     global indices_cache
     now = time.time()
-    if now - indices_cache["at"] < 45 and indices_cache["rows"]:
+    if now - indices_cache["at"] < 3 and indices_cache["rows"]:
         return indices_cache["rows"]
     data = nse_get("/api/allIndices")
     rows = (data or {}).get("data") or []
@@ -247,6 +251,7 @@ def quote_from_nse_index(symbol):
                 "dayLow": row.get("low"),
                 "previousClose": row.get("previousClose"),
                 "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST"),
+                "fetched_at": time.time(),
             }
     return None
 
@@ -261,6 +266,15 @@ def quote_from_nse_equity(symbol):
     last = info.get("lastPrice")
     if last is None:
         return None
+    last_update = (data.get("metadata") or {}).get("lastUpdateTime")
+    exchange_timestamp = None
+    if last_update:
+        try:
+            exchange_timestamp = datetime.strptime(
+                last_update, "%d-%b-%Y %H:%M:%S"
+            ).replace(tzinfo=timezone(timedelta(hours=5, minutes=30))).timestamp()
+        except ValueError:
+            app.logger.warning("Unexpected NSE quote timestamp format for %s: %s", symbol, last_update)
     return {
         "source": "NSE",
         "symbol": symbol,
@@ -273,7 +287,9 @@ def quote_from_nse_equity(symbol):
         "dayLow": intra.get("min"),
         "previousClose": info.get("previousClose"),
         "vwap": info.get("vwap"),
-        "timestamp": (data.get("metadata") or {}).get("lastUpdateTime"),
+        "timestamp": last_update,
+        "exchange_timestamp": exchange_timestamp,
+        "fetched_at": time.time(),
     }
 
 
@@ -372,6 +388,91 @@ def resolve_quote(symbol):
         "previousClose": fallback_price,
         "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
     }
+
+
+def resolve_live_quote(symbol):
+    """Returns an NSE quote only; never substitutes delayed or synthetic prices."""
+    now = time.time()
+    with paper_quote_cache_lock:
+        cached = paper_live_quote_cache.get(symbol)
+        if cached and now - cached.get("fetched_at", 0) <= 5:
+            return dict(cached)
+
+    try:
+        if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
+            quote = quote_from_nse_index(symbol)
+        elif symbol == "SENSEX":
+            quote = None
+        else:
+            quote = quote_from_nse_equity(symbol)
+        if quote and quote.get("lastPrice"):
+            quote["fetched_at"] = time.time()
+            with paper_quote_cache_lock:
+                paper_live_quote_cache[symbol] = dict(quote)
+        return quote
+    except Exception as exc:
+        app.logger.warning("NSE live quote failed for %s: %s", symbol, exc)
+        return None
+
+
+def paper_chart_resolver(symbol, interval="15m", range_="5d"):
+    """Gets indicator candles for the underlying; execution prices still use NSE LTP."""
+    cache_key = (symbol, interval, range_)
+    now = time.time()
+    with paper_quote_cache_lock:
+        cached = paper_chart_cache.get(cache_key)
+        if cached and now - cached["fetched_at"] < 60:
+            return list(cached["rows"])
+    rows, _ = fetch_yahoo_chart(yahoo_ticker(symbol), interval, range_)
+    if rows:
+        with paper_quote_cache_lock:
+            paper_chart_cache[cache_key] = {"fetched_at": time.time(), "rows": rows}
+    return rows
+
+
+def get_nse_market_status():
+    """Uses the exchange's own Capital Market status and fails closed if unavailable."""
+    now = time.time()
+    ist = get_ist_now()
+    market_minute = ist.hour * 60 + ist.minute
+    regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
+    cached = paper_market_cache["status"]
+    if cached and now - paper_market_cache["at"] < 5:
+        current = dict(cached)
+        current["is_trading_hours"] = bool(current["is_trading_hours"] and regular_session)
+        current["market_status"] = "OPEN" if current["is_trading_hours"] else "CLOSED"
+        if not current["is_trading_hours"] and not current["reason"]:
+            current["reason"] = "NSE regular trading session is closed."
+        return current
+
+    data = nse_get("/api/marketStatus")
+    market_states = data.get("marketState") if isinstance(data, dict) else None
+    market_states = market_states if isinstance(market_states, list) else []
+    capital_market = next(
+        (
+            state for state in market_states
+            if "capital" in str(state.get("market") or "").lower()
+        ),
+        None,
+    )
+    exchange_open = bool(
+        capital_market
+        and str(capital_market.get("marketStatus") or "").strip().lower() == "open"
+    )
+    is_open = exchange_open and regular_session
+    status = {
+        "is_trading_hours": is_open,
+        "market_status": "OPEN" if is_open else "CLOSED",
+        "source": "NSE official market status" if capital_market else "Unavailable (fail-closed)",
+        "trade_date": (capital_market or {}).get("tradeDate"),
+        "reason": (
+            None if is_open else
+            "NSE regular trading session is closed." if capital_market else
+            "Could not confirm NSE market status."
+        ),
+    }
+    paper_market_cache.update({"at": now, "status": status})
+    return dict(status)
 
 
 FO_SYMBOLS = {
@@ -1530,8 +1631,9 @@ from fingroww_paper_engine import (
 
 paper_manager = MultiUserPaperSessionManager(
     db=mongo_db,
-    quote_resolver=resolve_quote,
-    chart_resolver=fetch_yahoo_chart
+    quote_resolver=resolve_live_quote,
+    chart_resolver=paper_chart_resolver,
+    market_status_resolver=get_nse_market_status,
 )
 
 # Retain default session & engine for backward compatibility
@@ -1543,7 +1645,7 @@ def paper_background_worker():
         try:
             paper_manager.tick_all_running()
         except Exception:
-            pass
+            app.logger.exception("Paper trading background supervisor failed")
         time.sleep(3.5)
 
 paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
@@ -1565,23 +1667,23 @@ def get_user_session_and_engine(req):
 
 @app.get("/api/paper/market-status")
 def paper_market_status():
-    """Returns current market session status, IST time, and live data freshness."""
+    """Returns NSE's official market status and the paper engine's quote policy."""
     ist = get_ist_now()
-    cur_mins = ist.hour * 60 + ist.minute
-    is_weekday = ist.weekday() < 5
-    is_open = is_weekday and (555 <= cur_mins <= 930) # 09:15 to 15:30 IST
-    
-    session_status = "OPEN" if is_open else "CLOSED"
+    market = get_nse_market_status()
+    is_open = market["is_trading_hours"]
     return jsonify({
-        "market": "NSE / BSE India",
-        "market_status": session_status,
+        "market": "NSE India Capital Market",
+        "market_status": market["market_status"],
         "is_trading_hours": is_open,
         "ist_time": ist.strftime("%Y-%m-%d %H:%M:%S IST"),
         "time_str": ist.strftime("%I:%M:%S %p IST"),
         "date_str": ist.strftime("%A, %d %B %Y"),
-        "freshness": "REAL_TIME_LIVE" if is_open else "SIMULATION_REPLAY_ACTIVE",
-        "provider": "NSE Real-Time Feed + Yahoo Finance High-Res Bridge",
-        "latency_ms": 42,
+        "freshness": "REAL_TIME_LIVE" if is_open else "NO_LIVE_TRADING",
+        "provider": "NSE live quotes; Yahoo Finance historical indicator candles",
+        "market_status_source": market["source"],
+        "market_status_reason": market["reason"],
+        "trade_date": market["trade_date"],
+        "latency_ms": None,
         "server_timestamp": time.time(),
     })
 
@@ -1661,6 +1763,12 @@ def paper_start_session():
     """Validates inputs and starts the AI auto paper trading engine for a user."""
     data = request.get_json(silent=True) or {}
     u_sess, u_eng = get_user_session_and_engine(request)
+    market_status = get_nse_market_status()
+    if not market_status["is_trading_hours"]:
+        return jsonify({
+            "error": "Paper trading can only be started while NSE's regular market is confirmed open.",
+            "market_status": market_status,
+        }), 409
     if data:
         u_sess.update_config(data)
     
@@ -1681,11 +1789,24 @@ def paper_session_control():
     if action == "pause":
         u_sess.pause()
     elif action == "resume":
+        market_status = get_nse_market_status()
+        if not market_status["is_trading_hours"]:
+            return jsonify({
+                "error": "Paper trading cannot be resumed while NSE is closed or its market status is unavailable.",
+                "market_status": market_status,
+            }), 409
         u_sess.resume()
     elif action == "stop_new_trades":
         u_sess.stop_new_trades()
     elif action == "close_all":
-        count = u_sess.close_all_positions(reason="MANUAL_CLOSE_ALL")
+        market_open = get_nse_market_status()["is_trading_hours"]
+        if not market_open:
+            return jsonify({"error": "NSE market is closed or its status is unavailable; positions were not closed."}), 409
+        count = u_sess.close_all_positions(
+            reason="MANUAL_CLOSE_ALL",
+            quote_resolver=paper_manager.quote_resolver,
+            market_is_open=market_open,
+        )
     elif action == "reset":
         cap = data.get("initial_capital")
         u_sess.reset(initial_capital=cap)
@@ -1745,9 +1866,14 @@ def paper_manual_close():
         return jsonify({"error": "Missing trade_id"}), 400
     
     u_sess, _ = get_user_session_and_engine(request)
-    ok, msg = u_sess.manual_close_position(trade_id)
+    market_open = get_nse_market_status()["is_trading_hours"]
+    ok, msg = u_sess.manual_close_position(
+        trade_id,
+        quote_resolver=paper_manager.quote_resolver,
+        market_is_open=market_open,
+    )
     if not ok:
-        return jsonify({"error": msg}), 404
+        return jsonify({"error": msg}), 404 if msg == "Position not found." else 409
     return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
 
 
@@ -1758,9 +1884,15 @@ def paper_test_expire_position():
     trade_id = data.get("trade_id")
     if not trade_id:
         return jsonify({"error": "Missing trade_id"}), 400
-    
+
     u_sess, u_eng = get_user_session_and_engine(request)
-    ok, msg = u_sess.test_expire_position(trade_id, u_eng.quote_resolver)
+    if not get_nse_market_status()["is_trading_hours"]:
+        return jsonify({"error": "NSE market is closed or its status is unavailable."}), 409
+    ok, msg = u_sess.test_expire_position(
+        trade_id,
+        u_eng.quote_resolver,
+        market_is_open=True,
+    )
     if not ok:
         return jsonify({"error": msg}), 404
     return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
@@ -1797,7 +1929,7 @@ def paper_create_profile():
 
     sess, msg = paper_manager.create_profile(user_name, cfg)
     if not sess:
-        return jsonify({"error": msg}), 400
+        return jsonify({"error": msg}), 409 if "already exists" in msg else 400
 
     return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
 
@@ -1860,5 +1992,3 @@ if __name__ == "__main__":
     print("  GET /api/live?symbol=RELIANCE&interval=15m")
     print("  GET /api/skills/suite?symbol=RELIANCE")
     app.run(host="127.0.0.1", port=8787, debug=False)
-
-
