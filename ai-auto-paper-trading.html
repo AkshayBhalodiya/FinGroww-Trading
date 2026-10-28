@@ -610,6 +610,47 @@
 }
 .btn-reset:hover { color: var(--accent-red); border-color: var(--accent-red); }
 
+/* Button Loading & Anti-Double-Click State */
+.btn.btn-loading,
+.btn-control.btn-loading,
+button[disabled],
+.btn[disabled],
+.btn-control[disabled] {
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+  opacity: 0.65 !important;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.btn-loading i.fa-spinner,
+.btn-control.btn-loading i.fa-spinner {
+  margin-right: 6px;
+  display: inline-block;
+  animation: spinLoader 0.8s linear infinite;
+}
+
+@keyframes spinLoader {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Global Top Action Progress Bar */
+#globalActionProgress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #0ea5e9, #10b981, #f59e0b, #ec4899);
+  z-index: 100000;
+  transition: width 0.25s ease, opacity 0.35s ease;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.9), 0 0 4px rgba(16, 185, 129, 0.9);
+  opacity: 0;
+}
+
+
 /* Live AI Decision Terminal */
 .terminal-window {
   background: #020617;
@@ -1085,6 +1126,7 @@
 </style>
 </head>
 <body>
+<div id="globalActionProgress"></div>
 
 <!-- Ambient Subtle Dot Grid -->
 <div class="bg-ambient-grid"></div>
@@ -1239,6 +1281,9 @@
               <option value="Rahul_Futures_Swing">Rahul_Futures_Swing (Futures Swing)</option>
               <option value="Pooja_Equity_Value">Pooja_Equity_Value (Positional Equity)</option>
             </select>
+            <span id="profileLoadingSpinner" style="display:none;align-items:center;margin-left:8px;color:var(--accent-blue);font-size:14px;" title="Switching profile...">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            </span>
           </div>
         </div>
       </div>
@@ -1509,10 +1554,10 @@
           <button type="button" id="btnStopNew" class="btn-control btn-stop-new" onclick="handleStopNewTrades()">
             <i class="fa-solid fa-ban"></i> Stop New Trades
           </button>
-          <button type="button" class="btn-control btn-close-all" onclick="confirmCloseAll()">
+          <button type="button" id="btnCloseAllQuick" class="btn-control btn-close-all" onclick="confirmCloseAll()">
             <i class="fa-solid fa-xmark"></i> Close All
           </button>
-          <button type="button" class="btn-control btn-reset" onclick="confirmResetSession()">
+          <button type="button" id="btnResetQuick" class="btn-control btn-reset" onclick="confirmResetSession()">
             <i class="fa-solid fa-rotate-left"></i> Reset
           </button>
         </div>
@@ -1690,7 +1735,7 @@
         <span>Completed Trade History & Audit Log</span>
       </div>
       <div>
-        <button type="button" class="btn btn-sm btn-outline" onclick="exportTradesCsv()">
+        <button type="button" id="btnExportCsv" class="btn btn-sm btn-outline" onclick="exportTradesCsv(this)">
           <i class="fa-solid fa-file-arrow-down"></i> Export CSV
         </button>
       </div>
@@ -1753,7 +1798,7 @@
         <span class="db-sync-badge"><i class="fa-solid fa-database"></i> MongoDB Atlas Persisted</span>
       </div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <button type="button" class="btn btn-sm btn-outline" onclick="refreshLeaderboard()" title="Refresh Rankings">
+        <button type="button" id="btnRefreshLeaderboard" class="btn btn-sm btn-outline" onclick="refreshLeaderboard(this)" title="Refresh Rankings">
           <i class="fa-solid fa-rotate"></i> Refresh Rankings
         </button>
         <button type="button" class="btn btn-sm btn-primary" onclick="openCreateProfileModal()">
@@ -1911,7 +1956,7 @@
 
       <div class="modal-actions">
         <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalCreateProfile')">Cancel</button>
-        <button type="submit" class="btn btn-sm btn-primary">
+        <button type="submit" id="btnSubmitCreateProfile" class="btn btn-sm btn-primary">
           <i class="fa-solid fa-check"></i> Create & Switch Profile
         </button>
       </div>
@@ -1934,7 +1979,7 @@
     </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalCloseAll')">Cancel</button>
-      <button type="button" class="btn btn-sm btn-danger" onclick="executeCloseAllConfirmed()">Yes, Close All Positions</button>
+      <button type="button" id="btnConfirmCloseAll" class="btn btn-sm btn-danger" onclick="executeCloseAllConfirmed()">Yes, Close All Positions</button>
     </div>
   </div>
 </div>
@@ -1951,7 +1996,7 @@
     </div>
     <div class="modal-actions">
       <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalReset')">Cancel</button>
-      <button type="button" class="btn btn-sm btn-primary" onclick="executeResetConfirmed()">Confirm Reset</button>
+      <button type="button" id="btnConfirmReset" class="btn btn-sm btn-primary" onclick="executeResetConfirmed()">Confirm Reset</button>
     </div>
   </div>
 </div>
@@ -2044,6 +2089,80 @@ let pollTimer = null;
 let currentHistoryFilter = "ALL";
 let stratChart = null;
 let instChart = null;
+
+// -------------------------------------------------------------------------
+// ANTI-DOUBLE-CLICK GUARDS & BUTTON LOADING MANAGERS
+// -------------------------------------------------------------------------
+const activeActionLocks = new Set();
+let activeRequestCount = 0;
+
+function showGlobalProgress() {
+  activeRequestCount++;
+  const bar = document.getElementById("globalActionProgress");
+  if (!bar) return;
+  bar.style.opacity = "1";
+  bar.style.width = activeRequestCount === 1 ? "40%" : "75%";
+}
+
+function hideGlobalProgress() {
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  const bar = document.getElementById("globalActionProgress");
+  if (!bar) return;
+  if (activeRequestCount === 0) {
+    bar.style.width = "100%";
+    setTimeout(() => {
+      bar.style.opacity = "0";
+      setTimeout(() => { bar.style.width = "0%"; }, 350);
+    }, 200);
+  }
+}
+
+function setButtonLoading(btn, isLoading, loadingText = null) {
+  if (!btn) return;
+  if (isLoading) {
+    if (!btn.dataset.originalHtml) {
+      btn.dataset.originalHtml = btn.innerHTML;
+    }
+    btn.disabled = true;
+    btn.classList.add("btn-loading");
+    btn.style.pointerEvents = "none";
+    if (loadingText) {
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>${loadingText}</span>`;
+    } else {
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+    }
+  } else {
+    btn.disabled = false;
+    btn.classList.remove("btn-loading");
+    btn.style.pointerEvents = "";
+    if (btn.dataset.originalHtml) {
+      btn.innerHTML = btn.dataset.originalHtml;
+      delete btn.dataset.originalHtml;
+    }
+  }
+}
+
+async function withActionLock(actionKey, asyncFn, btn = null, loadingText = null) {
+  if (activeActionLocks.has(actionKey)) {
+    console.warn(`[Anti-Double-Click] Blocked duplicate trigger for '${actionKey}'.`);
+    return null;
+  }
+  activeActionLocks.add(actionKey);
+  if (btn) setButtonLoading(btn, true, loadingText);
+  showGlobalProgress();
+
+  try {
+    return await asyncFn();
+  } catch (err) {
+    console.error(`Action '${actionKey}' failed:`, err);
+    showToast(`Error: ${err.message || 'Operation failed'}`, "error");
+    throw err;
+  } finally {
+    activeActionLocks.delete(actionKey);
+    if (btn) setButtonLoading(btn, false);
+    hideGlobalProgress();
+  }
+}
 
 // Toast Notification
 function showToast(message, type = "info") {
@@ -2173,17 +2292,19 @@ function getFormConfig() {
   };
 }
 
-async function applyConfig() {
-  const config = getFormConfig();
-  const res = await fetchPaperApi("/api/paper/session/config", {
-    method: "POST",
-    body: JSON.stringify(config)
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Configuration saved for profile [${currentUserName}].`, "success");
-    await refreshLeaderboard();
-  }
+async function applyConfig(btnEl = null) {
+  return withActionLock("apply_config", async () => {
+    const config = getFormConfig();
+    const res = await fetchPaperApi("/api/paper/session/config", {
+      method: "POST",
+      body: JSON.stringify(config)
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Configuration saved for profile [${currentUserName}].`, "success");
+      await refreshLeaderboard();
+    }
+  }, btnEl, "Saving...");
 }
 
 // -------------------------------------------------------------------------
@@ -2191,52 +2312,64 @@ async function applyConfig() {
 // -------------------------------------------------------------------------
 
 async function handleStartTrading() {
-  const config = getFormConfig();
-  const res = await fetchPaperApi("/api/paper/session/start", {
-    method: "POST",
-    body: JSON.stringify(config)
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`AI Auto Paper Trading started for [${currentUserName}].`, "success");
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnStart");
+  return withActionLock("engine_start", async () => {
+    const config = getFormConfig();
+    const res = await fetchPaperApi("/api/paper/session/start", {
+      method: "POST",
+      body: JSON.stringify(config)
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`AI Auto Paper Trading started for [${currentUserName}].`, "success");
+      await refreshLeaderboard();
+    }
+  }, btn, "Starting Engine...");
 }
 
 async function handlePauseTrading() {
-  const res = await fetchPaperApi("/api/paper/session/control", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, action: "pause" })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Engine paused for [${currentUserName}].`);
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnPause");
+  return withActionLock("engine_pause", async () => {
+    const res = await fetchPaperApi("/api/paper/session/control", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, action: "pause" })
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Engine paused for [${currentUserName}].`);
+      await refreshLeaderboard();
+    }
+  }, btn, "Pausing...");
 }
 
 async function handleResumeTrading() {
-  const res = await fetchPaperApi("/api/paper/session/control", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, action: "resume" })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Engine resumed for [${currentUserName}].`, "success");
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnResume");
+  return withActionLock("engine_resume", async () => {
+    const res = await fetchPaperApi("/api/paper/session/control", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, action: "resume" })
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Engine resumed for [${currentUserName}].`, "success");
+      await refreshLeaderboard();
+    }
+  }, btn, "Resuming...");
 }
 
 async function handleStopNewTrades() {
-  const res = await fetchPaperApi("/api/paper/session/control", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, action: "stop_new_trades" })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Stopped new entries for [${currentUserName}]. Monitoring open positions.`);
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnStopNew");
+  return withActionLock("engine_stop_new", async () => {
+    const res = await fetchPaperApi("/api/paper/session/control", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, action: "stop_new_trades" })
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Stopped new entries for [${currentUserName}]. Monitoring open positions.`);
+      await refreshLeaderboard();
+    }
+  }, btn, "Stopping...");
 }
 
 function confirmCloseAll() {
@@ -2244,17 +2377,20 @@ function confirmCloseAll() {
 }
 
 async function executeCloseAllConfirmed() {
-  closeModal("modalCloseAll");
-  const res = await fetchPaperApi("/api/paper/session/control", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, action: "close_all" })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`All positions closed for [${currentUserName}].`, "info");
-    await fetchAndRenderAnalytics();
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnConfirmCloseAll");
+  return withActionLock("engine_close_all", async () => {
+    const res = await fetchPaperApi("/api/paper/session/control", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, action: "close_all" })
+    });
+    closeModal("modalCloseAll");
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`All positions closed for [${currentUserName}].`, "info");
+      await fetchAndRenderAnalytics();
+      await refreshLeaderboard();
+    }
+  }, btn, "Closing Positions...");
 }
 
 function confirmResetSession() {
@@ -2262,36 +2398,43 @@ function confirmResetSession() {
 }
 
 async function executeResetConfirmed() {
-  closeModal("modalReset");
-  const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
-  const res = await fetchPaperApi("/api/paper/session/control", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, action: "reset", initial_capital: cap })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Session reset to ₹${cap.toLocaleString('en-IN')} for [${currentUserName}].`, "info");
-    await fetchAndRenderAnalytics();
-    await refreshLeaderboard();
-  }
+  const btn = document.getElementById("btnConfirmReset");
+  return withActionLock("engine_reset", async () => {
+    const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
+    const res = await fetchPaperApi("/api/paper/session/control", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, action: "reset", initial_capital: cap })
+    });
+    closeModal("modalReset");
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Session reset to ₹${cap.toLocaleString('en-IN')} for [${currentUserName}].`, "info");
+      await fetchAndRenderAnalytics();
+      await refreshLeaderboard();
+    }
+  }, btn, "Resetting Session...");
 }
 
-async function manualClosePosition(tradeId) {
-  const res = await fetchPaperApi("/api/paper/manual-close", {
-    method: "POST",
-    body: JSON.stringify({ user_name: currentUserName, trade_id: tradeId })
-  });
-  if (res && res.state) {
-    updateUiWithState(res.state);
-    showToast(`Position closed manually.`, "success");
-    await fetchAndRenderAnalytics();
-    await refreshLeaderboard();
-  }
+async function manualClosePosition(tradeId, btnEl = null) {
+  const btn = btnEl || document.getElementById(`btnExit_${tradeId}`);
+  return withActionLock(`close_pos_${tradeId}`, async () => {
+    const res = await fetchPaperApi("/api/paper/manual-close", {
+      method: "POST",
+      body: JSON.stringify({ user_name: currentUserName, trade_id: tradeId })
+    });
+    if (res && res.state) {
+      updateUiWithState(res.state);
+      showToast(`Position closed manually.`, "success");
+      await fetchAndRenderAnalytics();
+      await refreshLeaderboard();
+    }
+  }, btn, "Exiting...");
 }
 
-async function testExpirePosition(tradeId) {
+async function testExpirePosition(tradeId, btnEl = null) {
   if (!tradeId) return;
-  try {
+  const btn = btnEl || document.getElementById(`btnExpire_${tradeId}`);
+  return withActionLock(`expire_pos_${tradeId}`, async () => {
     showToast(`⚡ Simulating duration expiration for ${tradeId}...`, "info");
     const res = await fetchPaperApi("/api/paper/test-expire-position", {
       method: "POST",
@@ -2303,9 +2446,7 @@ async function testExpirePosition(tradeId) {
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
     }
-  } catch (err) {
-    console.error("testExpirePosition error:", err);
-  }
+  }, btn, "Expiring...");
 }
 
 function closeModal(id) {
@@ -2349,20 +2490,23 @@ async function submitCreateProfile() {
     holding_duration_mins: style === "INTRADAY" ? 15 : (style === "SWING" ? 1440 : 10080),
   };
 
-  const res = await fetchPaperApi("/api/paper/profiles/create", {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+  const btn = document.getElementById("btnSubmitCreateProfile");
+  return withActionLock("create_profile", async () => {
+    const res = await fetchPaperApi("/api/paper/profiles/create", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
 
-  if (res && res.ok) {
-    closeModal("modalCreateProfile");
-    document.getElementById("createProfileForm").reset();
-    showToast(`Profile [${nameInput}] created and persisted in MongoDB Atlas!`, "success");
-    await loadProfilesList();
-    await switchUserProfile(nameInput);
-  } else {
-    showToast(res && res.error ? res.error : "Failed to create profile.", "error");
-  }
+    if (res && res.ok) {
+      closeModal("modalCreateProfile");
+      document.getElementById("createProfileForm").reset();
+      showToast(`Profile [${nameInput}] created and persisted in MongoDB Atlas!`, "success");
+      await loadProfilesList();
+      await switchUserProfile(nameInput);
+    } else {
+      showToast(res && res.error ? res.error : "Failed to create profile.", "error");
+    }
+  }, btn, "Creating...");
 }
 
 function formatInstrumentLabel(code) {
@@ -2393,23 +2537,35 @@ async function onProfileDropdownChange(newVal) {
   }
 }
 
-async function switchUserProfile(newUserName) {
+async function switchUserProfile(newUserName, btnEl = null) {
   if (!newUserName) return;
-  currentUserName = newUserName.trim();
-  localStorage.setItem("fingroww_paper_user", currentUserName);
-  
   const sel = document.getElementById("selUserProfile");
-  if (sel) sel.value = currentUserName;
+  const spinner = document.getElementById("profileLoadingSpinner");
 
-  // Fetch this user's state from backend (MongoDB Atlas)
-  const state = await fetchPaperApi(`/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`);
-  if (state) {
-    updateUiWithState(state);
-    syncConfigFormWithState(state);
-  }
-  await fetchAndRenderAnalytics();
-  await refreshLeaderboard();
-  showToast(`Switched active profile to [${currentUserName}].`);
+  return withActionLock(`switch_profile_${newUserName}`, async () => {
+    if (sel) sel.disabled = true;
+    if (spinner) spinner.style.display = "inline-flex";
+
+    try {
+      currentUserName = newUserName.trim();
+      localStorage.setItem("fingroww_paper_user", currentUserName);
+      
+      if (sel) sel.value = currentUserName;
+
+      // Fetch this user's state from backend (MongoDB Atlas)
+      const state = await fetchPaperApi(`/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`);
+      if (state) {
+        updateUiWithState(state);
+        syncConfigFormWithState(state);
+      }
+      await fetchAndRenderAnalytics();
+      await refreshLeaderboard();
+      showToast(`Switched active profile to [${currentUserName}].`);
+    } finally {
+      if (sel) sel.disabled = false;
+      if (spinner) spinner.style.display = "none";
+    }
+  }, btnEl, "Switching...");
 }
 
 function syncConfigFormWithState(state) {
@@ -2487,109 +2643,112 @@ function syncConfigFormWithState(state) {
 // LEADERBOARD RENDERER & STATS
 // -------------------------------------------------------------------------
 
-async function refreshLeaderboard() {
-  const data = await fetchPaperApi("/api/paper/leaderboard");
-  if (!data || !data.leaderboard) return;
+async function refreshLeaderboard(btnEl = null) {
+  const btn = btnEl || document.getElementById("btnRefreshLeaderboard");
+  return withActionLock("refresh_leaderboard", async () => {
+    const data = await fetchPaperApi("/api/paper/leaderboard");
+    if (!data || !data.leaderboard) return;
 
-  const lb = data.leaderboard;
-  const tbody = document.getElementById("leaderboardTableBody");
+    const lb = data.leaderboard;
+    const tbody = document.getElementById("leaderboardTableBody");
 
-  // Summary KPIs
-  if (lb.length > 0) {
-    const top = lb[0];
-    document.getElementById("leadTopPerformerName").textContent = top.user_name || "Akshay";
-    const net = top.net_pnl || 0;
-    const topProfitEl = document.getElementById("leadTopPerformerProfit");
-    topProfitEl.textContent = formatInr(net);
-    topProfitEl.className = "lead-kpi-val " + (net >= 0 ? "val-green" : "val-red");
-    document.getElementById("leadTopPerformerReturn").textContent = `${(top.return_pct || 0) >= 0 ? '+' : ''}${(top.return_pct || 0).toFixed(2)}% Return`;
+    // Summary KPIs
+    if (lb.length > 0) {
+      const top = lb[0];
+      document.getElementById("leadTopPerformerName").textContent = top.user_name || "Akshay";
+      const net = top.net_pnl || 0;
+      const topProfitEl = document.getElementById("leadTopPerformerProfit");
+      topProfitEl.textContent = formatInr(net);
+      topProfitEl.className = "lead-kpi-val " + (net >= 0 ? "val-green" : "val-red");
+      document.getElementById("leadTopPerformerReturn").textContent = `${(top.return_pct || 0) >= 0 ? '+' : ''}${(top.return_pct || 0).toFixed(2)}% Return`;
 
-    // Highest Win Rate
-    const sortedByWinRate = [...lb].sort((a,b) => (b.win_rate || 0) - (a.win_rate || 0));
-    const topWin = sortedByWinRate[0];
-    document.getElementById("leadTopWinRateName").textContent = topWin.user_name || "--";
-    document.getElementById("leadTopWinRateVal").textContent = `${(topWin.win_rate || 0).toFixed(1)}%`;
-    document.getElementById("leadTopWinRateTrades").textContent = `${topWin.winning_trades || 0} Wins / ${topWin.losing_trades || 0} Losses`;
+      // Highest Win Rate
+      const sortedByWinRate = [...lb].sort((a,b) => (b.win_rate || 0) - (a.win_rate || 0));
+      const topWin = sortedByWinRate[0];
+      document.getElementById("leadTopWinRateName").textContent = topWin.user_name || "--";
+      document.getElementById("leadTopWinRateVal").textContent = `${(topWin.win_rate || 0).toFixed(1)}%`;
+      document.getElementById("leadTopWinRateTrades").textContent = `${topWin.winning_trades || 0} Wins / ${topWin.losing_trades || 0} Losses`;
 
-    // Total Capital Managed
-    const totalCap = lb.reduce((sum, p) => sum + (p.account_equity || p.initial_capital || 0), 0);
-    document.getElementById("leadTotalCapital").textContent = formatInr(totalCap);
-    document.getElementById("leadActiveProfilesCount").textContent = `${lb.length} Registered Profiles`;
+      // Total Capital Managed
+      const totalCap = lb.reduce((sum, p) => sum + (p.account_equity || p.initial_capital || 0), 0);
+      document.getElementById("leadTotalCapital").textContent = formatInr(totalCap);
+      document.getElementById("leadActiveProfilesCount").textContent = `${lb.length} Registered Profiles`;
 
-    // Active running engines
-    const runningCount = lb.filter(p => p.status === "RUNNING").length;
-    document.getElementById("leadRunningEnginesCount").textContent = runningCount;
-  }
+      // Active running engines
+      const runningCount = lb.filter(p => p.status === "RUNNING").length;
+      document.getElementById("leadRunningEnginesCount").textContent = runningCount;
+    }
 
-  // Render Table Rows
-  if (!tbody) return;
-  if (lb.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="14" class="empty-table-state">No trader profiles registered in datastore.</td></tr>`;
-    return;
-  }
+    // Render Table Rows
+    if (!tbody) return;
+    if (lb.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="14" class="empty-table-state">No trader profiles registered in datastore.</td></tr>`;
+      return;
+    }
 
-  tbody.innerHTML = lb.map((p, idx) => {
-    const rank = idx + 1;
-    let rankBadge = `<span class="rank-badge rank-badge-gen">${rank}</span>`;
-    if (rank === 1) rankBadge = `<span class="rank-badge rank-badge-1">🥇 1</span>`;
-    else if (rank === 2) rankBadge = `<span class="rank-badge rank-badge-2">🥈 2</span>`;
-    else if (rank === 3) rankBadge = `<span class="rank-badge rank-badge-3">🥉 3</span>`;
+    tbody.innerHTML = lb.map((p, idx) => {
+      const rank = idx + 1;
+      let rankBadge = `<span class="rank-badge rank-badge-gen">${rank}</span>`;
+      if (rank === 1) rankBadge = `<span class="rank-badge rank-badge-1">🥇 1</span>`;
+      else if (rank === 2) rankBadge = `<span class="rank-badge rank-badge-2">🥈 2</span>`;
+      else if (rank === 3) rankBadge = `<span class="rank-badge rank-badge-3">🥉 3</span>`;
 
-    const isCurrent = p.user_name === currentUserName;
-    const net = p.net_pnl || 0;
-    const isProfit = net >= 0;
-    const netColor = isProfit ? "var(--accent-green)" : "var(--accent-red)";
-    const instBadges = (p.instruments || []).map(i => {
-      const short = formatInstrumentLabel(i);
-      return `<span style="font-size:10.5px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--text-muted);font-weight:700;">${short}</span>`;
-    }).join(" ");
+      const isCurrent = p.user_name === currentUserName;
+      const net = p.net_pnl || 0;
+      const isProfit = net >= 0;
+      const netColor = isProfit ? "var(--accent-green)" : "var(--accent-red)";
+      const instBadges = (p.instruments || []).map(i => {
+        const short = formatInstrumentLabel(i);
+        return `<span style="font-size:10.5px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:var(--text-muted);font-weight:700;">${short}</span>`;
+      }).join(" ");
 
-    const stClass = p.status === "RUNNING" ? "var(--accent-green)" : (p.status === "PAUSED" ? "var(--accent-gold)" : "var(--text-dim)");
-    const rowHighlight = isCurrent ? `style="background:rgba(56, 189, 248, 0.08);border-left:3px solid var(--accent-blue);"` : "";
+      const stClass = p.status === "RUNNING" ? "var(--accent-green)" : (p.status === "PAUSED" ? "var(--accent-gold)" : "var(--text-dim)");
+      const rowHighlight = isCurrent ? `style="background:rgba(56, 189, 248, 0.08);border-left:3px solid var(--accent-blue);"` : "";
 
-    return `<tr ${rowHighlight}>
-      <td style="text-align:center;">${rankBadge}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <strong style="color:var(--text-main);font-size:13.5px;">${p.user_name}</strong>
-          ${isCurrent ? '<span style="font-size:10px;padding:1px 6px;border-radius:999px;background:var(--accent-blue-dim);color:var(--accent-blue);font-weight:800;">YOU</span>' : ''}
-        </div>
-        <div style="font-size:11px;color:var(--text-dim);">${p.badge || 'Trader'}</div>
-      </td>
-      <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${instBadges || 'All'}</div></td>
-      <td style="font-size:12px;font-weight:700;color:var(--accent-blue);">${p.trading_style || 'INTRADAY'}</td>
-      <td style="font-size:11.5px;color:var(--text-muted);">${p.risk_profile || 'MODERATE'}</td>
-      <td style="font-family:var(--font-mono);font-size:12.5px;">${formatInr(p.initial_capital)}</td>
-      <td style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--text-main);">${formatInr(p.account_equity)}</td>
-      <td style="font-family:var(--font-mono);font-size:13px;font-weight:900;color:${netColor};">
-        ${isProfit ? '+' : ''}${formatInr(net)}
-      </td>
-      <td style="font-family:var(--font-mono);font-weight:800;color:${netColor};">
-        ${isProfit ? '+' : ''}${(p.return_pct || 0).toFixed(2)}%
-      </td>
-      <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-green);">
-        ${(p.win_rate || 0).toFixed(1)}%
-      </td>
-      <td style="font-size:11.5px;color:var(--text-dim);">
-        ${p.winning_trades || 0}W / ${p.losing_trades || 0}L
-      </td>
-      <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">${(p.profit_factor || 0).toFixed(2)}</td>
-      <td>
-        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${stClass};">
-          <span style="width:6px;height:6px;border-radius:50%;background:${stClass};"></span>
-          ${p.status || 'IDLE'}
-        </span>
-      </td>
-      <td style="text-align:center;">
-        ${isCurrent ? 
-          '<span style="font-size:11px;color:var(--accent-blue);font-weight:700;">Active</span>' : 
-          `<button type="button" class="btn btn-sm btn-outline" onclick="switchUserProfile('${p.user_name}')" style="padding:3px 10px;font-size:11px;">
-            <i class="fa-solid fa-arrow-right-arrow-left"></i> Switch
-          </button>`
-        }
-      </td>
-    </tr>`;
-  }).join("");
+      return `<tr ${rowHighlight}>
+        <td style="text-align:center;">${rankBadge}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <strong style="color:var(--text-main);font-size:13.5px;">${p.user_name}</strong>
+            ${isCurrent ? '<span style="font-size:10px;padding:1px 6px;border-radius:999px;background:var(--accent-blue-dim);color:var(--accent-blue);font-weight:800;">YOU</span>' : ''}
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);">${p.badge || 'Trader'}</div>
+        </td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${instBadges || 'All'}</div></td>
+        <td style="font-size:12px;font-weight:700;color:var(--accent-blue);">${p.trading_style || 'INTRADAY'}</td>
+        <td style="font-size:11.5px;color:var(--text-muted);">${p.risk_profile || 'MODERATE'}</td>
+        <td style="font-family:var(--font-mono);font-size:12.5px;">${formatInr(p.initial_capital)}</td>
+        <td style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--text-main);">${formatInr(p.account_equity)}</td>
+        <td style="font-family:var(--font-mono);font-size:13px;font-weight:900;color:${netColor};">
+          ${isProfit ? '+' : ''}${formatInr(net)}
+        </td>
+        <td style="font-family:var(--font-mono);font-weight:800;color:${netColor};">
+          ${isProfit ? '+' : ''}${(p.return_pct || 0).toFixed(2)}%
+        </td>
+        <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-green);">
+          ${(p.win_rate || 0).toFixed(1)}%
+        </td>
+        <td style="font-size:11.5px;color:var(--text-dim);">
+          ${p.winning_trades || 0}W / ${p.losing_trades || 0}L
+        </td>
+        <td style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted);">${(p.profit_factor || 0).toFixed(2)}</td>
+        <td>
+          <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:${stClass};">
+            <span style="width:6px;height:6px;border-radius:50%;background:${stClass};"></span>
+            ${p.status || 'IDLE'}
+          </span>
+        </td>
+        <td style="text-align:center;">
+          ${isCurrent ? 
+            '<span style="font-size:11px;color:var(--accent-blue);font-weight:700;">Active</span>' : 
+            `<button type="button" class="btn btn-sm btn-outline" onclick="switchUserProfile('${p.user_name}', this)" style="padding:3px 10px;font-size:11px;">
+              <i class="fa-solid fa-arrow-right-arrow-left"></i> Switch
+            </button>`
+          }
+        </td>
+      </tr>`;
+    }).join("");
+  }, btn, "Refreshing...");
 }
 
 // -------------------------------------------------------------------------
@@ -2817,12 +2976,12 @@ function renderActivePositions(positions) {
         </td>
         <td>
           <div style="display:flex;gap:4px;align-items:center;">
-            <button type="button" class="btn btn-sm btn-outline" style="padding:3px 6px;font-size:11px;color:var(--accent-gold);border-color:rgba(234,179,8,0.4);"
-                    title="Simulate holding duration expiry right now" onclick="testExpirePosition('${pos.trade_id}')">
+            <button type="button" id="btnExpire_${pos.trade_id}" class="btn btn-sm btn-outline" style="padding:3px 6px;font-size:11px;color:var(--accent-gold);border-color:rgba(234,179,8,0.4);"
+                    title="Simulate holding duration expiry right now" onclick="testExpirePosition('${pos.trade_id}', this)">
               <i class="fa-solid fa-bolt"></i> Expire
             </button>
-            <button type="button" class="btn btn-sm btn-outline" style="padding:3px 6px;font-size:11px;color:var(--accent-red);border-color:rgba(244,63,94,0.3);"
-                    title="Manual square-off" onclick="manualClosePosition('${pos.trade_id}')">
+            <button type="button" id="btnExit_${pos.trade_id}" class="btn btn-sm btn-outline" style="padding:3px 6px;font-size:11px;color:var(--accent-red);border-color:rgba(244,63,94,0.3);"
+                    title="Manual square-off" onclick="manualClosePosition('${pos.trade_id}', this)">
               <i class="fa-solid fa-xmark"></i> Exit
             </button>
           </div>
@@ -3072,25 +3231,29 @@ async function pollSessionTick() {
 }
 
 // CSV Export
-function exportTradesCsv() {
-  if (!sessionState || !sessionState.recent_closed_trades || !sessionState.recent_closed_trades.length) {
-    showToast("No closed trade records available to export.", "info");
-    return;
-  }
-  const headers = ["Trade ID", "Symbol", "Instrument", "Side", "Entry Time", "Exit Time", "Entry Price", "Exit Price", "Qty", "Gross PnL", "Charges", "Net PnL", "Exit Reason", "Strategy", "Outcome"];
-  const rows = sessionState.recent_closed_trades.map(t => [
-    t.trade_id, t.symbol, t.instrument_type, t.side, t.entry_time, t.exit_time,
-    t.entry_price, t.exit_price, t.quantity, t.gross_pnl, t.charges, t.net_pnl,
-    t.exit_reason, t.strategy, t.is_win ? "WIN" : "LOSS"
-  ]);
-  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encodedUri);
-  link.setAttribute("download", `FinGroww_${currentUserName}_Paper_Trades_${Date.now()}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+function exportTradesCsv(btnEl = null) {
+  const btn = btnEl || document.getElementById("btnExportCsv");
+  return withActionLock("export_csv", async () => {
+    if (!sessionState || !sessionState.recent_closed_trades || !sessionState.recent_closed_trades.length) {
+      showToast("No closed trade records available to export.", "info");
+      return;
+    }
+    const headers = ["Trade ID", "Symbol", "Instrument", "Side", "Entry Time", "Exit Time", "Entry Price", "Exit Price", "Qty", "Gross PnL", "Charges", "Net PnL", "Exit Reason", "Strategy", "Outcome"];
+    const rows = sessionState.recent_closed_trades.map(t => [
+      t.trade_id, t.symbol, t.instrument_type, t.side, t.entry_time, t.exit_time,
+      t.entry_price, t.exit_price, t.quantity, t.gross_pnl, t.charges, t.net_pnl,
+      t.exit_reason, t.strategy, t.is_win ? "WIN" : "LOSS"
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `FinGroww_${currentUserName}_Paper_Trades_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Trades exported successfully to CSV.", "success");
+  }, btn, "Exporting...");
 }
 
 // -------------------------------------------------------------------------
@@ -3103,30 +3266,27 @@ function openBacktestModal() {
 
 async function runStrategyBacktest() {
   const btn = document.getElementById("btnRunBt");
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Simulating...`;
+  return withActionLock("run_backtest", async () => {
+    const sym = document.getElementById("btSymbol").value;
+    const strat = document.getElementById("btStrategy").value;
+    const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
 
-  const sym = document.getElementById("btSymbol").value;
-  const strat = document.getElementById("btStrategy").value;
-  const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
+    const res = await fetchPaperApi("/api/paper/backtest", {
+      method: "POST",
+      body: JSON.stringify({ symbol: sym, strategy: strat, initial_capital: cap })
+    });
 
-  const res = await fetchPaperApi("/api/paper/backtest", {
-    method: "POST",
-    body: JSON.stringify({ symbol: sym, strategy: strat, initial_capital: cap })
-  });
-
-  btn.disabled = false;
-  btn.innerHTML = `<i class="fa-solid fa-play"></i> Run Simulation`;
-
-  if (res) {
-    document.getElementById("btResultsContainer").style.display = "block";
-    document.getElementById("btResWinRate").textContent = `${res.win_rate.toFixed(1)}%`;
-    document.getElementById("btResTotalTrades").textContent = `${res.total_trades} Trades`;
-    document.getElementById("btResProfitFactor").textContent = res.profit_factor.toFixed(2);
-    document.getElementById("btResNetReturn").textContent = `${res.return_pct >= 0 ? '+' : ''}${res.return_pct.toFixed(2)}% (${formatInr(res.net_profit_loss)})`;
-    document.getElementById("btResNetReturn").style.color = res.net_profit_loss >= 0 ? "var(--accent-green)" : "var(--accent-red)";
-    document.getElementById("btDisclaimer").textContent = res.disclaimer || "Historical backtest simulation.";
-  }
+    if (res) {
+      document.getElementById("btResultsContainer").style.display = "block";
+      document.getElementById("btResWinRate").textContent = `${res.win_rate.toFixed(1)}%`;
+      document.getElementById("btResTotalTrades").textContent = `${res.total_trades} Trades`;
+      document.getElementById("btResProfitFactor").textContent = res.profit_factor.toFixed(2);
+      document.getElementById("btResNetReturn").textContent = `${res.return_pct >= 0 ? '+' : ''}${res.return_pct.toFixed(2)}% (${formatInr(res.net_profit_loss)})`;
+      document.getElementById("btResNetReturn").style.color = res.net_profit_loss >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+      document.getElementById("btDisclaimer").textContent = res.disclaimer || "Historical backtest simulation.";
+      showToast("Backtest simulation completed.", "success");
+    }
+  }, btn, "Simulating...");
 }
 
 // -------------------------------------------------------------------------
