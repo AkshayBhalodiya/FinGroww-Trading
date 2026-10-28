@@ -17,10 +17,17 @@ Comprehensive Unit & Integration Tests:
 import unittest
 import time
 import json
+import os
+import tempfile
+from copy import deepcopy
+from datetime import datetime
+from unittest.mock import patch
 from fingroww_paper_engine import (
     PaperTradingSession,
     PaperTradingEngine,
     PaperTradeCostModel,
+    MultiUserPaperSessionManager,
+    LOCAL_USER_DATASTORE,
     LOT_SIZES
 )
 import fingroww_market_server
@@ -29,12 +36,55 @@ import fingroww_market_server
 class TestPaperTradingEngine(unittest.TestCase):
 
     def setUp(self):
+        trading_time_patcher = patch(
+            "fingroww_paper_engine.get_ist_now",
+            return_value=datetime(2026, 10, 28, 11, 0),
+        )
+        trading_time_patcher.start()
+        self.addCleanup(trading_time_patcher.stop)
+
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        db_patcher = patch.dict(
+            os.environ,
+            {"FINGROWW_PAPER_DB_PATH": os.path.join(self.temp_dir.name, "paper_trading.db")},
+        )
+        db_patcher.start()
+        self.addCleanup(db_patcher.stop)
+
+        self.original_local_data = deepcopy(LOCAL_USER_DATASTORE)
+        LOCAL_USER_DATASTORE["sessions"].clear()
+        LOCAL_USER_DATASTORE["profiles"].clear()
+        LOCAL_USER_DATASTORE["trades"].clear()
+        self.addCleanup(self._restore_local_data)
+
+        self.original_paper_manager = fingroww_market_server.paper_manager
+        fingroww_market_server.paper_manager = MultiUserPaperSessionManager(
+            db=fingroww_market_server.mongo_db,
+            quote_resolver=fingroww_market_server.resolve_quote,
+            chart_resolver=fingroww_market_server.fetch_yahoo_chart,
+        )
+        fingroww_market_server.paper_session, fingroww_market_server.paper_engine = (
+            fingroww_market_server.paper_manager.get_session("Akshay")
+        )
+        self.addCleanup(self._restore_paper_manager)
+
         test_user = f"UnitTest_{self._testMethodName}"
-        self.session = PaperTradingSession(user_name=test_user, config={"initial_capital": 100000.0, "enforce_market_hours": False})
+        self.session = PaperTradingSession(user_name=test_user, config={"initial_capital": 100000.0})
         self.session.positions = []
         self.session.closed_trades = []
         self.engine = PaperTradingEngine(session=self.session)
         self.client = fingroww_market_server.app.test_client()
+
+    def _restore_paper_manager(self):
+        fingroww_market_server.paper_manager = self.original_paper_manager
+        fingroww_market_server.paper_session, fingroww_market_server.paper_engine = (
+            self.original_paper_manager.get_session("Akshay")
+        )
+
+    def _restore_local_data(self):
+        LOCAL_USER_DATASTORE.clear()
+        LOCAL_USER_DATASTORE.update(self.original_local_data)
 
     def test_01_session_initialization(self):
         """Test default session initialization, capital allocation, and initial state."""
@@ -147,14 +197,14 @@ class TestPaperTradingEngine(unittest.TestCase):
             "strategy": "ORB Breakout",
             "confidence_score": 88
         }
-        pos, msg = self.session.execute_trade(setup)
+        pos, msg = self.session.execute_trade(setup, market_is_open=True)
         self.assertIsNotNone(pos)
         self.assertEqual(pos["symbol"], "RELIANCE")
         self.assertGreater(pos["quantity"], 0)
         self.assertGreater(pos["allocated_margin"], 0.0)
-        # Verify available balance was decremented by allocated margin
-        expected_balance = 100000.0 - pos["allocated_margin"]
-        self.assertAlmostEqual(self.session.available_balance, expected_balance, delta=1.0)
+        # Available balance reserves both the position margin and entry charges.
+        expected_balance = 100000.0 - pos["allocated_margin"] - pos["entry_charges"]
+        self.assertAlmostEqual(self.session.available_balance, expected_balance, places=2)
 
     def test_06_target_and_stop_loss_exits(self):
         """Test automatic position closure when Target or Stop Loss is breached."""
@@ -170,12 +220,15 @@ class TestPaperTradingEngine(unittest.TestCase):
             "strategy": "EMA Golden Cross",
             "confidence_score": 85
         }
-        pos, _ = self.session.execute_trade(setup)
+        pos, _ = self.session.execute_trade(setup, market_is_open=True)
         self.assertEqual(len(self.session.positions), 1)
 
         # Simulate market price reaching Target Price
-        target_quote = lambda sym: {"lastPrice": 1185.0}
-        self.session.update_positions(target_quote)
+        target_quote = lambda sym: {
+            "source": "NSE", "lastPrice": 1185.0,
+            "fetched_at": time.time(), "exchange_timestamp": time.time(),
+        }
+        self.session.update_positions(target_quote, market_is_open=True)
 
         # Position must be closed and recorded in closed_trades
         self.assertEqual(len(self.session.positions), 0)
@@ -203,21 +256,31 @@ class TestPaperTradingEngine(unittest.TestCase):
             "strategy": "VWAP Momentum",
             "confidence_score": 82
         }
-        pos, _ = self.session.execute_trade(setup)
+        pos, _ = self.session.execute_trade(setup, market_is_open=True)
         # Force position timestamp to be in the past
         pos["target_exit_timestamp"] = time.time() - 10
 
         # Update positions
-        self.session.update_positions(lambda sym: {"lastPrice": 2505.0})
+        self.session.update_positions(lambda sym: {
+            "source": "NSE", "lastPrice": 2505.0,
+            "fetched_at": time.time(), "exchange_timestamp": time.time(),
+        }, market_is_open=True)
         self.assertEqual(len(self.session.positions), 0)
         self.assertEqual(len(self.session.closed_trades), 1)
         self.assertEqual(self.session.closed_trades[0]["exit_reason"], "TIME_EXPIRED")
 
         # Test test_expire_position helper and auto_stop_on_exit
         self.session.config["auto_stop_on_exit"] = True
-        pos2, _ = self.session.execute_trade(setup)
+        pos2, _ = self.session.execute_trade(setup, market_is_open=True)
         self.assertIsNotNone(pos2)
-        ok, msg = self.session.test_expire_position(pos2["trade_id"], lambda sym: {"lastPrice": 2510.0})
+        ok, msg = self.session.test_expire_position(
+            pos2["trade_id"],
+            lambda sym: {
+                "source": "NSE", "lastPrice": 2510.0,
+                "fetched_at": time.time(), "exchange_timestamp": time.time(),
+            },
+            market_is_open=True,
+        )
         self.assertTrue(ok)
         self.assertEqual(len(self.session.positions), 0)
         self.assertEqual(len(self.session.closed_trades), 2)
@@ -284,17 +347,54 @@ class TestPaperTradingEngine(unittest.TestCase):
     def test_09_flask_api_endpoints(self):
         """Test Flask REST API endpoints for paper trading."""
         # 1. Market status
-        r = self.client.get("/api/paper/market-status")
+        status_response = {
+            "marketState": [{
+                "market": "Capital Market",
+                "marketStatus": "Open",
+                "tradeDate": "28-Oct-2026",
+            }]
+        }
+        fingroww_market_server.paper_market_cache.update({"at": 0, "status": None})
+        with patch.object(fingroww_market_server, "nse_get", return_value=status_response), \
+             patch.object(fingroww_market_server, "get_ist_now", return_value=datetime(2026, 10, 28, 11, 0)):
+            r = self.client.get("/api/paper/market-status")
         self.assertEqual(r.status_code, 200)
         data = r.get_json()
         self.assertIn("market_status", data)
         self.assertIn("ist_time", data)
+        self.assertTrue(data["is_trading_hours"])
+        self.assertEqual(data["market_status_source"], "NSE official market status")
+
+        fingroww_market_server.paper_market_cache.update({"at": 0, "status": None})
+        with patch.object(fingroww_market_server, "nse_get", return_value=None):
+            closed = self.client.get("/api/paper/market-status").get_json()
+        self.assertFalse(closed["is_trading_hours"])
+        self.assertEqual(closed["freshness"], "NO_LIVE_TRADING")
 
         # 2. Session state
         r = self.client.get("/api/paper/session/state")
         self.assertEqual(r.status_code, 200)
         data = r.get_json()
         self.assertIn("account", data)
+
+        with patch.object(
+            fingroww_market_server,
+            "get_nse_market_status",
+            return_value={
+                "is_trading_hours": False,
+                "market_status": "CLOSED",
+                "reason": "NSE regular trading session is closed.",
+            },
+        ):
+            start_closed = self.client.post(
+                "/api/paper/session/start",
+                json={"user_name": "Akshay"},
+            )
+        self.assertEqual(start_closed.status_code, 409)
+        self.assertNotEqual(
+            fingroww_market_server.paper_manager.get_session("Akshay")[0].status,
+            "RUNNING",
+        )
 
         # 3. Update config
         r = self.client.post("/api/paper/session/config", json={
@@ -310,7 +410,30 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()["state"]["status"], "PAUSED")
 
-        r = self.client.post("/api/paper/session/control", json={"action": "resume"})
+        with patch.object(
+            fingroww_market_server,
+            "get_nse_market_status",
+            return_value={"is_trading_hours": False, "market_status": "CLOSED"},
+        ):
+            resume_closed = self.client.post(
+                "/api/paper/session/control",
+                json={"action": "resume"},
+            )
+        self.assertEqual(resume_closed.status_code, 409)
+        self.assertEqual(
+            fingroww_market_server.paper_manager.get_session("Akshay")[0].status,
+            "PAUSED",
+        )
+
+        with patch.object(
+            fingroww_market_server,
+            "get_nse_market_status",
+            return_value={"is_trading_hours": True, "market_status": "OPEN"},
+        ):
+            r = self.client.post(
+                "/api/paper/session/control",
+                json={"action": "resume"},
+            )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()["state"]["status"], "RUNNING")
 
@@ -356,6 +479,8 @@ class TestPaperTradingEngine(unittest.TestCase):
         r_create = self.client.post("/api/paper/profiles/create", json=new_prof_payload)
         self.assertEqual(r_create.status_code, 200)
         self.assertTrue(r_create.get_json()["ok"])
+        r_duplicate = self.client.post("/api/paper/profiles/create", json=new_prof_payload)
+        self.assertEqual(r_duplicate.status_code, 409)
 
         # 3. Test user-specific state isolation
         # User 1: Bhavin_Algo_Scalper
@@ -389,7 +514,336 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(lead_data["leaderboard"][0]["rank"], 1)
         self.assertIn("badge", lead_data["leaderboard"][0])
 
+    def test_12_user_data_persists_across_manager_restart(self):
+        """Paper account state and complete trade history survive process restarts."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = os.path.join(temp_dir, "paper_trading.db")
+            profile_name = f"Persistence_{self._testMethodName}"
+            with patch.dict(os.environ, {"FINGROWW_PAPER_DB_PATH": db_path}):
+                manager = MultiUserPaperSessionManager()
+                session, message = manager.create_profile(
+                    profile_name,
+                    {"initial_capital": 125000.0, "instruments": ["EQUITY"]},
+                )
+                self.assertIsNotNone(session, message)
+                session.closed_trades = [
+                    {
+                        "trade_id": f"PT-{index}",
+                        "gross_pnl": index,
+                        "net_pnl": index,
+                        "is_win": True,
+                    }
+                    for index in range(125)
+                ]
+                session.save_to_db()
+
+                restarted_manager = MultiUserPaperSessionManager()
+                restored, _ = restarted_manager.get_session(profile_name)
+                self.assertEqual(restored.initial_capital, 125000.0)
+                self.assertEqual(len(restored.closed_trades), 125)
+                self.assertEqual(restored.closed_trades[-1]["trade_id"], "PT-124")
+
+                stale_mongo_doc = deepcopy(LOCAL_USER_DATASTORE["sessions"][profile_name])
+                stale_mongo_doc["last_updated"] = "2000-01-01 00:00:00 IST"
+                stale_mongo_doc["account"]["initial_capital"] = 5000.0
+                stale_mongo_doc["closed_trades"] = []
+
+                class StaleMongoCollection:
+                    def find_one(self, *_args, **_kwargs):
+                        return stale_mongo_doc
+
+                class StaleMongoDatabase:
+                    def __getitem__(self, _collection_name):
+                        return StaleMongoCollection()
+
+                restored_with_stale_mongo = PaperTradingSession(
+                    user_name=profile_name,
+                    db=StaleMongoDatabase(),
+                )
+                self.assertEqual(restored_with_stale_mongo.initial_capital, 125000.0)
+                self.assertEqual(len(restored_with_stale_mongo.closed_trades), 125)
+
+                duplicate, duplicate_message = restarted_manager.create_profile(profile_name)
+                self.assertIsNone(duplicate)
+                self.assertIn("already exists", duplicate_message)
+                self.assertEqual(
+                    len(restarted_manager.get_session(profile_name)[0].closed_trades),
+                    125,
+                )
+
+    def test_13_closed_market_blocks_automatic_entries(self):
+        self.session.start()
+        quote_calls = []
+        engine = PaperTradingEngine(
+            self.session,
+            quote_resolver=lambda symbol: quote_calls.append(symbol),
+            chart_resolver=lambda *_args: [],
+            market_status_resolver=lambda: {"is_trading_hours": False},
+        )
+
+        state = engine.tick()
+
+        self.assertEqual(state["active_positions_count"], 0)
+        self.assertEqual(quote_calls, [])
+
+    def test_closed_market_blocks_new_trades_and_position_loss_updates(self):
+        self.session.start()
+        setup = {
+            "symbol": "RELIANCE",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 1280.0,
+            "stop_loss": 1260.0,
+            "target_price": 1316.0,
+        }
+        position, message = self.session.execute_trade(setup, market_is_open=True)
+        self.assertIsNotNone(position, message)
+        previous_price = position["current_price"]
+        previous_unrealized = position["unrealized_pnl"]
+
+        quote_calls = []
+        engine = PaperTradingEngine(
+            self.session,
+            quote_resolver=lambda symbol: quote_calls.append(symbol) or {
+                "source": "NSE",
+                "lastPrice": 1200.0,
+                "fetched_at": time.time(),
+                "exchange_timestamp": time.time(),
+            },
+            chart_resolver=lambda *_args: [],
+            market_status_resolver=lambda: {"is_trading_hours": False},
+        )
+        state = engine.tick()
+
+        self.assertEqual(quote_calls, [])
+        self.assertEqual(state["active_positions_count"], 1)
+        self.assertEqual(position["current_price"], previous_price)
+        self.assertEqual(position["unrealized_pnl"], previous_unrealized)
+        rejected, rejection_message = self.session.execute_trade(
+            {**setup, "symbol": "INFY"},
+        )
+        self.assertIsNone(rejected)
+        self.assertIn("market is closed", rejection_message)
+
+    def test_14_cached_open_status_turns_closed_at_market_end(self):
+        fingroww_market_server.paper_market_cache.update({
+            "at": time.time(),
+            "status": {
+                "is_trading_hours": True,
+                "market_status": "OPEN",
+                "source": "NSE official market status",
+                "trade_date": "28-Oct-2026",
+                "reason": None,
+            },
+        })
+
+        with patch.object(
+            fingroww_market_server,
+            "get_ist_now",
+            return_value=datetime(2026, 10, 28, 21, 49),
+        ), patch.object(fingroww_market_server, "nse_get") as nse_request:
+            status = fingroww_market_server.get_nse_market_status()
+
+        self.assertFalse(status["is_trading_hours"])
+        self.assertEqual(status["market_status"], "CLOSED")
+        nse_request.assert_not_called()
+
+    def test_15_missing_or_non_nse_quotes_never_mark_positions(self):
+        self.session.start()
+        setup = {
+            "symbol": "INFY",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 1150.0,
+            "stop_loss": 1130.0,
+            "target_price": 1180.0,
+        }
+        position, _ = self.session.execute_trade(setup, market_is_open=True)
+        original_price = position["current_price"]
+        position["target_exit_timestamp"] = time.time() - 10
+
+        self.session.update_positions(
+            lambda _symbol: {"source": "Yahoo Finance", "lastPrice": 5000.0},
+            market_is_open=True,
+        )
+
+        self.assertEqual(len(self.session.positions), 1)
+        self.assertEqual(position["current_price"], original_price)
+        self.assertEqual(self.session.closed_trades, [])
+        closed, message = self.session.manual_close_position(
+            position["trade_id"],
+            quote_resolver=lambda _symbol: {
+                "source": "Yahoo Finance",
+                "lastPrice": 5000.0,
+                "fetched_at": time.time(),
+                "exchange_timestamp": time.time(),
+            },
+            market_is_open=True,
+        )
+        self.assertFalse(closed)
+        self.assertIn("fresh NSE quote", message)
+        self.assertEqual(len(self.session.positions), 1)
+
+    def test_16_live_quote_resolver_does_not_fall_back(self):
+        fingroww_market_server.paper_live_quote_cache.pop("RELIANCE", None)
+        with patch.object(fingroww_market_server, "quote_from_nse_equity", return_value=None), \
+             patch.object(fingroww_market_server, "quote_from_yahoo") as yahoo_fallback:
+            quote = fingroww_market_server.resolve_live_quote("RELIANCE")
+
+        self.assertIsNone(quote)
+        yahoo_fallback.assert_not_called()
+
+    def test_17_signal_uses_confirmed_candles_and_atr_levels_from_live_entry(self):
+        now_ms = int(time.time() * 1000)
+        candle_count = 70
+        first_candle_ms = now_ms - (candle_count * 15 * 60 * 1000) - (16 * 60 * 1000)
+        candles = []
+        for index in range(candle_count):
+            close = 100.0 + index * 0.1
+            candles.append({
+                "o": close - 0.02,
+                "h": close + 0.02,
+                "l": close - 0.04,
+                "c": close,
+                "v": 150.0 if index == candle_count - 1 else 100.0,
+                "t": first_candle_ms + index * 15 * 60 * 1000,
+            })
+        live_price = candles[-1]["c"] + 0.1
+        self.session.config["instruments"] = ["EQUITY"]
+        self.engine.quote_resolver = lambda _symbol: {
+            "source": "NSE",
+            "lastPrice": live_price,
+            "fetched_at": time.time(),
+            "exchange_timestamp": time.time(),
+        }
+        self.engine.chart_resolver = lambda *_args: candles
+
+        setups = self.engine.scan_and_evaluate_setups()
+        setup = next(candidate for candidate in setups if candidate["symbol"] == "RELIANCE")
+
+        self.assertEqual(setup["strategy"], "15m EMA20/50 + VWAP Breakout")
+        self.assertEqual(setup["status"], "VALIDATED")
+        self.assertEqual(setup["entry_price"], live_price)
+        self.assertLess(setup["stop_loss"], setup["entry_price"])
+        self.assertGreater(setup["target_price"], setup["entry_price"])
+        self.assertIn("ATR(14)", setup["rationale"])
+
+        self.session.start()
+        new_live_price = live_price + 1.0
+        self.engine.quote_resolver = lambda _symbol: {
+            "source": "NSE",
+            "lastPrice": new_live_price,
+            "fetched_at": time.time(),
+            "exchange_timestamp": time.time(),
+        }
+        position, message = self.session.execute_trade(
+            setup,
+            self.engine.quote_resolver,
+            market_is_open=True,
+        )
+
+        self.assertIsNotNone(position, message)
+        self.assertNotEqual(position["entry_price"], setup["entry_price"])
+        risk = setup["risk_distance"]
+        self.assertAlmostEqual(position["stop_loss"], position["entry_price"] - risk, places=2)
+        self.assertAlmostEqual(
+            position["target_price"],
+            position["entry_price"] + (risk * setup["reward_risk"]),
+            places=2,
+        )
+
+    def test_18_synthetic_option_quotes_are_not_scanned_for_auto_trading(self):
+        self.session.config["instruments"] = ["INDEX_OPTIONS"]
+        self.engine.quote_resolver = lambda _symbol: {
+            "source": "NSE",
+            "lastPrice": 25000.0,
+            "fetched_at": time.time(),
+        }
+        self.engine.chart_resolver = lambda *_args: []
+
+        self.assertEqual(self.engine.scan_and_evaluate_setups(), [])
+
+    def test_19_available_balance_reconciles_to_this_users_equity(self):
+        self.session.realized_pnl = -5101.58
+        self.session.available_balance = 313988.13
+
+        account = self.session.get_state()["account"]
+
+        self.assertEqual(account["available_balance"], 94898.42)
+        self.assertEqual(account["account_equity"], 94898.42)
+        self.assertEqual(
+            account["available_balance"] + account["allocated_margin"],
+            account["initial_capital"] + account["realized_pnl"],
+        )
+        self.assertTrue(any(log["type"] == "ACCOUNT_RECONCILED" for log in self.session.logs))
+
+        reloaded_user = PaperTradingSession(
+            user_name=self.session.user_name,
+            config={"initial_capital": 100000.0},
+        )
+        self.assertEqual(
+            reloaded_user.get_state()["account"]["available_balance"],
+            94898.42,
+        )
+
+        self.session.realized_pnl = 2000.0
+        self.session.positions = [{"allocated_margin": 25000.0, "unrealized_pnl": 100.0}]
+        self.session.available_balance = 99999.0
+        account_with_position = self.session.get_state()["account"]
+        self.assertEqual(account_with_position["allocated_margin"], 25000.0)
+        self.assertEqual(account_with_position["available_balance"], 77000.0)
+        self.assertEqual(account_with_position["account_equity"], 102100.0)
+
+        other_user = PaperTradingSession(
+            user_name=f"Independent_{self._testMethodName}",
+            config={"initial_capital": 50000.0},
+        )
+        other_account = other_user.get_state()["account"]
+        self.assertEqual(other_account["available_balance"], 50000.0)
+        self.assertEqual(other_account["realized_pnl"], 0.0)
+
+    def test_20_closing_a_trade_twice_does_not_credit_margin_twice(self):
+        self.session.start()
+        position, message = self.session.execute_trade({
+            "symbol": "RELIANCE",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 1280.0,
+            "stop_loss": 1260.0,
+            "target_price": 1316.0,
+        }, market_is_open=True)
+        self.assertIsNotNone(position, message)
+        expected_open_balance = (
+            self.session.initial_capital
+            - position["allocated_margin"]
+            - position["entry_charges"]
+        )
+        self.assertAlmostEqual(
+            self.session.available_balance,
+            expected_open_balance,
+            places=2,
+        )
+
+        self.assertTrue(self.session._close_position(position, "MANUAL_EXIT", 1270.0))
+        account_after_first_close = self.session.get_state()["account"]
+        self.assertAlmostEqual(
+            account_after_first_close["available_balance"],
+            self.session.initial_capital + account_after_first_close["realized_pnl"],
+            places=2,
+        )
+        self.assertFalse(self.session._close_position(position, "MANUAL_EXIT", 1270.0))
+        account_after_second_close = self.session.get_state()["account"]
+
+        self.assertEqual(
+            account_after_second_close["available_balance"],
+            account_after_first_close["available_balance"],
+        )
+        self.assertEqual(
+            account_after_second_close["realized_pnl"],
+            account_after_first_close["realized_pnl"],
+        )
+        self.assertEqual(len(self.session.closed_trades), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
-

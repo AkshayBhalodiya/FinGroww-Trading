@@ -7,7 +7,7 @@ and real-time monitoring for Indian Equities, Futures, and Options.
 
 Key Capabilities:
 - Multi-instrument support: Stocks (Equity), Stock Futures, Index Futures, Index Options (CE/PE).
-- Technical rule confluence: ORB, VWAP Reclaim, 20/50 EMA Cross, Supertrend ATR, RSI Reversal.
+- Auto entries require confirmed NSE market status, a fresh NSE cash-equity quote, and a completed-candle 15m EMA/VWAP/ATR setup.
 - Dynamic holding duration: 1m, 5m, 15m, 30m, 1h, or custom duration with automated time exit.
 - Institutional Risk Supervision: Max risk per trade, daily max loss limit, max open positions,
   realistic slippage, Indian brokerage, STT, exchange turnover fees, and GST.
@@ -20,7 +20,12 @@ import math
 import uuid
 import random
 import json
+import logging
+import sqlite3
+import threading
+from contextlib import closing
 from datetime import datetime, timezone, timedelta
+from functools import wraps
 
 # IST Timezone helper
 IST_OFFSET = timedelta(hours=5, minutes=30)
@@ -98,6 +103,69 @@ UNIVERSE = [
     {"symbol": "LT", "name": "Larsen & Toubro Ltd", "type": "STOCK", "default_price": 3680.0},
     {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "default_price": 920.0},
 ]
+
+
+def _is_fresh_nse_quote(quote, max_age_seconds=20):
+    if not isinstance(quote, dict) or quote.get("source") != "NSE":
+        return False
+    try:
+        price = float(quote.get("lastPrice"))
+        fetched_at = float(quote.get("fetched_at"))
+        exchange_timestamp = float(quote.get("exchange_timestamp"))
+    except (TypeError, ValueError):
+        return False
+    now = time.time()
+    return (
+        price > 0
+        and 0 <= now - fetched_at <= max_age_seconds
+        and 0 <= now - exchange_timestamp <= max_age_seconds
+    )
+
+
+def _ema(values, period):
+    if len(values) < period:
+        return []
+    multiplier = 2.0 / (period + 1)
+    result = [sum(values[:period]) / period]
+    for value in values[period:]:
+        result.append((value * multiplier) + (result[-1] * (1.0 - multiplier)))
+    return result
+
+
+def _atr(candles, period=14):
+    if len(candles) <= period:
+        return None
+    true_ranges = []
+    for index in range(1, len(candles)):
+        current = candles[index]
+        previous_close = float(candles[index - 1]["c"])
+        true_ranges.append(max(
+            float(current["h"]) - float(current["l"]),
+            abs(float(current["h"]) - previous_close),
+            abs(float(current["l"]) - previous_close),
+        ))
+    return sum(true_ranges[-period:]) / period
+
+
+def _session_vwap(candles):
+    session_date = datetime.fromtimestamp(
+        int(candles[-1]["t"]) / 1000, timezone.utc
+    ).astimezone(timezone(timedelta(hours=5, minutes=30))).date()
+    session_candles = []
+    for candle in candles:
+        candle_date = datetime.fromtimestamp(
+            int(candle["t"]) / 1000, timezone.utc
+        ).astimezone(timezone(timedelta(hours=5, minutes=30))).date()
+        if candle_date == session_date:
+            session_candles.append(candle)
+    volume_sum = sum(float(candle.get("v") or 0) for candle in session_candles)
+    if volume_sum <= 0:
+        return None
+    return sum(
+        ((float(candle["h"]) + float(candle["l"]) + float(candle["c"])) / 3)
+        * float(candle.get("v") or 0)
+        for candle in session_candles
+    ) / volume_sum
 
 
 class PaperTradeCostModel:
@@ -178,13 +246,95 @@ LOCAL_USER_DATASTORE = {
     "trades": [],
 }
 
+logger = logging.getLogger(__name__)
+
+
+def _session_locked(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        with self._state_lock:
+            return method(self, *args, **kwargs)
+    return wrapped
+
+
+def _paper_db_path():
+    return os.getenv(
+        "FINGROWW_PAPER_DB_PATH",
+        os.path.join(os.path.dirname(__file__), "data", "paper_trading.db"),
+    )
+
+
+def _connect_paper_db():
+    db_path = _paper_db_path()
+    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    conn = sqlite3.connect(db_path, timeout=10)
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS paper_user_data (
+            user_name TEXT PRIMARY KEY,
+            session_json TEXT NOT NULL,
+            profile_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """
+    )
+    return conn
+
+
+def _load_local_paper_record(user_name):
+    with closing(_connect_paper_db()) as conn:
+        with conn:
+            row = conn.execute(
+                "SELECT session_json, profile_json FROM paper_user_data WHERE user_name = ?",
+                (user_name,),
+            ).fetchone()
+    if not row:
+        return None
+    return {"session": json.loads(row[0]), "profile": json.loads(row[1])}
+
+
+def _save_local_paper_record(user_name, session_doc, profile_doc):
+    with closing(_connect_paper_db()) as conn:
+        with conn:
+            conn.execute(
+                """
+                INSERT INTO paper_user_data (user_name, session_json, profile_json, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(user_name) DO UPDATE SET
+                    session_json = excluded.session_json,
+                    profile_json = excluded.profile_json,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    user_name,
+                    json.dumps(session_doc, separators=(",", ":")),
+                    json.dumps(profile_doc, separators=(",", ":")),
+                    get_ist_str(),
+                ),
+            )
+
+
+def _load_local_paper_profiles():
+    with closing(_connect_paper_db()) as conn:
+        with conn:
+            rows = conn.execute(
+                "SELECT profile_json FROM paper_user_data ORDER BY user_name"
+            ).fetchall()
+    return [json.loads(row[0]) for row in rows]
+
+
+def _document_updated_at(document):
+    return str(document.get("last_updated") or document.get("last_active") or "")
+
 
 class PaperTradingSession:
     """Manages virtual capital, open positions, closed trade history, and execution state for a user."""
 
     def __init__(self, user_name="Akshay", session_id=None, config=None, db=None, user_id=None):
+        self._state_lock = threading.RLock()
         self.user_name = (user_name or "Akshay").strip()
-        self.user_id = user_id or f"USR-{abs(hash(self.user_name)) % 100000}"
+        stable_user_id = uuid.uuid5(uuid.NAMESPACE_URL, f"fingroww-paper-user:{self.user_name.casefold()}").hex[:12].upper()
+        self.user_id = user_id or f"USR-{stable_user_id}"
         self.session_id = session_id or f"PTS-{self.user_name[:4].upper()}-{int(time.time())}"
         self.db = db
         self.status = "IDLE" # IDLE, RUNNING, PAUSED, STOPPED_NEW_TRADES
@@ -203,7 +353,6 @@ class PaperTradingSession:
             "max_risk_per_trade_pct": 1.0,
             "daily_loss_limit_inr": 4000.0,
             "max_open_positions": 4,
-            "enforce_market_hours": False, # If False, allows 24/7 simulation testing
             "auto_square_off_time": "15:15",
             "auto_stop_on_exit": False, # If True, engine automatically stops after all positions exit
         }
@@ -249,11 +398,12 @@ class PaperTradingSession:
         if len(self.logs) > 150:
             self.logs.pop()
 
+    @_session_locked
     def update_config(self, new_config):
         if not new_config:
             return
         for k in ["instruments", "market", "trading_style", "holding_duration_mins", "risk_profile",
-                  "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions", "enforce_market_hours",
+                  "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions",
                   "auto_stop_on_exit"]:
             if k in new_config:
                 self.config[k] = new_config[k]
@@ -273,22 +423,27 @@ class PaperTradingSession:
         self.last_updated = get_ist_str()
         self.log_event("CONFIG_UPDATE", f"Trading configuration updated. Risk profile: {rp}, Max trades: {self.config['max_open_positions']}")
 
+    @_session_locked
     def start(self):
         self.status = "RUNNING"
         self.log_event("SESSION_START", "AI Auto Paper Trading engine started. Autonomous execution active.")
 
+    @_session_locked
     def pause(self):
         self.status = "PAUSED"
         self.log_event("SESSION_PAUSED", "Trading paused. Existing positions remain monitored but no new entries will be taken.")
 
+    @_session_locked
     def resume(self):
         self.status = "RUNNING"
         self.log_event("SESSION_RESUMED", "Trading resumed. Autonomous scanning and entry reactivated.")
 
+    @_session_locked
     def stop_new_trades(self):
         self.status = "STOPPED_NEW_TRADES"
         self.log_event("SESSION_STOP_NEW", "Stopped new trades. Monitoring open positions until target, stop loss, or duration exit.")
 
+    @_session_locked
     def reset(self, initial_capital=None):
         if initial_capital:
             self.config["initial_capital"] = float(initial_capital)
@@ -315,12 +470,10 @@ class PaperTradingSession:
         if self.status != "RUNNING":
             return False, f"Session is in {self.status} state."
 
-        # Market hours check (if enabled)
-        if self.config.get("enforce_market_hours", False):
-            ist = get_ist_now()
-            cur_mins = ist.hour * 60 + ist.minute
-            if cur_mins < 555 or cur_mins > 915: # 09:15 to 15:15
-                return False, "Market is outside active session (09:15 - 15:15 IST)."
+        ist = get_ist_now()
+        cur_mins = ist.hour * 60 + ist.minute
+        if ist.weekday() >= 5 or cur_mins < 555 or cur_mins >= 915:
+            return False, "New trades are allowed only on NSE weekdays from 09:15 to 15:15 IST."
 
         # Max open positions check
         max_pos = int(self.config.get("max_open_positions", 4))
@@ -338,8 +491,11 @@ class PaperTradingSession:
 
         return True, "All pre-trade risk checks passed."
 
-    def execute_trade(self, setup, quote_resolver=None):
+    @_session_locked
+    def execute_trade(self, setup, quote_resolver=None, market_is_open=False):
         """Executes a paper order with realistic slippage, margin allocation, and charges."""
+        if not market_is_open:
+            return None, "NSE market is closed or its status is unavailable; no trade was opened."
         can_trade, reason = self.can_open_new_trade()
         if not can_trade:
             return None, reason
@@ -352,6 +508,28 @@ class PaperTradingSession:
         tp = float(setup["target_price"])
         holding_duration_mins = float(self.config.get("holding_duration_mins", 15))
 
+        if side not in ("BUY", "SELL") or inst_type != "EQUITY":
+            return None, "Auto paper trading requires a supported NSE cash-equity instrument."
+        if quote_resolver:
+            try:
+                live_quote = quote_resolver(setup.get("base_symbol", sym))
+            except Exception as exc:
+                logger.warning("Live entry quote failed for %s: %s", sym, exc)
+                return None, f"Could not get a fresh NSE quote for {sym}."
+            if not _is_fresh_nse_quote(live_quote):
+                return None, f"Could not get a fresh NSE quote for {sym}; no trade was opened."
+            raw_entry = float(live_quote["lastPrice"])
+            risk_distance = float(setup.get("risk_distance", 0))
+            reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
+            if risk_distance <= 0 or reward_risk <= 0:
+                return None, f"Invalid ATR risk levels for {sym}; no trade was opened."
+            if side == "BUY":
+                sl = raw_entry - risk_distance
+                tp = raw_entry + (risk_distance * reward_risk)
+            else:
+                sl = raw_entry + risk_distance
+                tp = raw_entry - (risk_distance * reward_risk)
+
         # Check for duplicate open trade on identical symbol
         for pos in self.positions:
             if pos["symbol"] == sym and pos["side"] == side:
@@ -360,6 +538,19 @@ class PaperTradingSession:
         # Apply realistic execution slippage
         exec_price = PaperTradeCostModel.apply_slippage(raw_entry, side, inst_type)
         slippage_amt = round(abs(exec_price - raw_entry), 2)
+
+        if quote_resolver:
+            if side == "BUY":
+                sl = exec_price - risk_distance
+                tp = exec_price + (risk_distance * reward_risk)
+            else:
+                sl = exec_price + risk_distance
+                tp = exec_price - (risk_distance * reward_risk)
+
+        if side == "BUY" and not sl < exec_price < tp:
+            return None, f"Invalid stop-loss or target relative to live entry for {sym}."
+        if side == "SELL" and not tp < exec_price < sl:
+            return None, f"Invalid stop-loss or target relative to live entry for {sym}."
 
         # Risk calculation
         risk_per_unit = abs(exec_price - sl)
@@ -412,25 +603,29 @@ class PaperTradingSession:
             lots = 1
             allocated_capital = round(actual_qty * margin_per_unit, 2)
 
-        if allocated_capital > self.available_balance:
-            return None, f"Insufficient margin. Required Rs.{allocated_capital:,.2f}, Available Rs.{self.available_balance:,.2f}"
-
-        # Deduct margin from available virtual balance
-        self.available_balance -= allocated_capital
-        self.allocated_margin += allocated_capital
-
         # Entry charges
         entry_costs = PaperTradeCostModel.calculate_charges(inst_type, side, exec_price, actual_qty)
+        required_balance = round(allocated_capital + entry_costs["total"], 2)
+        if required_balance > self.available_balance:
+            return None, (
+                f"Insufficient virtual balance. Required ₹{required_balance:,.2f} "
+                f"including charges, available ₹{self.available_balance:,.2f}."
+            )
+
+        # Margin and entry charges are both unavailable once the order is filled.
+        self.available_balance = round(self.available_balance - required_balance, 2)
+        self.allocated_margin += allocated_capital
         self.total_charges += entry_costs["total"]
         self.total_slippage += (slippage_amt * actual_qty)
 
         now_ist = get_ist_now()
         target_exit_dt = now_ist + timedelta(seconds=int(holding_duration_mins * 60))
 
-        trade_id = f"PT-{now_ist.strftime('%m%d')}-{random.randint(1000, 9999)}"
+        trade_id = f"PT-{now_ist.strftime('%m%d')}-{uuid.uuid4().hex[:8].upper()}"
         position = {
             "trade_id": trade_id,
             "symbol": sym,
+            "base_symbol": setup.get("base_symbol", sym),
             "name": setup.get("name", sym),
             "instrument_type": inst_type,
             "side": side,
@@ -454,6 +649,11 @@ class PaperTradingSession:
             "max_risk_inr": round(actual_qty * risk_per_unit, 2),
             "strategy": setup.get("strategy", "AI Quantitative Momentum"),
             "confidence_score": setup.get("confidence_score", 84),
+            "signal_rationale": setup.get("rationale"),
+            "signal_indicators": setup.get("signal_indicators", {}),
+            "market_data_source": setup.get("market_data_source", "MANUAL"),
+            "market_data_timestamp": setup.get("market_data_timestamp"),
+            "risk_distance": round(risk_per_unit, 4),
             "status": "OPEN",
             "unrealized_pnl": 0.0,
             "pnl_pct": 0.0,
@@ -469,19 +669,23 @@ class PaperTradingSession:
         self.save_to_db()
         return position, "Success"
 
-    def update_positions(self, quote_resolver):
+    @_session_locked
+    def update_positions(self, quote_resolver, market_is_open=False):
         """
         Refreshes live market prices for all open positions.
         Checks for Target Hit, Stop-Loss Hit, Holding Duration Expiry, or 15:15 IST Square-Off.
         """
+        if not market_is_open:
+            return
+
         now_ts = time.time()
         ist_now = get_ist_now()
-        is_eod_square_off = (ist_now.hour == 15 and ist_now.minute >= 15) and self.config.get("enforce_market_hours", False)
+        is_eod_square_off = (ist_now.hour == 15 and ist_now.minute >= 20)
 
         positions_to_close = []
 
         for pos in self.positions:
-            sym = pos["symbol"]
+            sym = pos.get("base_symbol", pos["symbol"])
             inst_type = pos["instrument_type"]
             side = pos["side"]
             qty = pos["quantity"]
@@ -494,16 +698,13 @@ class PaperTradingSession:
             if quote_resolver:
                 try:
                     q = quote_resolver(sym)
-                    if q and q.get("lastPrice"):
+                    if _is_fresh_nse_quote(q):
                         curr_price = float(q["lastPrice"])
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.warning("Live position quote failed for %s: %s", sym, exc)
 
-            # Fallback or synthetic option price movement
             if curr_price is None or curr_price <= 0:
-                # Add tiny realistic random walk drift if live quote isn't moving
-                drift_pct = random.uniform(-0.0012, 0.0014)
-                curr_price = round(pos["current_price"] * (1.0 + drift_pct), 2)
+                continue
 
             pos["current_price"] = curr_price
 
@@ -558,8 +759,15 @@ class PaperTradingSession:
         self._recalculate_equity()
         self.save_to_db()
 
+    @_session_locked
     def _close_position(self, pos, reason, exit_price=None):
         """Closes an open position, calculates final P&L, fees, and updates balances."""
+        if not any(
+            open_pos.get("trade_id") == pos.get("trade_id")
+            for open_pos in self.positions
+        ):
+            return False
+
         sym = pos["symbol"]
         side = pos["side"]
         qty = pos["quantity"]
@@ -584,10 +792,13 @@ class PaperTradingSession:
         net_pnl = round(gross_pnl - total_charges, 2)
         is_win = net_pnl > 0
 
-        # Release allocated margin and credit/debit net P&L
+        # Entry charges were deducted when the position opened; settle only exit cash flow here.
         margin_to_release = pos["allocated_margin"]
         self.allocated_margin = max(0.0, round(self.allocated_margin - margin_to_release, 2))
-        self.available_balance = round(self.available_balance + margin_to_release + net_pnl, 2)
+        self.available_balance = round(
+            self.available_balance + margin_to_release + gross_pnl - exit_costs["total"],
+            2,
+        )
         self.realized_pnl = round(self.realized_pnl + net_pnl, 2)
 
         entry_ts = pos["entry_timestamp"]
@@ -614,6 +825,11 @@ class PaperTradingSession:
             "slippage": pos["slippage"],
             "exit_reason": reason,
             "strategy": pos["strategy"],
+            "signal_rationale": pos.get("signal_rationale"),
+            "signal_indicators": pos.get("signal_indicators", {}),
+            "market_data_source": pos.get("market_data_source"),
+            "market_data_timestamp": pos.get("market_data_timestamp"),
+            "risk_distance": pos.get("risk_distance"),
             "is_win": is_win,
             "holding_duration_str": holding_str,
             "holding_seconds": holding_secs,
@@ -630,9 +846,13 @@ class PaperTradingSession:
             self.log_event("DURATION_EXIT", f"⌛ Holding Duration Reached ({pos.get('holding_duration_display', '15m')}): Auto-closed {sym} @ ₹{exec_exit_p:,.2f} ({outcome_badge}). Net P&L: ₹{net_pnl:,.2f}")
         else:
             self.log_event("POSITION_CLOSED", f"{outcome_badge}: Closed {sym} @ ₹{exec_exit_p:,.2f} ({reason}). Net P&L: ₹{net_pnl:,.2f}")
+        return True
 
-    def test_expire_position(self, trade_id, quote_resolver=None):
+    @_session_locked
+    def test_expire_position(self, trade_id, quote_resolver=None, market_is_open=False):
         """Immediately simulates holding duration expiry for an open trade to test auto-closure in real-time."""
+        if not market_is_open:
+            return False, "NSE market is closed or its status is unavailable."
         target_pos = None
         for p in self.positions:
             if p["trade_id"] == trade_id:
@@ -643,12 +863,15 @@ class PaperTradingSession:
 
         # Set target exit timestamp to 5 seconds in the past
         target_pos["target_exit_timestamp"] = time.time() - 5
-        self.update_positions(quote_resolver)
+        self.update_positions(quote_resolver, market_is_open=market_is_open)
         self.save_to_db()
         return True, f"Simulated duration expiry for {target_pos['symbol']} ({trade_id}). Auto-closed with TIME_EXPIRED."
 
-    def manual_close_position(self, trade_id):
-        """Allows manual exit of a specific position."""
+    @_session_locked
+    def manual_close_position(self, trade_id, quote_resolver=None, market_is_open=False):
+        """Manually exits a position only with an open market and a fresh NSE quote."""
+        if not market_is_open:
+            return False, "NSE market is closed or its status is unavailable."
         target_pos = None
         for p in self.positions:
             if p["trade_id"] == trade_id:
@@ -657,25 +880,74 @@ class PaperTradingSession:
         if not target_pos:
             return False, "Position not found."
 
+        try:
+            quote = quote_resolver(target_pos.get("base_symbol", target_pos["symbol"])) if quote_resolver else None
+        except Exception as exc:
+            logger.warning("Manual close quote failed for %s: %s", target_pos["symbol"], exc)
+            quote = None
+        if not _is_fresh_nse_quote(quote):
+            return False, f"Could not get a fresh NSE quote for {target_pos['symbol']}; position remains open."
+
+        target_pos["current_price"] = float(quote["lastPrice"])
         self._close_position(target_pos, "MANUAL_EXIT")
         self._recalculate_equity()
         self.save_to_db()
         return True, "Position closed manually."
 
-    def close_all_positions(self, reason="MANUAL_CLOSE_ALL"):
-        """Emergency action: closes all open positions."""
-        count = len(self.positions)
+    @_session_locked
+    def close_all_positions(self, reason="MANUAL_CLOSE_ALL", quote_resolver=None, market_is_open=False):
+        """Closes positions using fresh NSE quotes; leaves unquoted positions untouched."""
+        if not market_is_open:
+            return 0
+        count = 0
+        for pos in list(self.positions):
+            try:
+                quote = quote_resolver(pos.get("base_symbol", pos["symbol"])) if quote_resolver else None
+            except Exception as exc:
+                logger.warning("Close-all quote failed for %s: %s", pos["symbol"], exc)
+                quote = None
+            if not _is_fresh_nse_quote(quote):
+                continue
+            pos["current_price"] = float(quote["lastPrice"])
+            self._close_position(pos, reason)
+            count += 1
         if count == 0:
             return 0
-        for pos in list(self.positions):
-            self._close_position(pos, reason)
         self._recalculate_equity()
         self.save_to_db()
         self.log_event("CLOSE_ALL", f"Closed all {count} active positions ({reason}).")
         return count
 
+    @_session_locked
     def _recalculate_equity(self):
         """Recalculates account balance, equity, total PnL, and max drawdown."""
+        self.allocated_margin = round(
+            sum(float(position.get("allocated_margin", 0.0)) for position in self.positions),
+            2,
+        )
+        expected_available_balance = round(
+            self.initial_capital
+            + self.realized_pnl
+            - self.allocated_margin
+            - sum(float(position.get("entry_charges", 0.0)) for position in self.positions),
+            2,
+        )
+        if abs(self.available_balance - expected_available_balance) > 0.01:
+            logger.error(
+                "Reconciling paper cash balance for %s: stored=%.2f expected=%.2f",
+                self.user_name,
+                self.available_balance,
+                expected_available_balance,
+            )
+            self.log_event(
+                "ACCOUNT_RECONCILED",
+                (
+                    f"Available balance reconciled from ₹{self.available_balance:,.2f} "
+                    f"to ₹{expected_available_balance:,.2f} using this profile's "
+                    "capital, realized P&L, open-position margin, and entry charges."
+                ),
+            )
+        self.available_balance = expected_available_balance
         unrealized = sum(p.get("unrealized_pnl", 0.0) for p in self.positions)
         self.unrealized_pnl = round(unrealized, 2)
         self.total_pnl = round(self.realized_pnl + self.unrealized_pnl, 2)
@@ -692,9 +964,24 @@ class PaperTradingSession:
         if dd_pct > self.max_drawdown_pct:
             self.max_drawdown_pct = dd_pct
 
+    @_session_locked
     def get_state(self):
         """Returns the full state for frontend real-time rendering."""
+        previous_accounting = (
+            self.available_balance,
+            self.allocated_margin,
+            self.total_pnl,
+            self.account_equity,
+        )
         self._recalculate_equity()
+        current_accounting = (
+            self.available_balance,
+            self.allocated_margin,
+            self.total_pnl,
+            self.account_equity,
+        )
+        if current_accounting != previous_accounting:
+            self.save_to_db()
         ret_pct = round((self.total_pnl / self.initial_capital) * 100, 2) if self.initial_capital > 0 else 0.0
 
         return {
@@ -728,6 +1015,7 @@ class PaperTradingSession:
             "scanned_signals": self.scanned_signals[:10],
         }
 
+    @_session_locked
     def get_performance_analytics(self):
         """Calculates win rate, profit factor, strategy and instrument breakdowns."""
         total = len(self.closed_trades)
@@ -808,8 +1096,10 @@ class PaperTradingSession:
             "instrument_performance": inst_map,
         }
 
+    @_session_locked
     def save_to_db(self):
-        """Persists session state, profile metrics, and trades to MongoDB Atlas & local store."""
+        """Persists session state, profile metrics, and full trade history."""
+        self._recalculate_equity()
         analytics = self.get_performance_analytics()
         ret_pct = round((self.total_pnl / self.initial_capital) * 100, 2) if self.initial_capital > 0 else 0.0
 
@@ -837,7 +1127,7 @@ class PaperTradingSession:
                 "overall_return_pct": ret_pct,
             },
             "positions": self.positions,
-            "closed_trades": self.closed_trades[:100],
+            "closed_trades": self.closed_trades,
             "logs": self.logs[:50],
         }
 
@@ -861,11 +1151,20 @@ class PaperTradingSession:
             "last_active": get_ist_str(),
         }
 
-        # Save to local in-memory store
+        local_saved = False
+        mongo_saved = False
+
+        try:
+            _save_local_paper_record(self.user_name, session_doc, profile_doc)
+            local_saved = True
+        except (OSError, sqlite3.Error, TypeError, ValueError):
+            logger.exception("Could not persist paper trading data locally for %s", self.user_name)
+
+        # Keep the in-memory cache for the active process and existing integrations.
         LOCAL_USER_DATASTORE["sessions"][self.user_name] = session_doc
         LOCAL_USER_DATASTORE["profiles"][self.user_name] = profile_doc
 
-        # Save to MongoDB Atlas if connected
+        # MongoDB remains the shared persistent store when configured.
         if self.db is not None:
             try:
                 self.db["paper_sessions"].update_one(
@@ -878,17 +1177,36 @@ class PaperTradingSession:
                     {"$set": dict(profile_doc)},
                     upsert=True
                 )
+                mongo_saved = True
             except Exception as e:
-                pass
+                logger.warning("Could not persist paper trading data to MongoDB for %s: %s", self.user_name, e)
 
+        if not local_saved and not mongo_saved:
+            raise RuntimeError(f"Unable to persist paper trading data for profile [{self.user_name}].")
+
+    @_session_locked
     def load_from_db(self):
-        """Restores user session state, balances, and history from MongoDB Atlas or local store."""
-        doc = None
+        """Restores user session state, balances, and history from MongoDB or durable SQLite."""
+        mongo_doc = None
         if self.db is not None:
             try:
-                doc = self.db["paper_sessions"].find_one({"user_name": self.user_name})
-            except Exception:
-                pass
+                mongo_doc = self.db["paper_sessions"].find_one({"user_name": self.user_name})
+            except Exception as e:
+                logger.warning("Could not load paper trading data from MongoDB for %s: %s", self.user_name, e)
+
+        local_record = None
+        try:
+            local_record = _load_local_paper_record(self.user_name)
+        except (OSError, sqlite3.Error, TypeError, ValueError):
+            logger.exception("Could not load local paper trading data for %s", self.user_name)
+
+        local_doc = local_record["session"] if local_record else None
+        doc = mongo_doc
+        if local_doc and (
+            not mongo_doc
+            or _document_updated_at(local_doc) > _document_updated_at(mongo_doc)
+        ):
+            doc = local_doc
 
         if not doc:
             doc = LOCAL_USER_DATASTORE["sessions"].get(self.user_name)
@@ -898,6 +1216,7 @@ class PaperTradingSession:
 
         try:
             self.session_id = doc.get("session_id", self.session_id)
+            self.user_id = doc.get("user_id", self.user_id)
             self.status = doc.get("status", self.status)
             self.created_at = doc.get("created_at", self.created_at)
             if "config" in doc and doc["config"]:
@@ -919,7 +1238,8 @@ class PaperTradingSession:
             self.closed_trades = doc.get("closed_trades", [])
             self.logs = doc.get("logs", [])
             return True
-        except Exception:
+        except (AttributeError, KeyError, TypeError, ValueError) as e:
+            logger.exception("Could not restore paper trading data for %s", self.user_name)
             return False
 
 
@@ -929,115 +1249,140 @@ class PaperTradingEngine:
     Scans the Indian market, confirms setups, executes paper orders, and updates positions.
     """
 
-    def __init__(self, session: PaperTradingSession, quote_resolver=None, chart_resolver=None):
+    def __init__(
+        self,
+        session: PaperTradingSession,
+        quote_resolver=None,
+        chart_resolver=None,
+        market_status_resolver=None,
+    ):
         self.session = session
         self.quote_resolver = quote_resolver
         self.chart_resolver = chart_resolver
+        self.market_status_resolver = market_status_resolver
+        self.last_scan_at = 0.0
 
     def scan_and_evaluate_setups(self):
         """
-        Scans instrument universe, runs technical indicators, and filters for high-probability setups.
+        Scans supported cash equities for a confirmed 15-minute EMA/VWAP breakout.
         """
         allowed_types = self.session.config.get("instruments", ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"])
         setups = []
 
         for item in UNIVERSE:
             sym = item["symbol"]
-            item_type = item["type"]
-
-            # Match user selected instrument preferences
-            target_inst_type = None
-            if item_type == "INDEX":
-                if "INDEX_FUTURES" in allowed_types:
-                    target_inst_type = "INDEX_FUTURES"
-                elif "INDEX_OPTIONS" in allowed_types:
-                    target_inst_type = "INDEX_OPTIONS"
-            elif item_type == "STOCK":
-                if "EQUITY" in allowed_types:
-                    target_inst_type = "EQUITY"
-                elif "STOCK_FUTURES" in allowed_types:
-                    target_inst_type = "STOCK_FUTURES"
-
-            if not target_inst_type:
+            if item["type"] != "STOCK" or "EQUITY" not in allowed_types:
                 continue
 
-            # Resolve live quote
-            quote = None
-            if self.quote_resolver:
-                try:
-                    quote = self.quote_resolver(sym)
-                except Exception:
-                    pass
+            if not self.quote_resolver or not self.chart_resolver:
+                continue
+            try:
+                quote = self.quote_resolver(sym)
+                chart_rows = self.chart_resolver(sym, "15m", "5d")
+            except Exception as exc:
+                logger.warning("Could not scan %s using live market data: %s", sym, exc)
+                continue
+            if not _is_fresh_nse_quote(quote):
+                continue
 
-            price = float(quote.get("lastPrice") or item["default_price"]) if quote else item["default_price"]
-            p_change = float(quote.get("pChange") or 0.0) if quote else round(random.uniform(-1.5, 1.8), 2)
-
-            # Algorithmic Strategy Determination
-            # Uses technical conditions: RSI, Trend, Breakout
-            seed_val = abs(hash(sym + str(int(time.time() // 60)))) # Changes every minute
-            indicator_val = (seed_val % 100)
-
-            # Technical Setups catalog
-            strategies = [
-                {"name": "15m ORB Breakout", "min_score": 82, "bias": "BUY" if p_change >= 0 else "SELL"},
-                {"name": "20/50 EMA Golden Reclaim", "min_score": 80, "bias": "BUY"},
-                {"name": "VWAP Momentum Expansion", "min_score": 85, "bias": "BUY" if p_change > 0.4 else "SELL"},
-                {"name": "Fibonacci 0.618 Golden Zone", "min_score": 86, "bias": "BUY"},
-                {"name": "Supertrend ATR Continuation", "min_score": 78, "bias": "BUY" if indicator_val > 45 else "SELL"},
+            now_ms = int(time.time() * 1000)
+            candles = [
+                candle for candle in (chart_rows or [])
+                if isinstance(candle, dict)
+                and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
+                and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
             ]
+            if len(candles) < 55:
+                continue
+            candles = candles[-100:]
+            latest_candle_time = datetime.fromtimestamp(
+                int(candles[-1]["t"]) / 1000, timezone.utc
+            ).astimezone(timezone(timedelta(hours=5, minutes=30)))
+            if (
+                latest_candle_time.date() != get_ist_now().date()
+                or time.time() - (int(candles[-1]["t"]) / 1000) > 35 * 60
+            ):
+                continue
 
-            selected_strat = strategies[seed_val % len(strategies)]
-            side = selected_strat["bias"]
-            score = 75 + (seed_val % 22) # 75 - 96
+            closes = [float(candle["c"]) for candle in candles]
+            ema20 = _ema(closes, 20)
+            ema50 = _ema(closes, 50)
+            atr14 = _atr(candles, 14)
+            vwap = _session_vwap(candles)
+            if len(ema20) < 2 or len(ema50) < 2 or not atr14 or not vwap:
+                continue
 
-            # Entry, SL, TP calculation with volatility awareness
-            is_index = "NIFTY" in sym or "SENSEX" in sym
-            vol_factor = 0.006 if is_index else 0.012
+            live_price = float(quote["lastPrice"])
+            latest = candles[-1]
+            recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
+            avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
+            volume_confirmed = avg_volume > 0 and float(latest.get("v") or 0) >= avg_volume * 1.2
+            min_rr = float(self.session.config.get("min_rr", 1.8))
 
+            long_checks = [
+                ema20[-1] > ema50[-1] and ema20[-1] > ema20[-2],
+                float(latest["c"]) > ema20[-1],
+                float(latest["c"]) > vwap and live_price > vwap,
+                live_price > float(latest["h"]),
+                volume_confirmed,
+            ]
+            short_checks = [
+                ema20[-1] < ema50[-1] and ema20[-1] < ema20[-2],
+                float(latest["c"]) < ema20[-1],
+                float(latest["c"]) < vwap and live_price < vwap,
+                live_price < float(latest["l"]),
+                volume_confirmed,
+            ]
+            if all(long_checks):
+                side, checks = "BUY", long_checks
+            elif all(short_checks):
+                side, checks = "SELL", short_checks
+            else:
+                continue
+
+            risk_distance = max(1.5 * atr14, live_price * 0.002)
+            if risk_distance >= live_price * 0.05:
+                continue
             if side == "BUY":
-                entry_price = round(price, 2)
-                stop_loss = round(entry_price * (1.0 - vol_factor), 2)
-                # Risk to reward: Conservative 2.0, Moderate 1.8, Aggressive 1.5
-                rr_target = float(self.session.config.get("min_rr", 1.8))
-                risk = entry_price - stop_loss
-                target_price = round(entry_price + (risk * rr_target), 2)
-            else: # SELL
-                entry_price = round(price, 2)
-                stop_loss = round(entry_price * (1.0 + vol_factor), 2)
-                rr_target = float(self.session.config.get("min_rr", 1.8))
-                risk = stop_loss - entry_price
-                target_price = round(entry_price - (risk * rr_target), 2)
+                stop_loss = live_price - risk_distance
+                target_price = live_price + (risk_distance * min_rr)
+            else:
+                stop_loss = live_price + risk_distance
+                target_price = live_price - (risk_distance * min_rr)
 
-            # Synthesize option details if instrument is INDEX_OPTIONS
-            display_sym = sym
-            if target_inst_type == "INDEX_OPTIONS":
-                strike = int(round(price / 100.0) * 100)
-                opt_type = "CE" if side == "BUY" else "PE"
-                display_sym = f"{sym} {strike} {opt_type}"
-                # Option premium approx (typical ATM premium ~1.2% of spot)
-                opt_premium = round(price * 0.012, 2)
-                opt_risk = round(opt_premium * 0.25, 2)
-                entry_price = opt_premium
-                stop_loss = round(entry_price - opt_risk, 2)
-                target_price = round(entry_price + (opt_risk * rr_target), 2)
-
-            setup = {
-                "symbol": display_sym,
+            setups.append({
+                "symbol": sym,
                 "base_symbol": sym,
                 "name": item["name"],
-                "instrument_type": target_inst_type,
+                "instrument_type": "EQUITY",
+                "market_data_source": "NSE",
+                "market_data_fetched_at": quote["fetched_at"],
+                "market_data_timestamp": quote.get("timestamp"),
+                "signal_indicators": {
+                    "ema20": round(ema20[-1], 4),
+                    "ema50": round(ema50[-1], 4),
+                    "session_vwap": round(vwap, 4),
+                    "atr14": round(atr14, 4),
+                    "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3),
+                    "breakout_level": round(float(latest["h"] if side == "BUY" else latest["l"]), 4),
+                },
                 "side": side,
-                "entry_price": entry_price,
-                "stop_loss": stop_loss,
-                "target_price": target_price,
-                "reward_risk": rr_target,
-                "strategy": selected_strat["name"],
-                "confidence_score": score,
-                "status": "VALIDATED" if score >= 80 else "WAITING_CONFIRMATION",
+                "entry_price": round(live_price, 2),
+                "stop_loss": round(stop_loss, 2),
+                "target_price": round(target_price, 2),
+                "risk_distance": round(risk_distance, 4),
+                "reward_risk": min_rr,
+                "strategy": "15m EMA20/50 + VWAP Breakout",
+                "confidence_score": 100 if all(checks) else 0,
+                "status": "VALIDATED",
                 "timestamp": get_ist_str(),
-                "rationale": f"Confluence: {selected_strat['name']} on {sym} with {score}% score. R:R {rr_target}:1",
-            }
-            setups.append(setup)
+                "rationale": (
+                    f"{side}: completed 15m EMA20/EMA50 trend, close and live price "
+                    f"confirmed against session VWAP, breakout beyond previous candle "
+                    f"with >=1.2x 20-candle volume. Entry uses NSE LTP; stop is 1.5x "
+                    f"ATR(14) (minimum 0.2%), target is {min_rr:.2f}R."
+                ),
+            })
 
         self.session.scanned_signals = setups
         return setups
@@ -1050,22 +1395,35 @@ class PaperTradingEngine:
         """
         self.session.last_tick_at = time.time()
 
-        # Step 1: Monitor and evaluate existing open positions
-        self.session.update_positions(self.quote_resolver)
+        market_is_open = False
+        if self.market_status_resolver:
+            try:
+                status = self.market_status_resolver()
+                market_is_open = bool(status and status.get("is_trading_hours"))
+            except Exception as exc:
+                logger.warning("Could not confirm NSE market status: %s", exc)
+
+        # Without confirmed exchange status or fresh quotes, do not simulate fills or exits.
+        self.session.update_positions(self.quote_resolver, market_is_open=market_is_open)
 
         # Step 2: Autonomous entry evaluation
-        if self.session.status == "RUNNING":
+        if self.session.status == "RUNNING" and market_is_open:
             can_trade, reason = self.session.can_open_new_trade()
-            if can_trade:
+            if can_trade and time.time() - self.last_scan_at >= 60:
+                self.last_scan_at = time.time()
                 setups = self.scan_and_evaluate_setups()
                 open_symbols = {p["symbol"] for p in self.session.positions}
-                viable_setups = [s for s in setups if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols and s["confidence_score"] >= 78]
+                viable_setups = [s for s in setups if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols]
                 
                 # Sort by highest confidence score
                 viable_setups.sort(key=lambda x: x["confidence_score"], reverse=True)
 
                 for candidate in viable_setups:
-                    pos, err = self.session.execute_trade(candidate, self.quote_resolver)
+                    pos, err = self.session.execute_trade(
+                        candidate,
+                        self.quote_resolver,
+                        market_is_open=market_is_open,
+                    )
                     if pos:
                         break # Executed candidate trade
 
@@ -1232,14 +1590,15 @@ class PaperTradingEngine:
 
 class MultiUserPaperSessionManager:
     """
-    Manages multi-tenant paper trading sessions.
+    Manages profile-isolated paper trading sessions.
     Each user/profile has independent capital, preferences, active positions, and trade history.
-    Persists to MongoDB Atlas with resilient fallback to local store.
+    Persists to MongoDB and a durable local SQLite store.
     """
-    def __init__(self, db=None, quote_resolver=None, chart_resolver=None):
+    def __init__(self, db=None, quote_resolver=None, chart_resolver=None, market_status_resolver=None):
         self.db = db
         self.quote_resolver = quote_resolver
         self.chart_resolver = chart_resolver
+        self.market_status_resolver = market_status_resolver
         self.sessions = {} # { user_name: PaperTradingSession }
         self.engines = {}  # { user_name: PaperTradingEngine }
         self._init_defaults()
@@ -1257,8 +1616,13 @@ class MultiUserPaperSessionManager:
             if self.db is not None:
                 try:
                     existing = self.db["paper_profiles"].find_one({"user_name": uname})
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Could not check MongoDB profile %s: %s", uname, e)
+            if not existing:
+                try:
+                    existing = _load_local_paper_record(uname)
+                except (OSError, sqlite3.Error, TypeError, ValueError) as e:
+                    logger.exception("Could not check local profile %s", uname)
             if not existing and uname not in LOCAL_USER_DATASTORE["profiles"]:
                 sess = PaperTradingSession(
                     user_name=uname,
@@ -1273,7 +1637,12 @@ class MultiUserPaperSessionManager:
                 )
                 sess.save_to_db()
                 self.sessions[uname] = sess
-                self.engines[uname] = PaperTradingEngine(session=sess, quote_resolver=self.quote_resolver, chart_resolver=self.chart_resolver)
+                self.engines[uname] = PaperTradingEngine(
+                    session=sess,
+                    quote_resolver=self.quote_resolver,
+                    chart_resolver=self.chart_resolver,
+                    market_status_resolver=self.market_status_resolver,
+                )
 
     def get_session(self, user_name="Akshay"):
         uname = (user_name or "Akshay").strip()
@@ -1281,7 +1650,12 @@ class MultiUserPaperSessionManager:
             return self.sessions[uname], self.engines[uname]
 
         sess = PaperTradingSession(user_name=uname, db=self.db)
-        eng = PaperTradingEngine(session=sess, quote_resolver=self.quote_resolver, chart_resolver=self.chart_resolver)
+        eng = PaperTradingEngine(
+            session=sess,
+            quote_resolver=self.quote_resolver,
+            chart_resolver=self.chart_resolver,
+            market_status_resolver=self.market_status_resolver,
+        )
         self.sessions[uname] = sess
         self.engines[uname] = eng
         sess.save_to_db()
@@ -1291,9 +1665,28 @@ class MultiUserPaperSessionManager:
         uname = (user_name or "").strip()
         if not uname:
             return None, "Profile name cannot be empty."
+        if uname in self.sessions or uname in LOCAL_USER_DATASTORE["profiles"]:
+            return None, f"Profile [{uname}] already exists."
+        try:
+            if _load_local_paper_record(uname):
+                return None, f"Profile [{uname}] already exists."
+        except (OSError, sqlite3.Error, TypeError, ValueError) as e:
+            logger.exception("Could not check local profile %s", uname)
+            raise RuntimeError(f"Unable to verify whether profile [{uname}] already exists.") from e
+        if self.db is not None:
+            try:
+                if self.db["paper_profiles"].find_one({"user_name": uname}):
+                    return None, f"Profile [{uname}] already exists."
+            except Exception as e:
+                logger.warning("Could not check MongoDB profile %s: %s", uname, e)
 
         sess = PaperTradingSession(user_name=uname, config=config, db=self.db)
-        eng = PaperTradingEngine(session=sess, quote_resolver=self.quote_resolver, chart_resolver=self.chart_resolver)
+        eng = PaperTradingEngine(
+            session=sess,
+            quote_resolver=self.quote_resolver,
+            chart_resolver=self.chart_resolver,
+            market_status_resolver=self.market_status_resolver,
+        )
         self.sessions[uname] = sess
         self.engines[uname] = eng
         sess.save_to_db()
@@ -1306,12 +1699,16 @@ class MultiUserPaperSessionManager:
             try:
                 cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
                 profiles = list(cursor)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Could not load profiles from MongoDB: %s", e)
 
-        if not profiles:
-            for uname, profile_data in LOCAL_USER_DATASTORE["profiles"].items():
-                profiles.append(profile_data)
+        persisted_profiles = _load_local_paper_profiles()
+        profiles_by_name = {profile["user_name"]: profile for profile in persisted_profiles}
+        for profile in profiles + list(LOCAL_USER_DATASTORE["profiles"].values()):
+            current = profiles_by_name.get(profile["user_name"])
+            if not current or _document_updated_at(profile) >= _document_updated_at(current):
+                profiles_by_name[profile["user_name"]] = profile
+        profiles = list(profiles_by_name.values())
 
         # Fallback if empty
         if not profiles:
@@ -1351,7 +1748,5 @@ class MultiUserPaperSessionManager:
                     if eng:
                         results[uname] = eng.tick()
             except Exception:
-                pass
+                logger.exception("Paper trading tick failed for profile %s", uname)
         return results
-
-
