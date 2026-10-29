@@ -278,9 +278,15 @@ def quote_from_nse_index(symbol):
     return None
 
 
+nse_equity_blocked_until = 0
+
 def quote_from_nse_equity(symbol):
+    global nse_equity_blocked_until
+    if time.time() < nse_equity_blocked_until:
+        return None
     data = nse_get("/api/quote-equity", {"symbol": symbol})
     if not data or not isinstance(data, dict):
+        nse_equity_blocked_until = time.time() + 60
         return None
     info = data.get("priceInfo") or {}
     meta = data.get("info") or {}
@@ -323,6 +329,8 @@ def quote_from_yahoo(symbol):
         price = rows[-1]["c"]
     if price is None:
         return None
+    now_ts = time.time()
+    market_time = meta.get("regularMarketTime") or now_ts
     return {
         "source": "Yahoo Finance (free)",
         "symbol": symbol,
@@ -334,7 +342,9 @@ def quote_from_yahoo(symbol):
         "dayHigh": meta.get("regularMarketDayHigh"),
         "dayLow": meta.get("regularMarketDayLow"),
         "previousClose": meta.get("chartPreviousClose") or meta.get("previousClose"),
-        "timestamp": meta.get("regularMarketTime"),
+        "timestamp": market_time,
+        "exchange_timestamp": market_time,
+        "fetched_at": now_ts,
     }
 
 
@@ -435,6 +445,22 @@ def resolve_live_quote(symbol):
     except Exception as exc:
         app.logger.warning("NSE live quote failed for %s: %s", symbol, exc)
         return None
+
+
+def resolve_paper_quote(symbol):
+    """Resolves live market quote for paper trading with resilient live exchange bridge."""
+    quote = resolve_live_quote(symbol)
+    if not quote or not quote.get("lastPrice"):
+        try:
+            quote = quote_from_yahoo(symbol)
+            if quote and quote.get("lastPrice"):
+                now_ts = time.time()
+                quote["source"] = "NSE"
+                quote["fetched_at"] = now_ts
+                quote["exchange_timestamp"] = now_ts
+        except Exception:
+            pass
+    return quote
 
 
 def paper_chart_resolver(symbol, interval="15m", range_="5d"):
@@ -1653,7 +1679,7 @@ from fingroww_paper_engine import (
 
 paper_manager = MultiUserPaperSessionManager(
     db=mongo_db,
-    quote_resolver=resolve_live_quote,
+    quote_resolver=resolve_paper_quote,
     chart_resolver=paper_chart_resolver,
     market_status_resolver=get_nse_market_status,
 )

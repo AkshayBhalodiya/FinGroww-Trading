@@ -105,20 +105,21 @@ UNIVERSE = [
 ]
 
 
-def _is_fresh_nse_quote(quote, max_age_seconds=20):
+def _is_fresh_nse_quote(quote, max_age_seconds=120):
     if not isinstance(quote, dict) or quote.get("source") != "NSE":
         return False
     try:
         price = float(quote.get("lastPrice"))
-        fetched_at = float(quote.get("fetched_at"))
-        exchange_timestamp = float(quote.get("exchange_timestamp"))
+        fetched_at = float(quote.get("fetched_at", time.time()))
+        exchange_timestamp = float(quote.get("exchange_timestamp", fetched_at))
     except (TypeError, ValueError):
+        return False
+    if price <= 0:
         return False
     now = time.time()
     return (
-        price > 0
-        and 0 <= now - fetched_at <= max_age_seconds
-        and 0 <= now - exchange_timestamp <= max_age_seconds
+        0 <= now - fetched_at <= max_age_seconds
+        and (exchange_timestamp <= 0 or 0 <= now - exchange_timestamp <= max(max_age_seconds, 86400))
     )
 
 
@@ -1374,7 +1375,7 @@ class PaperTradingEngine:
                 and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
                 and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
             ]
-            if len(candles) < 55:
+            if len(candles) < 30:
                 continue
             candles = candles[-100:]
             latest_candle_time = datetime.fromtimestamp(
@@ -1382,7 +1383,7 @@ class PaperTradingEngine:
             ).astimezone(timezone(timedelta(hours=5, minutes=30)))
             if (
                 latest_candle_time.date() != get_ist_now().date()
-                or time.time() - (int(candles[-1]["t"]) / 1000) > 35 * 60
+                or time.time() - (int(candles[-1]["t"]) / 1000) > 4 * 3600
             ):
                 continue
 
@@ -1398,21 +1399,21 @@ class PaperTradingEngine:
             latest = candles[-1]
             recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
             avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
-            volume_confirmed = avg_volume > 0 and float(latest.get("v") or 0) >= avg_volume * 1.2
+            volume_confirmed = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.75)
             min_rr = float(self.session.config.get("min_rr", 1.8))
 
             long_checks = [
-                ema20[-1] > ema50[-1] and ema20[-1] > ema20[-2],
+                ema20[-1] > ema50[-1],
                 float(latest["c"]) > ema20[-1],
                 float(latest["c"]) > vwap and live_price > vwap,
-                live_price > float(latest["h"]),
+                live_price >= float(latest["h"]) * 0.998,
                 volume_confirmed,
             ]
             short_checks = [
-                ema20[-1] < ema50[-1] and ema20[-1] < ema20[-2],
+                ema20[-1] < ema50[-1],
                 float(latest["c"]) < ema20[-1],
                 float(latest["c"]) < vwap and live_price < vwap,
-                live_price < float(latest["l"]),
+                live_price <= float(latest["l"]) * 1.002,
                 volume_confirmed,
             ]
             if all(long_checks):
