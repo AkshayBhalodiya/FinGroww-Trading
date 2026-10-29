@@ -31,29 +31,51 @@ mongo_db = None
 mongo_status = "Disconnected"
 
 raw_mongo_url = os.getenv("mongo_url") or os.getenv("MONGODB_URI", "")
-try:
-    if raw_mongo_url and "<db_username>" not in raw_mongo_url and raw_mongo_url.strip():
-        from pymongo import MongoClient
-        mongo_client = MongoClient(raw_mongo_url.strip(), serverSelectionTimeoutMS=3500)
-        mongo_client.admin.command("ping")
-        mongo_db = mongo_client["fingroww_db"]
-        mongo_status = "Connected to MongoDB Atlas"
-        
-        # Ensure collections & indexes
-        mongo_db["users"].create_index("email", unique=True)
-        mongo_db["signals"].create_index([("symbol", 1), ("timestamp", -1)])
-        mongo_db["trade_outcomes"].create_index([("symbol", 1), ("closed_at", -1)])
-        mongo_db["strategy_runs"].create_index("created_at")
+if raw_mongo_url and "<db_username>" not in raw_mongo_url and raw_mongo_url.strip():
+    from pymongo import MongoClient
+    ca_file = None
+    try:
+        import certifi
+        ca_file = certifi.where()
+    except Exception:
+        pass
+
+    # Resilient multi-tier TLS handshake for MongoDB Atlas on cloud containers (e.g. Render/Linux)
+    client_candidates = []
+    if ca_file:
+        client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, "serverSelectionTimeoutMS": 4500}))
+    client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, "serverSelectionTimeoutMS": 4500}))
+    client_candidates.append(("standard-tls", {"serverSelectionTimeoutMS": 4500}))
+
+    last_mongo_err = None
+    for mode_name, client_kwargs in client_candidates:
         try:
+            cand_client = MongoClient(raw_mongo_url.strip(), **client_kwargs)
+            cand_client.admin.command("ping")
+            mongo_client = cand_client
+            mongo_db = mongo_client["fingroww_db"]
+            mongo_status = f"Connected to MongoDB Atlas ({mode_name})"
+            break
+        except Exception as conn_err:
+            last_mongo_err = conn_err
+
+    if mongo_db is not None:
+        try:
+            # Ensure collections & indexes
+            mongo_db["users"].create_index("email", unique=True)
+            mongo_db["signals"].create_index([("symbol", 1), ("timestamp", -1)])
+            mongo_db["trade_outcomes"].create_index([("symbol", 1), ("closed_at", -1)])
+            mongo_db["strategy_runs"].create_index("created_at")
             mongo_db["paper_profiles"].create_index("user_name", unique=True)
             mongo_db["paper_sessions"].create_index("user_name", unique=True)
+            mongo_db["paper_positions"].create_index([("user_name", 1), ("status", 1)])
             mongo_db["paper_trades"].create_index([("user_name", 1), ("closed_at", -1)])
         except Exception:
             pass
     else:
-        mongo_status = "Standby (Awaiting MongoDB Atlas credentials in .env)"
-except Exception as e:
-    mongo_status = f"MongoDB Offline: {str(e)}"
+        mongo_status = f"MongoDB Offline: {str(last_mongo_err)}"
+else:
+    mongo_status = "Standby (Awaiting MongoDB Atlas credentials in .env)"
 
 # In-memory resilient datastore fallback
 local_datastore = {
@@ -1825,7 +1847,31 @@ def paper_session_tick():
     return jsonify({"ok": True, "state": state})
 
 
+@app.get("/api/paper/positions")
+def paper_get_positions():
+    """Returns active open stock/instrument positions for a user with live PnL and MongoDB persistence."""
+    u_sess, _ = get_user_session_and_engine(request)
+    positions = u_sess.positions
+    if not positions and mongo_db is not None:
+        try:
+            db_positions = list(mongo_db["paper_positions"].find({"user_name": u_sess.user_name, "status": "OPEN"}, {"_id": 0}))
+            if db_positions:
+                positions = db_positions
+        except Exception:
+            pass
+
+    return jsonify({
+        "user_name": u_sess.user_name,
+        "count": len(positions),
+        "positions": positions,
+        "total_unrealized_pnl": u_sess.unrealized_pnl,
+        "account_equity": u_sess.account_equity,
+        "allocated_margin": u_sess.allocated_margin,
+    })
+
+
 @app.get("/api/paper/trades")
+
 def paper_get_trades():
     """Returns complete trade history for a user with filtering by instrument and outcome."""
     u_sess, _ = get_user_session_and_engine(request)

@@ -20,7 +20,7 @@ import json
 import os
 import tempfile
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from unittest.mock import patch
 from fingroww_paper_engine import (
     PaperTradingSession,
@@ -36,9 +36,12 @@ import fingroww_market_server
 class TestPaperTradingEngine(unittest.TestCase):
 
     def setUp(self):
+        today_ist = datetime.now(timezone(timedelta(hours=5, minutes=30))).replace(
+            hour=11, minute=0, second=0, microsecond=0
+        )
         trading_time_patcher = patch(
             "fingroww_paper_engine.get_ist_now",
-            return_value=datetime(2026, 10, 28, 11, 0),
+            return_value=today_ist,
         )
         trading_time_patcher.start()
         self.addCleanup(trading_time_patcher.stop)
@@ -843,7 +846,79 @@ class TestPaperTradingEngine(unittest.TestCase):
             account_after_first_close["realized_pnl"],
         )
         self.assertEqual(len(self.session.closed_trades), 1)
+    def test_21_mongo_and_disk_persistence_stocks_and_leaderboard(self):
+        """Test persistent storage for new users, stock positions, and universal leaderboard rankings."""
+        from fingroww_paper_engine import MultiUserPaperSessionManager, LOCAL_USER_DATASTORE, DATASTORE_FILE
+        import os
+
+        # 1. Create a new user profile "Parth_Trader"
+        create_res = self.client.post("/api/paper/profiles/create", json={
+            "user_name": "Parth_Trader",
+            "initial_capital": 250000.0,
+            "instruments": ["EQUITY", "INDEX_FUTURES"],
+            "trading_style": "INTRADAY",
+            "risk_profile": "MODERATE",
+            "holding_duration_mins": 15
+        })
+        self.assertEqual(create_res.status_code, 200)
+        self.assertTrue(create_res.get_json()["ok"])
+
+        # 2. Verify profile is saved in LOCAL_USER_DATASTORE and persistent file
+        self.assertIn("Parth_Trader", LOCAL_USER_DATASTORE["profiles"])
+        self.assertEqual(LOCAL_USER_DATASTORE["profiles"]["Parth_Trader"]["initial_capital"], 250000.0)
+        self.assertTrue(os.path.exists(DATASTORE_FILE))
+
+        # 3. Simulate opening a stock position for Parth_Trader
+        parth_sess, parth_eng = fingroww_market_server.paper_manager.get_session("Parth_Trader")
+        parth_sess.start()
+        pos_candidate = {
+            "symbol": "RELIANCE",
+            "name": "Reliance Industries",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "confidence_score": 88,
+            "rationale": "ORB Breakout",
+            "entry_price": 1285.0,
+            "target_price": 1315.0,
+            "stop_loss": 1270.0,
+            "lot_size": 1,
+            "expiry_type": "INTRADAY"
+        }
+        pos, err = parth_sess.execute_trade(pos_candidate, market_is_open=True)
+        self.assertIsNotNone(pos)
+        self.assertEqual(pos["symbol"], "RELIANCE")
+
+        # 4. Verify /api/paper/positions returns the active stock position
+        r_pos = self.client.get("/api/paper/positions?user=Parth_Trader")
+        self.assertEqual(r_pos.status_code, 200)
+        pos_data = r_pos.get_json()
+        self.assertEqual(pos_data["user_name"], "Parth_Trader")
+        self.assertEqual(pos_data["count"], 1)
+        self.assertEqual(pos_data["positions"][0]["symbol"], "RELIANCE")
+
+        # 5. Verify /api/paper/leaderboard returns all profiles sorted identically with ranks
+        r_lead = self.client.get("/api/paper/leaderboard")
+        self.assertEqual(r_lead.status_code, 200)
+        lead = r_lead.get_json()["leaderboard"]
+        trader_names = [p["user_name"] for p in lead]
+        self.assertIn("Parth_Trader", trader_names)
+
+        # Check that Parth_Trader has active_stocks and open_positions_count
+        parth_lead = next(p for p in lead if p["user_name"] == "Parth_Trader")
+        self.assertIn("RELIANCE", parth_lead.get("active_stocks", []))
+        self.assertEqual(parth_lead.get("open_positions_count"), 1)
+
+        # 6. Verify that a newly instantiated MultiUserPaperSessionManager recovers Parth_Trader from persistent disk/DB
+        new_manager = MultiUserPaperSessionManager(db=None)
+        recovered_profiles = [p["user_name"] for p in new_manager.list_profiles()]
+        self.assertIn("Parth_Trader", recovered_profiles)
+        rec_sess, _ = new_manager.get_session("Parth_Trader")
+        self.assertEqual(rec_sess.initial_capital, 250000.0)
+        self.assertEqual(len(rec_sess.positions), 1)
+        self.assertEqual(rec_sess.positions[0]["symbol"], "RELIANCE")
+
 
 
 if __name__ == "__main__":
     unittest.main()
+

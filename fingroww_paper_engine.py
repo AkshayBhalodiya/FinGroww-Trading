@@ -240,11 +240,45 @@ class PaperTradeCostModel:
             return round(price * (1.0 - slippage_pct), 2)
 
 
-LOCAL_USER_DATASTORE = {
-    "sessions": {},
-    "profiles": {},
-    "trades": [],
-}
+DATASTORE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_datastore.json")
+
+def load_datastore_from_disk():
+    """Restores persistent sessions, profiles, positions, and trades from disk."""
+    try:
+        if os.path.exists(DATASTORE_FILE):
+            with open(DATASTORE_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return {
+                        "sessions": data.get("sessions", {}),
+                        "profiles": data.get("profiles", {}),
+                        "positions": data.get("positions", {}),
+                        "trades": data.get("trades", {}),
+                    }
+    except Exception:
+        pass
+    return {"sessions": {}, "profiles": {}, "positions": {}, "trades": {}}
+
+def save_datastore_to_disk(datastore):
+    """Safely writes datastore to disk using an atomic rename operation."""
+    try:
+        tmp_file = DATASTORE_FILE + ".tmp"
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(datastore, f, indent=2)
+        os.replace(tmp_file, DATASTORE_FILE)
+    except Exception:
+        pass
+
+LOCAL_USER_DATASTORE = load_datastore_from_disk()
+if "sessions" not in LOCAL_USER_DATASTORE:
+    LOCAL_USER_DATASTORE["sessions"] = {}
+if "profiles" not in LOCAL_USER_DATASTORE:
+    LOCAL_USER_DATASTORE["profiles"] = {}
+if "positions" not in LOCAL_USER_DATASTORE:
+    LOCAL_USER_DATASTORE["positions"] = {}
+if "trades" not in LOCAL_USER_DATASTORE:
+    LOCAL_USER_DATASTORE["trades"] = {}
+
 
 logger = logging.getLogger(__name__)
 
@@ -1098,10 +1132,11 @@ class PaperTradingSession:
 
     @_session_locked
     def save_to_db(self):
-        """Persists session state, profile metrics, and full trade history."""
+        """Persists session state, profile metrics, open stock positions, and completed trades to MongoDB Atlas & disk store."""
         self._recalculate_equity()
         analytics = self.get_performance_analytics()
         ret_pct = round((self.total_pnl / self.initial_capital) * 100, 2) if self.initial_capital > 0 else 0.0
+        open_syms = [p.get("symbol") for p in self.positions]
 
         session_doc = {
             "user_name": self.user_name,
@@ -1137,8 +1172,10 @@ class PaperTradingSession:
             "instruments": self.config.get("instruments", ["EQUITY"]),
             "trading_style": self.config.get("trading_style", "INTRADAY"),
             "risk_profile": self.config.get("risk_profile", "MODERATE"),
+            "holding_duration_mins": self.config.get("holding_duration_mins", 15),
             "initial_capital": self.initial_capital,
             "account_equity": self.account_equity,
+            "available_balance": self.available_balance,
             "net_pnl": self.total_pnl,
             "return_pct": ret_pct,
             "win_rate": analytics.get("win_rate", 0.0),
@@ -1147,8 +1184,11 @@ class PaperTradingSession:
             "losing_trades": analytics.get("losing_trades", 0),
             "profit_factor": analytics.get("profit_factor", 0.0),
             "max_drawdown_pct": self.max_drawdown_pct,
+            "open_positions_count": len(self.positions),
+            "active_stocks": open_syms,
             "status": self.status,
             "last_active": get_ist_str(),
+            "updated_at_ts": time.time(),
         }
 
         local_saved = False
@@ -1160,23 +1200,65 @@ class PaperTradingSession:
         except (OSError, sqlite3.Error, TypeError, ValueError):
             logger.exception("Could not persist paper trading data locally for %s", self.user_name)
 
-        # Keep the in-memory cache for the active process and existing integrations.
+        # 1. Update in-memory & disk datastore
         LOCAL_USER_DATASTORE["sessions"][self.user_name] = session_doc
         LOCAL_USER_DATASTORE["profiles"][self.user_name] = profile_doc
+        LOCAL_USER_DATASTORE["positions"][self.user_name] = self.positions
+        LOCAL_USER_DATASTORE["trades"][self.user_name] = self.closed_trades
+        save_datastore_to_disk(LOCAL_USER_DATASTORE)
 
-        # MongoDB remains the shared persistent store when configured.
+        # 2. Persist to MongoDB Atlas if connected
         if self.db is not None:
             try:
+                # Sessions collection
                 self.db["paper_sessions"].update_one(
                     {"user_name": self.user_name},
                     {"$set": dict(session_doc)},
                     upsert=True
                 )
+                # Profiles collection (for Leaderboard & Profiles listing)
                 self.db["paper_profiles"].update_one(
                     {"user_name": self.user_name},
                     {"$set": dict(profile_doc)},
                     upsert=True
                 )
+                # Active stock positions collection
+                current_trade_ids = []
+                for pos in self.positions:
+                    p_doc = dict(pos)
+                    p_doc["user_name"] = self.user_name
+                    p_doc["status"] = "OPEN"
+                    p_doc["last_synced"] = get_ist_str()
+                    trade_id = pos.get("trade_id")
+                    if trade_id:
+                        current_trade_ids.append(trade_id)
+                        self.db["paper_positions"].update_one(
+                            {"trade_id": trade_id},
+                            {"$set": p_doc},
+                            upsert=True
+                        )
+                # Mark exited positions as CLOSED in MongoDB
+                if current_trade_ids:
+                    self.db["paper_positions"].update_many(
+                        {"user_name": self.user_name, "status": "OPEN", "trade_id": {"$nin": current_trade_ids}},
+                        {"$set": {"status": "CLOSED", "closed_at_sync": get_ist_str()}}
+                    )
+                else:
+                    self.db["paper_positions"].update_many(
+                        {"user_name": self.user_name, "status": "OPEN"},
+                        {"$set": {"status": "CLOSED", "closed_at_sync": get_ist_str()}}
+                    )
+                # Completed trades collection
+                for tr in self.closed_trades:
+                    t_doc = dict(tr)
+                    t_doc["user_name"] = self.user_name
+                    trade_id = tr.get("trade_id")
+                    if trade_id:
+                        self.db["paper_trades"].update_one(
+                            {"trade_id": trade_id},
+                            {"$set": t_doc},
+                            upsert=True
+                        )
                 mongo_saved = True
             except Exception as e:
                 logger.warning("Could not persist paper trading data to MongoDB for %s: %s", self.user_name, e)
@@ -1592,7 +1674,7 @@ class MultiUserPaperSessionManager:
     """
     Manages profile-isolated paper trading sessions.
     Each user/profile has independent capital, preferences, active positions, and trade history.
-    Persists to MongoDB and a durable local SQLite store.
+    Persists to MongoDB Atlas and durable local SQLite & disk datastore.
     """
     def __init__(self, db=None, quote_resolver=None, chart_resolver=None, market_status_resolver=None):
         self.db = db
@@ -1604,13 +1686,32 @@ class MultiUserPaperSessionManager:
         self._init_defaults()
 
     def _init_defaults(self):
-        default_profiles = [
+        """Discovers and restores all user profiles from MongoDB Atlas & persistent disk store."""
+        known_profiles = {}
+
+        # 1. Load from persistent disk store
+        for uname, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
+            if uname and isinstance(pdata, dict):
+                known_profiles[uname] = dict(pdata)
+
+        # 2. Load all profiles from MongoDB Atlas if connected
+        if self.db is not None:
+            try:
+                for doc in self.db["paper_profiles"].find({}, {"_id": 0}):
+                    uname = doc.get("user_name")
+                    if uname:
+                        known_profiles[uname] = doc
+            except Exception:
+                pass
+
+        # 3. Ensure standard benchmark profiles exist if not already present
+        default_benchmarks = [
             {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "INTRADAY", "risk": "MODERATE"},
             {"user_name": "Vijay_Options_Pro", "instruments": ["INDEX_OPTIONS"], "capital": 50000.0, "style": "SCALPING", "risk": "AGGRESSIVE"},
             {"user_name": "Rahul_Futures_Swing", "instruments": ["INDEX_FUTURES", "STOCK_FUTURES"], "capital": 200000.0, "style": "SWING", "risk": "CONSERVATIVE"},
             {"user_name": "Pooja_Equity_Value", "instruments": ["EQUITY"], "capital": 75000.0, "style": "POSITIONAL", "risk": "MODERATE"},
         ]
-        for p in default_profiles:
+        for p in default_benchmarks:
             uname = p["user_name"]
             existing = None
             if self.db is not None:
@@ -1690,37 +1791,79 @@ class MultiUserPaperSessionManager:
         self.sessions[uname] = sess
         self.engines[uname] = eng
         sess.save_to_db()
-        return sess, f"Profile [{uname}] created and activated successfully."
+        return sess, f"Profile [{uname}] created and persisted in MongoDB Atlas!"
 
     def list_profiles(self):
-        """Returns list of all registered profile names and basic summary."""
-        profiles = []
+        """Returns list of all registered profile names and up-to-date metrics across all users."""
+        prof_map = {}
+
+        # 1. Fetch all profiles from MongoDB Atlas if available
         if self.db is not None:
             try:
                 cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
-                profiles = list(cursor)
+                for doc in cursor:
+                    u = doc.get("user_name")
+                    if u:
+                        prof_map[u] = doc
             except Exception as e:
                 logger.warning("Could not load profiles from MongoDB: %s", e)
 
-        persisted_profiles = _load_local_paper_profiles()
-        profiles_by_name = {profile["user_name"]: profile for profile in persisted_profiles}
-        for profile in profiles + list(LOCAL_USER_DATASTORE["profiles"].values()):
-            current = profiles_by_name.get(profile["user_name"])
-            if not current or _document_updated_at(profile) >= _document_updated_at(current):
-                profiles_by_name[profile["user_name"]] = profile
-        profiles = list(profiles_by_name.values())
+        # 2. Load from local SQLite store
+        try:
+            persisted_profiles = _load_local_paper_profiles()
+            for profile in persisted_profiles:
+                u = profile.get("user_name")
+                if u and (u not in prof_map or _document_updated_at(profile) >= _document_updated_at(prof_map[u])):
+                    prof_map[u] = profile
+        except Exception:
+            pass
 
-        # Fallback if empty
-        if not profiles:
+        # 3. Merge with disk/in-memory store
+        for u, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
+            if u and (u not in prof_map or _document_updated_at(pdata) >= _document_updated_at(prof_map[u])):
+                prof_map[u] = dict(pdata)
+
+        # 3. Synchronize with active in-memory sessions for real-time live equity, PnL, active stocks, and status
+        for uname, sess in self.sessions.items():
+            ret_pct = round((sess.total_pnl / sess.initial_capital) * 100, 2) if sess.initial_capital > 0 else 0.0
+            analytics = sess.get_performance_analytics()
+            open_syms = [p.get("symbol") for p in sess.positions]
+            prof_map[uname] = {
+                "user_name": sess.user_name,
+                "user_id": sess.user_id,
+                "instruments": sess.config.get("instruments", ["EQUITY"]),
+                "trading_style": sess.config.get("trading_style", "INTRADAY"),
+                "risk_profile": sess.config.get("risk_profile", "MODERATE"),
+                "holding_duration_mins": sess.config.get("holding_duration_mins", 15),
+                "initial_capital": sess.initial_capital,
+                "account_equity": sess.account_equity,
+                "available_balance": sess.available_balance,
+                "net_pnl": sess.total_pnl,
+                "return_pct": ret_pct,
+                "win_rate": analytics.get("win_rate", 0.0),
+                "total_trades": analytics.get("total_trades", 0),
+                "winning_trades": analytics.get("winning_trades", 0),
+                "losing_trades": analytics.get("losing_trades", 0),
+                "profit_factor": analytics.get("profit_factor", 0.0),
+                "max_drawdown_pct": sess.max_drawdown_pct,
+                "open_positions_count": len(sess.positions),
+                "active_stocks": open_syms,
+                "status": sess.status,
+                "last_active": get_ist_str(),
+            }
+
+        # 4. Fallback if still empty
+        if not prof_map:
             sess, _ = self.get_session("Akshay")
-            profiles = [LOCAL_USER_DATASTORE["profiles"].get("Akshay", {})]
+            prof_map["Akshay"] = LOCAL_USER_DATASTORE["profiles"].get("Akshay", {})
 
-        return profiles
+        return list(prof_map.values())
 
     def get_leaderboard(self):
-        """Returns sorted leaderboard ranking users by Net PnL and Return %."""
+        """Returns sorted, universally consistent leaderboard ranking users by Net PnL and Return %."""
         profiles = self.list_profiles()
-        profiles.sort(key=lambda x: x.get("net_pnl", 0.0), reverse=True)
+        # Sort by Net PnL (descending), Return % (descending), Win Rate (descending)
+        profiles.sort(key=lambda x: (x.get("net_pnl", 0.0), x.get("return_pct", 0.0), x.get("win_rate", 0.0)), reverse=True)
         for idx, p in enumerate(profiles):
             p["rank"] = idx + 1
             net = p.get("net_pnl", 0.0)
