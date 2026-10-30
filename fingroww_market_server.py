@@ -1801,6 +1801,11 @@ def paper_update_config():
         if not isinstance(insts, list) or len(insts) == 0:
             return jsonify({"error": "Please select at least one trading instrument."}), 400
 
+    if "market_caps" in data:
+        mcaps = data["market_caps"]
+        if not isinstance(mcaps, list) or len(mcaps) == 0:
+            return jsonify({"error": "Please select at least one market cap segment."}), 400
+
     u_sess.update_config(data)
     u_sess.save_to_db()
     return jsonify({"ok": True, "state": u_sess.get_state()})

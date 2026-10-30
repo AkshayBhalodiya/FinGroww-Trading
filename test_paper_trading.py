@@ -1073,7 +1073,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertGreater(len(setups_opts), 0)
         for s in setups_opts:
             self.assertEqual(s["instrument_type"], "INDEX_OPTIONS")
-            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "MIDCPNIFTY"])
 
         # Scenario 2: User selects ONLY INDEX_FUTURES
         self.session.config["instruments"] = ["INDEX_FUTURES"]
@@ -1081,7 +1081,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertGreater(len(setups_futs), 0)
         for s in setups_futs:
             self.assertEqual(s["instrument_type"], "INDEX_FUTURES")
-            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "MIDCPNIFTY"])
 
         # Scenario 3: User selects ONLY EQUITY
         # For equity, dummy candles with volume > 0
@@ -1092,7 +1092,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertGreater(len(setups_eq), 0)
         for s in setups_eq:
             self.assertEqual(s["instrument_type"], "EQUITY")
-            self.assertNotIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+            self.assertNotIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "MIDCPNIFTY"])
 
         # Scenario 4: User selects BOTH INDEX_OPTIONS and INDEX_FUTURES
         self.session.config["instruments"] = ["INDEX_OPTIONS", "INDEX_FUTURES"]
@@ -1198,6 +1198,126 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(pos["target_price"], 120.0) # Structural target maintained
         self.assertGreater(pos["stop_loss"], 100.0)  # Stop loss tightened above 100 to protect capital
         self.assertAlmostEqual(pos["risk_reward"], 1.8, places=1)
+
+
+
+
+    def test_26_market_cap_multi_select_and_long_term_equity_holding(self):
+        """
+        Verifies:
+        1. Multi-select market cap filtering: Large Cap, Mid Cap, Small Cap.
+        2. Small caps strictly generate Equity setups (no derivatives on NSE).
+        3. Long-Term Equity Investment (CNC Cash Holding):
+           - Requires 100% upfront cash margin (no 5x leverage).
+           - Exempt from 15:20 IST EOD auto-square-off.
+           - Delivery charges model (0 brokerage, 0.1% STT on buy and sell).
+           - Macro trend alignment and structural +20% target.
+        """
+        # 1. Market Cap Filtering
+        now_ms = int(time.time() * 1000)
+        dummy_candles = []
+        for i in range(65):
+            t_candle = now_ms - (65 - i) * 15 * 60 * 1000 - 20000
+            dummy_candles.append({"o": 1000.0 + i, "h": 1010.0 + i, "l": 995.0 + i, "c": 1005.0 + i, "v": 25000, "t": t_candle})
+
+        self.engine.quote_resolver = lambda _sym: {
+            "source": "NSE",
+            "lastPrice": 1075.0,
+            "pChange": 1.2,
+            "fetched_at": time.time(),
+        }
+        self.engine.chart_resolver = lambda _sym, _tf, _rg: dummy_candles
+
+        # Select ONLY SMALL_CAP
+        self.session.config["instruments"] = ["EQUITY", "INDEX_OPTIONS", "INDEX_FUTURES"]
+        self.session.config["market_caps"] = ["SMALL_CAP"]
+        setups_small = self.engine.scan_and_evaluate_setups()
+        self.assertGreater(len(setups_small), 0)
+        for s in setups_small:
+            self.assertEqual(s["market_cap"], "SMALL_CAP")
+            self.assertEqual(s["instrument_type"], "EQUITY")  # Small caps on Indian exchanges only trade in Equity
+            self.assertIn(s["base_symbol"], ["CDSL", "BSE", "ANGELONE", "SUZLON", "KALYANKJIL", "MAZDOCK", "RVNL", "HUDCO"])
+
+        # Select ONLY LARGE_CAP
+        self.session.config["market_caps"] = ["LARGE_CAP"]
+        setups_large = self.engine.scan_and_evaluate_setups()
+        self.assertGreater(len(setups_large), 0)
+        for s in setups_large:
+            self.assertEqual(s["market_cap"], "LARGE_CAP")
+
+        # Select MID_CAP + SMALL_CAP
+        self.session.config["market_caps"] = ["MID_CAP", "SMALL_CAP"]
+        setups_mid_small = self.engine.scan_and_evaluate_setups()
+        mcaps = {s["market_cap"] for s in setups_mid_small}
+        self.assertIn("MID_CAP", mcaps)
+        self.assertIn("SMALL_CAP", mcaps)
+        self.assertNotIn("LARGE_CAP", mcaps)
+
+        # 2. Long-Term Equity Investment (CNC Cash Holding) Execution
+        self.session.reset(100000.0)
+        self.session.start()
+        self.session.update_config({
+            "trading_style": "LONG_TERM",
+            "holding_duration_mins": 43200, # 1 Month (30 Days)
+            "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
+            "instruments": ["EQUITY"],
+        })
+
+        lt_setup = {
+            "symbol": "CDSL",
+            "base_symbol": "CDSL",
+            "name": "Central Depository Services Ltd",
+            "instrument_type": "EQUITY",
+            "market_cap": "SMALL_CAP",
+            "product_type": "CNC",
+            "is_long_term": True,
+            "side": "BUY",
+            "entry_price": 1000.0,
+            "target_price": 1200.0, # +20% structural target
+            "stop_loss": 930.0,     # -7% protective stop
+            "risk_distance": 70.0,
+            "reward_risk": 2.85,
+            "strategy": "Long-Term Quantitative Trend & Value (CNC)",
+            "confidence_score": 92,
+        }
+
+        quote_1000 = lambda _s: {"source": "NSE", "lastPrice": 1000.0, "fetched_at": time.time()}
+        pos, err = self.session.execute_trade(lt_setup, quote_resolver=quote_1000, market_is_open=True)
+        self.assertIsNotNone(pos, msg=err)
+        self.assertEqual(pos["product_type"], "CNC")
+        self.assertFalse(pos["is_intraday"])
+        self.assertTrue(pos["is_delivery"])
+        self.assertTrue(pos["is_long_term"])
+
+        # Delivery margin is 100% of price (no 5x leverage)
+        expected_margin = round(pos["quantity"] * pos["entry_price"] * 1.0, 2)
+        self.assertAlmostEqual(pos["allocated_margin"], expected_margin, delta=1.0)
+
+        # Brokerage for delivery should be ₹0 (Zerodha/Groww model)
+        delivery_charges = PaperTradeCostModel.calculate_charges("EQUITY", "BUY", 1000.0, 10, is_delivery=True)
+        self.assertEqual(delivery_charges["brokerage"], 0.0)
+        self.assertEqual(delivery_charges["stt"], 10.0) # 0.1% on ₹10,000 turnover
+
+        # 3. Positional Holding Protection against 15:20 IST EOD Auto-Square-off
+        eod_time = datetime.now(timezone(timedelta(hours=5, minutes=30))).replace(
+            hour=15, minute=25, second=0
+        )
+        with patch("fingroww_paper_engine.get_ist_now", return_value=eod_time):
+            # Price is at 1050 (neither target nor stop loss hit)
+            quote_1050 = lambda _s: {"source": "NSE", "lastPrice": 1050.0, "fetched_at": time.time()}
+            self.session.update_positions(quote_1050, market_is_open=True)
+            # Must REMAIN OPEN across sessions! Not auto-closed at 3:15 PM!
+            self.assertEqual(len(self.session.positions), 1)
+            self.assertEqual(self.session.positions[0]["status"], "OPEN")
+
+        # 4. Target Hit Exit (+20% achieved)
+        quote_1210 = lambda _s: {"source": "NSE", "lastPrice": 1210.0, "fetched_at": time.time()}
+        self.session.update_positions(quote_1210, market_is_open=True)
+        self.assertEqual(len(self.session.positions), 0)
+        self.assertEqual(len(self.session.closed_trades), 1)
+        closed = self.session.closed_trades[0]
+        self.assertEqual(closed["exit_reason"], "TARGET_HIT")
+        self.assertGreater(closed["net_pnl"], 0)
 
 
 if __name__ == "__main__":

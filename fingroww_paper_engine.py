@@ -39,7 +39,9 @@ def get_ist_str():
 
 def format_duration_display(seconds):
     """Formats duration in seconds into human-readable minutes, hours, days, weeks, or months."""
-    if seconds <= 0:
+    if seconds < 0:
+        return "Until Target/SL"
+    if seconds == 0:
         return "0s"
     if seconds < 60:
         return f"{seconds}s"
@@ -86,23 +88,58 @@ LOT_SIZES = {
     "KOTAKBANK": 400,
     "MARUTI": 50,
     "BAJFINANCE": 125,
+    # Midcap Additions
+    "TRENT": 100,
+    "PERSISTENT": 100,
+    "TATAPOWER": 1350,
+    "POLYCAB": 125,
+    "FEDERALBNK": 5000,
+    "DIXON": 50,
+    "CUMMINSIND": 200,
+    "COFORGE": 75,
 }
 
-# Supported Watchlist Universe
+# Supported Watchlist Universe across Market Capitalizations
 UNIVERSE = [
-    {"symbol": "NIFTY 50", "name": "Nifty 50 Index", "type": "INDEX", "default_price": 24850.0},
-    {"symbol": "BANK NIFTY", "name": "Bank Nifty Index", "type": "INDEX", "default_price": 53200.0},
-    {"symbol": "FINNIFTY", "name": "FinNifty Index", "type": "INDEX", "default_price": 24200.0},
-    {"symbol": "RELIANCE", "name": "Reliance Industries", "type": "STOCK", "default_price": 1285.0},
-    {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "type": "STOCK", "default_price": 685.0},
-    {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "type": "STOCK", "default_price": 1390.0},
-    {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "default_price": 1175.0},
-    {"symbol": "TCS", "name": "Tata Consultancy Services", "type": "STOCK", "default_price": 2510.0},
-    {"symbol": "SBIN", "name": "State Bank of India", "type": "STOCK", "default_price": 948.0},
-    {"symbol": "AXISBANK", "name": "Axis Bank Ltd", "type": "STOCK", "default_price": 1220.0},
-    {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "type": "STOCK", "default_price": 1980.0},
-    {"symbol": "LT", "name": "Larsen & Toubro Ltd", "type": "STOCK", "default_price": 3680.0},
-    {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "default_price": 920.0},
+    # Large Cap Indices
+    {"symbol": "NIFTY 50", "name": "Nifty 50 Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 24850.0},
+    {"symbol": "BANK NIFTY", "name": "Bank Nifty Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 53200.0},
+    {"symbol": "FINNIFTY", "name": "FinNifty Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 24200.0},
+    
+    # Large Cap Stocks
+    {"symbol": "RELIANCE", "name": "Reliance Industries", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1285.0},
+    {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 685.0},
+    {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1390.0},
+    {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1175.0},
+    {"symbol": "TCS", "name": "Tata Consultancy Services", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2510.0},
+    {"symbol": "SBIN", "name": "State Bank of India", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 948.0},
+    {"symbol": "AXISBANK", "name": "Axis Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1220.0},
+    {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1980.0},
+    {"symbol": "LT", "name": "Larsen & Toubro Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 3680.0},
+    {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 920.0},
+    {"symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 820.0},
+    {"symbol": "ITC", "name": "ITC Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 475.0},
+
+    # Mid Cap Index & Stocks (High Growth & F&O Supported)
+    {"symbol": "MIDCPNIFTY", "name": "Nifty Midcap Select Index", "type": "INDEX", "market_cap": "MID_CAP", "default_price": 12450.0},
+    {"symbol": "TRENT", "name": "Trent Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 6850.0},
+    {"symbol": "PERSISTENT", "name": "Persistent Systems Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 5420.0},
+    {"symbol": "TATAPOWER", "name": "Tata Power Co Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 415.0},
+    {"symbol": "POLYCAB", "name": "Polycab India Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 6700.0},
+    {"symbol": "FEDERALBNK", "name": "Federal Bank Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 205.0},
+    {"symbol": "DIXON", "name": "Dixon Technologies Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 14200.0},
+    {"symbol": "CUMMINSIND", "name": "Cummins India Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 3650.0},
+    {"symbol": "COFORGE", "name": "Coforge Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 7800.0},
+
+    # Small Cap Stocks (High-Momentum Cash Equities for Swing & Long-Term Growth)
+    {"symbol": "CDSL", "name": "Central Depository Services Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 1540.0},
+    {"symbol": "BSE", "name": "BSE Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 4650.0},
+    {"symbol": "ANGELONE", "name": "Angel One Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 2850.0},
+    {"symbol": "SUZLON", "name": "Suzlon Energy Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 65.0},
+    {"symbol": "KALYANKJIL", "name": "Kalyan Jewellers India Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 690.0},
+    {"symbol": "MAZDOCK", "name": "Mazagon Dock Shipbuilders Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 4200.0},
+    {"symbol": "RVNL", "name": "Rail Vikas Nigam Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 480.0},
+    {"symbol": "HUDCO", "name": "Housing & Urban Development Corp", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 220.0},
 ]
 
 
@@ -245,22 +282,31 @@ class PaperTradeCostModel:
     """Calculates realistic Indian brokerage, STT, turnover charges, and slippage."""
     
     @classmethod
-    def calculate_charges(cls, instrument_type, side, price, quantity):
+    def calculate_charges(cls, instrument_type, side, price, quantity, is_delivery=False):
         turnover = price * quantity
         if turnover <= 0:
-            return {"brokerage": 0.0, "stt": 0.0, "exchange_txn": 0.0, "sebi": 0.0, "stamp_duty": 0.0, "gst": 0.0, "total": 0.0}
+            return {"brokerage": 0.0, "stt": 0.0, "exchange_txn": 0.0, "sebi": 0.0, "stamp_duty": 0.0, "gst": 0.0, "dp_charges": 0.0, "total": 0.0}
 
         # 1. Brokerage
         if instrument_type == "EQUITY":
-            # 0.03% or ₹20 whichever is lower (Zerodha / Angel One model)
-            brokerage = min(20.0, round(turnover * 0.0003, 2))
+            if is_delivery:
+                # Standard Indian discount brokers (Zerodha/Groww) offer 0 brokerage on delivery
+                brokerage = 0.0
+            else:
+                # 0.03% or ₹20 whichever is lower (Intraday MIS)
+                brokerage = min(20.0, round(turnover * 0.0003, 2))
         else: # Futures or Options
             brokerage = 20.0 # flat ₹20 per executed order
 
         # 2. STT / CTT
         stt = 0.0
         if instrument_type == "EQUITY":
-            stt = round(turnover * 0.00025, 2) if side == "SELL" else 0.0 # Intraday STT 0.025% on sell
+            if is_delivery:
+                # Cash Delivery STT: 0.1% on Buy AND 0.1% on Sell
+                stt = round(turnover * 0.001, 2)
+            else:
+                # Intraday MIS STT: 0.025% on Sell only
+                stt = round(turnover * 0.00025, 2) if side == "SELL" else 0.0
         elif "FUTURE" in instrument_type:
             stt = round(turnover * 0.000125, 2) if side == "SELL" else 0.0 # 0.0125% on sell
         elif "OPTION" in instrument_type:
@@ -281,17 +327,20 @@ class PaperTradeCostModel:
         stamp_duty = 0.0
         if side == "BUY":
             if instrument_type == "EQUITY":
-                stamp_duty = round(turnover * 0.00003, 2)
+                stamp_duty = round(turnover * (0.00015 if is_delivery else 0.00003), 2)
             elif "FUTURE" in instrument_type:
                 stamp_duty = round(turnover * 0.00002, 2)
             elif "OPTION" in instrument_type:
                 stamp_duty = round(turnover * 0.00003, 2)
 
-        # 6. GST: 18% on (Brokerage + Exchange Txn + SEBI)
+        # 6. DP Charges (on delivery sell only: ₹15.93 flat per company debit)
+        dp_charges = 15.93 if (instrument_type == "EQUITY" and is_delivery and side == "SELL") else 0.0
+
+        # 7. GST: 18% on (Brokerage + Exchange Txn + SEBI)
         taxable_services = brokerage + exchange_txn + sebi
         gst = round(taxable_services * 0.18, 2)
 
-        total_charges = round(brokerage + stt + exchange_txn + sebi + stamp_duty + gst, 2)
+        total_charges = round(brokerage + stt + exchange_txn + sebi + stamp_duty + gst + dp_charges, 2)
         return {
             "brokerage": brokerage,
             "stt": stt,
@@ -299,6 +348,7 @@ class PaperTradeCostModel:
             "sebi": sebi,
             "stamp_duty": stamp_duty,
             "gst": gst,
+            "dp_charges": dp_charges,
             "total": total_charges,
         }
 
@@ -453,9 +503,10 @@ class PaperTradingSession:
         self.config = {
             "initial_capital": 100000.0,
             "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"],
+            "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
             "market": "NSE",
-            "trading_style": "INTRADAY", # INTRADAY, SCALPING, SWING, POSITIONAL
-            "holding_duration_mins": 15, # 1, 5, 15, 30, 60, days, weeks, months
+            "trading_style": "INTRADAY", # INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
+            "holding_duration_mins": 15, # 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
             "daily_loss_limit_inr": 4000.0,
@@ -509,7 +560,7 @@ class PaperTradingSession:
     def update_config(self, new_config):
         if not new_config:
             return
-        for k in ["instruments", "market", "trading_style", "holding_duration_mins", "risk_profile",
+        for k in ["instruments", "market_caps", "market", "trading_style", "holding_duration_mins", "risk_profile",
                   "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions",
                   "auto_stop_on_exit"]:
             if k in new_config:
@@ -796,15 +847,31 @@ class PaperTradingSession:
                 lots = raw_lots
             actual_qty = lots * lot_size
             allocated_capital = round(actual_qty * premium, 2)
-        else: # EQUITY (Intraday MIS 5x leverage approx)
-            margin_per_unit = exec_price * 0.20
+        else: # EQUITY
+            is_long_term = (
+                self.config.get("trading_style") == "LONG_TERM"
+                or holding_duration_mins >= 375
+                or setup.get("is_long_term", False)
+                or setup.get("product_type") == "CNC"
+            )
+            if is_long_term:
+                # Long-Term CNC Cash Delivery requires 100% margin upfront (no leverage)
+                margin_per_unit = exec_price * 1.0
+                product_type = "CNC"
+                is_intraday = False
+            else: # Intraday MIS (5x leverage approx)
+                margin_per_unit = exec_price * 0.20
+                product_type = "MIS"
+                is_intraday = True
+
             max_qty_by_margin = math.floor(max_margin / margin_per_unit) if margin_per_unit > 0 else 1
             actual_qty = max(1, min(max_qty_by_risk, max_qty_by_margin))
             lots = 1
             allocated_capital = round(actual_qty * margin_per_unit, 2)
 
-        # Entry charges
-        entry_costs = PaperTradeCostModel.calculate_charges(inst_type, side, exec_price, actual_qty)
+        # Entry charges (delivery charges model for CNC equity)
+        is_delivery = (inst_type == "EQUITY" and is_long_term) if 'is_long_term' in locals() else False
+        entry_costs = PaperTradeCostModel.calculate_charges(inst_type, side, exec_price, actual_qty, is_delivery=is_delivery)
         required_balance = round(allocated_capital + entry_costs["total"], 2)
         if required_balance > self.available_balance:
             return None, (
@@ -819,7 +886,15 @@ class PaperTradingSession:
         self.total_slippage += (slippage_amt * actual_qty)
 
         now_ist = get_ist_now()
-        target_exit_dt = now_ist + timedelta(seconds=int(holding_duration_mins * 60))
+        if holding_duration_mins > 0:
+            target_exit_dt = now_ist + timedelta(seconds=int(holding_duration_mins * 60))
+            target_exit_str = target_exit_dt.strftime("%Y-%m-%d %H:%M:%S")
+            target_exit_ts = time.time() + (holding_duration_mins * 60)
+            dur_display = format_duration_display(int(holding_duration_mins * 60))
+        else:
+            target_exit_str = "OPEN"
+            target_exit_ts = 0.0
+            dur_display = "Until Target/SL"
 
         if inst_type == "INDEX_OPTIONS":
             underlying_entry = float(live_quote["lastPrice"]) if (quote_resolver and live_quote) else float(setup.get("underlying_price") or 0.0)
@@ -850,14 +925,18 @@ class PaperTradingSession:
             "base_symbol": setup.get("base_symbol", sym),
             "name": setup.get("name", sym),
             "instrument_type": inst_type,
+            "product_type": product_type if inst_type == "EQUITY" else ("OPT" if "OPTION" in inst_type else "FUT"),
+            "market_cap": setup.get("market_cap", "LARGE_CAP"),
+            "is_delivery": is_delivery,
+            "is_long_term": is_long_term if inst_type == "EQUITY" else False,
             "side": side,
             "entry_time": now_ist.strftime("%Y-%m-%d %H:%M:%S"),
             "entry_timestamp": time.time(),
-            "target_exit_time": target_exit_dt.strftime("%Y-%m-%d %H:%M:%S"),
-            "target_exit_timestamp": time.time() + (holding_duration_mins * 60),
+            "target_exit_time": target_exit_str,
+            "target_exit_timestamp": target_exit_ts,
             "holding_duration_mins": holding_duration_mins,
-            "holding_duration_display": format_duration_display(int(holding_duration_mins * 60)),
-            "is_intraday": holding_duration_mins <= 375,
+            "holding_duration_display": dur_display,
+            "is_intraday": is_intraday if inst_type == "EQUITY" else (holding_duration_mins <= 375),
             "entry_price": exec_price,
             "original_entry_price": raw_entry,
             "current_price": exec_price,
@@ -945,7 +1024,8 @@ class PaperTradingSession:
                 gross_pnl = (entry_p - curr_price) * qty
 
             # Subtract estimated exit charges to show realistic net PnL
-            est_exit_charges = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", curr_price, qty)["total"]
+            is_delivery = pos.get("is_delivery", False)
+            est_exit_charges = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", curr_price, qty, is_delivery=is_delivery)["total"]
             net_unrealized = round(gross_pnl - pos["entry_charges"] - est_exit_charges, 2)
             pos["unrealized_pnl"] = net_unrealized
             pos["pnl_pct"] = round((net_unrealized / max(pos["allocated_margin"], 1.0)) * 100, 2)
@@ -964,12 +1044,12 @@ class PaperTradingSession:
                 elif curr_price >= sl:
                     exit_reason = "STOP_LOSS_HIT"
 
-            # Time Duration Check
-            if not exit_reason and now_ts >= pos["target_exit_timestamp"]:
+            # Time Duration Check (only if positive target exit timestamp configured)
+            if not exit_reason and pos.get("target_exit_timestamp") and pos["target_exit_timestamp"] > 0 and now_ts >= pos["target_exit_timestamp"]:
                 exit_reason = "TIME_EXPIRED"
 
-            # EOD Square-Off Check (Applies strictly to Intraday trades <= 375 mins)
-            is_intraday = pos.get("holding_duration_mins", 15) <= 375
+            # EOD Square-Off Check (Applies strictly to Intraday MIS trades <= 375 mins; NEVER for CNC delivery)
+            is_intraday = pos.get("is_intraday", True) and pos.get("holding_duration_mins", 15) <= 375 and pos.get("product_type") != "CNC"
             if not exit_reason and is_eod_square_off and is_intraday:
                 exit_reason = "INTRADAY_AUTO_SQUAREOFF"
 
@@ -1015,7 +1095,8 @@ class PaperTradingSession:
             gross_pnl = round((entry_p - exec_exit_p) * qty, 2)
 
         # Exit Charges
-        exit_costs = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", exec_exit_p, qty)
+        is_delivery = pos.get("is_delivery", False)
+        exit_costs = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", exec_exit_p, qty, is_delivery=is_delivery)
         total_charges = round(pos["entry_charges"] + exit_costs["total"], 2)
         self.total_charges += exit_costs["total"]
 
@@ -1556,6 +1637,12 @@ class PaperTradingEngine:
         cfg_types = list(self.session.config.get("instruments") or [])
         allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"]
 
+        cfg_market_caps = list(self.session.config.get("market_caps") or [])
+        allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
+
+        trading_style = self.session.config.get("trading_style", "INTRADAY")
+        is_long_term_style = (trading_style == "LONG_TERM")
+
         # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
         has_index_options = "INDEX_OPTIONS" in allowed_types
         has_index_futures = "INDEX_FUTURES" in allowed_types
@@ -1567,6 +1654,11 @@ class PaperTradingEngine:
         for item in UNIVERSE:
             sym = item["symbol"]
             item_type = item["type"]
+            item_mcap = item.get("market_cap", "LARGE_CAP")
+
+            # 1. Filter by user's selected Market Caps (Large Cap, Mid Cap, Small Cap)
+            if item_mcap not in allowed_market_caps:
+                continue
 
             # Determine all target instrument types to generate for this item based strictly on user configuration
             targets_for_item = []
@@ -1578,7 +1670,8 @@ class PaperTradingEngine:
             elif item_type == "STOCK":
                 if has_equity:
                     targets_for_item.append("EQUITY")
-                if has_stock_futures:
+                # Small caps on Indian exchanges do not have F&O derivative contracts
+                if has_stock_futures and item_mcap in ("LARGE_CAP", "MID_CAP"):
                     targets_for_item.append("STOCK_FUTURES")
 
             if not targets_for_item:
@@ -1622,54 +1715,78 @@ class PaperTradingEngine:
             volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
             min_rr = float(self.session.config.get("min_rr", 1.8))
 
-            # Multi-Factor Quantitative Confluence Scoring
-            buy_score = 0
-            sell_score = 0
+            if is_long_term_style:
+                # Long-Term Equity Investment (CNC Cash Holding)
+                # Indian rules: Overnight delivery investment is BUY only
+                if live_price < ema50[-1]:
+                    continue  # Macro trend must be bullish (trading above 50-period average)
 
-            # 1. EMA20 vs EMA50 Trend
-            if ema20[-1] > ema50[-1]:
-                buy_score += 25
+                lt_score = 65
+                if ema20[-1] >= ema50[-1]:
+                    lt_score += 15
+                if live_price >= float(latest["h"]) * 0.995 or abs(live_price - ema20[-1]) / ema20[-1] < 0.015:
+                    lt_score += 15
+                if p_change >= 0.0:
+                    lt_score += 5
+
+                if lt_score < 70:
+                    continue
+
+                side = "BUY"
+                score = min(lt_score, 98)
+                strat = "Long-Term Quantitative Trend & Value (CNC)"
+                # Structural investment levels: 7% protective stop, +20% target
+                risk_distance = round(live_price * 0.07, 2)
+                min_rr = 2.85 # ~20% target / 7% stop = ~2.85:1 R:R
             else:
-                sell_score += 25
+                # Multi-Factor Quantitative Confluence Scoring (Intraday & Swing)
+                buy_score = 0
+                sell_score = 0
 
-            # 2. Session VWAP Confluence
-            if vwap:
-                if live_price > vwap and float(latest["c"]) > vwap:
+                # 1. EMA20 vs EMA50 Trend
+                if ema20[-1] > ema50[-1]:
                     buy_score += 25
-                elif live_price < vwap and float(latest["c"]) < vwap:
+                else:
                     sell_score += 25
 
-            # 3. Momentum & Relative Strength
-            if p_change >= 0.1 and live_price >= ema20[-1]:
-                buy_score += 25
-            elif p_change <= -0.1 and live_price <= ema20[-1]:
-                sell_score += 25
+                # 2. Session VWAP Confluence
+                if vwap:
+                    if live_price > vwap and float(latest["c"]) > vwap:
+                        buy_score += 25
+                    elif live_price < vwap and float(latest["c"]) < vwap:
+                        sell_score += 25
 
-            # 4. Price Action & Breakout / Pullback Confirmation
-            is_long_breakout = live_price >= float(latest["h"]) * 0.998
-            is_long_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
-            if is_long_breakout or is_long_pullback:
-                buy_score += 20
+                # 3. Momentum & Relative Strength
+                if p_change >= 0.1 and live_price >= ema20[-1]:
+                    buy_score += 25
+                elif p_change <= -0.1 and live_price <= ema20[-1]:
+                    sell_score += 25
 
-            is_short_breakdown = live_price <= float(latest["l"]) * 1.002
-            is_short_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
-            if is_short_breakdown or is_short_pullback:
-                sell_score += 20
+                # 4. Price Action & Breakout / Pullback Confirmation
+                is_long_breakout = live_price >= float(latest["h"]) * 0.998
+                is_long_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+                if is_long_breakout or is_long_pullback:
+                    buy_score += 20
 
-            is_index = "NIFTY" in sym or "SENSEX" in sym
-            vol_floor = 0.002 if is_index else 0.004
-            risk_distance = max(1.5 * atr14, live_price * vol_floor)
+                is_short_breakdown = live_price <= float(latest["l"]) * 1.002
+                is_short_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+                if is_short_breakdown or is_short_pullback:
+                    sell_score += 20
 
-            if buy_score >= 70 and buy_score > sell_score:
-                side = "BUY"
-                score = buy_score
-                strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else "VWAP Momentum Expansion"
-            elif sell_score >= 70 and sell_score > buy_score:
-                side = "SELL"
-                score = sell_score
-                strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else "Supertrend ATR Continuation"
-            else:
-                continue
+                is_index = "NIFTY" in sym or "SENSEX" in sym
+                vol_floor = 0.002 if is_index else 0.004
+                risk_distance = max(1.5 * atr14, live_price * vol_floor)
+
+                if buy_score >= 70 and buy_score > sell_score:
+                    side = "BUY"
+                    score = buy_score
+                    strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else "VWAP Momentum Expansion"
+                elif sell_score >= 70 and sell_score > buy_score:
+                    side = "SELL"
+                    score = sell_score
+                    strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else "Supertrend ATR Continuation"
+                else:
+                    continue
 
             for target_inst_type in targets_for_item:
                 curr_side = side
@@ -1702,6 +1819,9 @@ class PaperTradingEngine:
                     "base_symbol": sym,
                     "name": item["name"],
                     "instrument_type": target_inst_type,
+                    "market_cap": item_mcap,
+                    "product_type": "CNC" if (target_inst_type == "EQUITY" and is_long_term_style) else ("MIS" if target_inst_type == "EQUITY" else target_inst_type),
+                    "is_long_term": is_long_term_style,
                     "market_data_source": "NSE",
                     "market_data_fetched_at": quote.get("fetched_at", time.time()),
                     "market_data_timestamp": quote.get("timestamp"),
@@ -1729,6 +1849,8 @@ class PaperTradingEngine:
                     "strike": strike,
                     "delta": delta,
                     "rationale": (
+                        f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: ₹{target_price:.2f} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
+                    ) if (is_long_term_style and target_inst_type == "EQUITY") else (
                         f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
                         f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
                     ) if target_inst_type != "INDEX_OPTIONS" else (
