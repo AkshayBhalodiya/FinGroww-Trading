@@ -17,6 +17,7 @@ Key Capabilities:
 import os
 import time
 import math
+import re
 import uuid
 import random
 import json
@@ -526,6 +527,51 @@ class PaperTradingSession:
 
         return True, "All pre-trade risk checks passed."
 
+    @staticmethod
+    def _calculate_option_current_price(pos, raw_spot_price):
+        """
+        Calculates estimated option premium from underlying spot price movement.
+        Prevents raw index spot price (e.g. 23,054) from being used as option current/exit price (e.g. 230).
+        Uses delta sensitivity (default ATM delta = 0.50).
+        """
+        try:
+            entry_premium = float(pos.get("original_entry_price") or pos.get("entry_price", 0.0))
+            if entry_premium <= 0:
+                entry_premium = float(pos.get("entry_price", 100.0))
+
+            opt_type = pos.get("option_type")
+            sym = pos.get("symbol", "").upper()
+            if not opt_type:
+                opt_type = "PE" if "PE" in sym else "CE"
+            else:
+                opt_type = opt_type.upper()
+
+            underlying_entry = float(pos.get("underlying_entry_price") or 0.0)
+            if underlying_entry <= 0:
+                strike = float(pos.get("strike") or 0.0)
+                if strike > 0:
+                    underlying_entry = strike
+                else:
+                    m = re.search(r'(\d+)\s*(CE|PE)', sym)
+                    if m:
+                        underlying_entry = float(m.group(1))
+                    else:
+                        underlying_entry = float(raw_spot_price)
+
+            delta = float(pos.get("delta") or 0.50)
+            spot_diff = float(raw_spot_price) - underlying_entry
+
+            if opt_type == "PE":
+                curr_premium = entry_premium - (spot_diff * delta)
+            else:  # CE
+                curr_premium = entry_premium + (spot_diff * delta)
+
+            # Option premium cannot drop below minimum tick (0.05)
+            return max(0.05, round(curr_premium, 2))
+        except Exception as exc:
+            logger.warning("Error calculating option current price for %s: %s", pos.get("symbol"), exc)
+            return float(pos.get("current_price") or pos.get("entry_price") or 100.0)
+
     @_session_locked
     def execute_trade(self, setup, quote_resolver=None, market_is_open=False):
         """Executes a paper order with realistic slippage, margin allocation, and charges."""
@@ -585,12 +631,16 @@ class PaperTradingSession:
         slippage_amt = round(abs(exec_price - raw_entry), 2)
 
         if quote_resolver:
-            if side == "BUY":
-                sl = exec_price - risk_distance
-                tp = exec_price + (risk_distance * reward_risk)
+            if inst_type == "INDEX_OPTIONS":
+                sl = max(1.0, round(exec_price - risk_distance, 2))
+                tp = round(exec_price + (risk_distance * reward_risk), 2)
             else:
-                sl = exec_price + risk_distance
-                tp = exec_price - (risk_distance * reward_risk)
+                if side == "BUY":
+                    sl = exec_price - risk_distance
+                    tp = exec_price + (risk_distance * reward_risk)
+                else:
+                    sl = exec_price + risk_distance
+                    tp = exec_price - (risk_distance * reward_risk)
 
         if side == "BUY" and not sl < exec_price < tp:
             return None, f"Invalid stop-loss or target relative to live entry for {sym}."
@@ -666,6 +716,28 @@ class PaperTradingSession:
         now_ist = get_ist_now()
         target_exit_dt = now_ist + timedelta(seconds=int(holding_duration_mins * 60))
 
+        if inst_type == "INDEX_OPTIONS":
+            underlying_entry = float(live_quote["lastPrice"]) if (quote_resolver and live_quote) else float(setup.get("underlying_price") or 0.0)
+            opt_type = setup.get("option_type")
+            strike = int(setup.get("strike") or 0)
+            if not opt_type or not strike:
+                m = re.search(r'(\d+)\s*(CE|PE)', sym.upper())
+                if m:
+                    if not strike:
+                        strike = int(m.group(1))
+                    if not opt_type:
+                        opt_type = m.group(2)
+            if not opt_type:
+                opt_type = "CE" if "CE" in sym.upper() else ("PE" if "PE" in sym.upper() else "CE")
+            if underlying_entry <= 0 and strike > 0:
+                underlying_entry = float(strike)
+            delta = float(setup.get("delta") or 0.50)
+        else:
+            underlying_entry = None
+            opt_type = None
+            strike = None
+            delta = None
+
         trade_id = f"PT-{now_ist.strftime('%m%d')}-{uuid.uuid4().hex[:8].upper()}"
         position = {
             "trade_id": trade_id,
@@ -684,6 +756,10 @@ class PaperTradingSession:
             "entry_price": exec_price,
             "original_entry_price": raw_entry,
             "current_price": exec_price,
+            "underlying_entry_price": underlying_entry,
+            "option_type": opt_type,
+            "strike": strike,
+            "delta": delta,
             "quantity": actual_qty,
             "lots": lots if ("FUTURE" in inst_type or "OPTION" in inst_type) else 1,
             "lot_size": lot_size,
@@ -744,7 +820,11 @@ class PaperTradingSession:
                 try:
                     q = quote_resolver(sym)
                     if _is_fresh_nse_quote(q):
-                        curr_price = float(q["lastPrice"])
+                        raw_spot = float(q["lastPrice"])
+                        if inst_type == "INDEX_OPTIONS":
+                            curr_price = self._calculate_option_current_price(pos, raw_spot)
+                        else:
+                            curr_price = raw_spot
                 except Exception as exc:
                     logger.warning("Live position quote failed for %s: %s", sym, exc)
 
@@ -933,7 +1013,11 @@ class PaperTradingSession:
         if not _is_fresh_nse_quote(quote):
             return False, f"Could not get a fresh NSE quote for {target_pos['symbol']}; position remains open."
 
-        target_pos["current_price"] = float(quote["lastPrice"])
+        raw_spot = float(quote["lastPrice"])
+        if target_pos.get("instrument_type") == "INDEX_OPTIONS":
+            target_pos["current_price"] = self._calculate_option_current_price(target_pos, raw_spot)
+        else:
+            target_pos["current_price"] = raw_spot
         self._close_position(target_pos, "MANUAL_EXIT")
         self._recalculate_equity()
         self.save_to_db()
@@ -953,7 +1037,11 @@ class PaperTradingSession:
                 quote = None
             if not _is_fresh_nse_quote(quote):
                 continue
-            pos["current_price"] = float(quote["lastPrice"])
+            raw_spot = float(quote["lastPrice"])
+            if pos.get("instrument_type") == "INDEX_OPTIONS":
+                pos["current_price"] = self._calculate_option_current_price(pos, raw_spot)
+            else:
+                pos["current_price"] = raw_spot
             self._close_position(pos, reason)
             count += 1
         if count == 0:
@@ -1495,6 +1583,7 @@ class PaperTradingEngine:
                 stop_loss = max(1.0, round(entry_price - opt_risk, 2))
                 target_price = round(entry_price + (opt_risk * min_rr), 2)
                 setup_risk = opt_risk
+                side = "BUY"  # Retail option buyer buys the contract (CE or PE)
 
             setups.append({
                 "symbol": display_sym,
@@ -1522,9 +1611,16 @@ class PaperTradingEngine:
                 "confidence_score": score,
                 "status": "VALIDATED",
                 "timestamp": get_ist_str(),
+                "underlying_price": live_price,
+                "option_type": opt_type if target_inst_type == "INDEX_OPTIONS" else None,
+                "strike": strike if target_inst_type == "INDEX_OPTIONS" else None,
+                "delta": 0.50 if target_inst_type == "INDEX_OPTIONS" else None,
                 "rationale": (
                     f"{side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
                     f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
+                ) if target_inst_type != "INDEX_OPTIONS" else (
+                    f"BUY {display_sym}: ATM option tracking {sym} trend. "
+                    f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
                 ),
             })
 

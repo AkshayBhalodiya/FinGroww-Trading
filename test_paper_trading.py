@@ -917,6 +917,121 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(len(rec_sess.positions), 1)
         self.assertEqual(rec_sess.positions[0]["symbol"], "RELIANCE")
 
+    def test_22_option_delta_pricing_and_update_positions_prevent_impossible_profits(self):
+        """
+        Verifies that INDEX_OPTIONS positions:
+        1. Calculate current price based on option delta movement and underlying spot diff, NOT raw index spot.
+        2. Prevent immediate false TARGET_HIT exit in 1 second.
+        3. Unrealized and realized P&L are realistic (e.g. points in premium) rather than millions of rupees.
+        4. Manual close and close all also evaluate at option premium.
+        """
+        # Test helper directly
+        pos_ce = {
+            "symbol": "NIFTY 50 23050 CE",
+            "instrument_type": "INDEX_OPTIONS",
+            "side": "BUY",
+            "entry_price": 230.80,
+            "underlying_entry_price": 23050.0,
+            "option_type": "CE",
+            "strike": 23050,
+            "delta": 0.50,
+        }
+        # Spot rises from 23050 to 23054.05 (+4.05 points)
+        curr_p = self.session._calculate_option_current_price(pos_ce, 23054.05)
+        self.assertAlmostEqual(curr_p, 232.82, delta=0.05)
+
+        # PE option: spot rises (+4.05 points) -> PE premium drops
+        pos_pe = {
+            "symbol": "NIFTY 50 23050 PE",
+            "instrument_type": "INDEX_OPTIONS",
+            "side": "BUY",
+            "entry_price": 230.80,
+            "underlying_entry_price": 23050.0,
+            "option_type": "PE",
+            "strike": 23050,
+            "delta": 0.50,
+        }
+        curr_pe_p = self.session._calculate_option_current_price(pos_pe, 23054.05)
+        self.assertAlmostEqual(curr_pe_p, 230.80 - (4.05 * 0.50), places=2)
+        self.assertAlmostEqual(curr_pe_p, 228.78, places=2)
+
+        # Test full execution and update_positions
+        self.session.reset(100000.0)
+        self.session.start()
+        setup = {
+            "symbol": "NIFTY 50 23050 CE",
+            "base_symbol": "NIFTY 50",
+            "name": "Nifty 50 23050 Call",
+            "instrument_type": "INDEX_OPTIONS",
+            "side": "BUY",
+            "entry_price": 230.80,
+            "stop_loss": 173.10,
+            "target_price": 334.66,
+            "underlying_price": 23050.0,
+            "option_type": "CE",
+            "strike": 23050,
+            "delta": 0.50,
+            "confidence_score": 85,
+            "rationale": "Bullish breakout",
+        }
+        quote_resolver = lambda _sym: {
+            "source": "NSE",
+            "lastPrice": 23050.0,
+            "fetched_at": time.time(),
+        }
+        pos, err = self.session.execute_trade(setup, quote_resolver=quote_resolver, market_is_open=True)
+        self.assertIsNotNone(pos, err)
+        self.assertEqual(pos["symbol"], "NIFTY 50 23050 CE")
+        self.assertEqual(pos["instrument_type"], "INDEX_OPTIONS")
+        self.assertAlmostEqual(pos["underlying_entry_price"], 23050.0, places=1)
+
+        # Now simulate market tick with index spot at 23054.05
+        spot_resolver = lambda _sym: {
+            "source": "NSE",
+            "lastPrice": 23054.05,
+            "fetched_at": time.time(),
+        }
+        self.session.update_positions(spot_resolver, market_is_open=True)
+
+        # Crucial assertions:
+        # Position must STILL BE OPEN (TARGET_HIT should NOT trigger!)
+        self.assertEqual(len(self.session.positions), 1)
+        self.assertEqual(len(self.session.closed_trades), 0)
+        open_pos = self.session.positions[0]
+        # Current price should be around 232.83, NOT 23054.05!
+        self.assertAlmostEqual(open_pos["current_price"], 232.82, delta=1.0)
+        self.assertLess(open_pos["current_price"], 300.0)
+        # Unrealized PnL should be around a few tens of rupees, NOT 182,586!
+        self.assertLess(open_pos["unrealized_pnl"], 1000.0)
+
+        # Now test manual close uses option price
+        closed = self.session.manual_close_position(open_pos["trade_id"], quote_resolver=spot_resolver, market_is_open=True)
+        self.assertTrue(closed)
+        self.assertEqual(len(self.session.closed_trades), 1)
+        trade = self.session.closed_trades[0]
+        self.assertAlmostEqual(trade["exit_price"], 232.82, delta=2.0)
+        self.assertLess(trade["exit_price"], 300.0)
+        self.assertLess(trade["gross_pnl"], 1000.0)
+
+        # 5. Test real TARGET_HIT when underlying spot actually moves substantially
+        self.session.reset(100000.0)
+        self.session.start()
+        pos, _ = self.session.execute_trade(setup, quote_resolver=quote_resolver, market_is_open=True)
+        # Spot rises 210 points to 23260 (delta gain +105, premium ~335.80 >= target 334.66)
+        rally_resolver = lambda _sym: {
+            "source": "NSE",
+            "lastPrice": 23260.0,
+            "fetched_at": time.time(),
+        }
+        self.session.update_positions(rally_resolver, market_is_open=True)
+        self.assertEqual(len(self.session.positions), 0)
+        self.assertEqual(len(self.session.closed_trades), 1)
+        target_trade = self.session.closed_trades[0]
+        self.assertEqual(target_trade["exit_reason"], "TARGET_HIT")
+        self.assertAlmostEqual(target_trade["exit_price"], 335.80, delta=2.0)
+        self.assertGreater(target_trade["gross_pnl"], 0)
+        self.assertLess(target_trade["gross_pnl"], 2000.0)  # Realistic profit, not 182,586!
+
 
 
 if __name__ == "__main__":
