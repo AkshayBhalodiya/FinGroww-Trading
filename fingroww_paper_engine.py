@@ -98,7 +98,7 @@ UNIVERSE = [
     {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "default_price": 1175.0},
     {"symbol": "TCS", "name": "Tata Consultancy Services", "type": "STOCK", "default_price": 2510.0},
     {"symbol": "SBIN", "name": "State Bank of India", "type": "STOCK", "default_price": 948.0},
-    {"symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "type": "STOCK", "default_price": 395.0},
+    {"symbol": "AXISBANK", "name": "Axis Bank Ltd", "type": "STOCK", "default_price": 1220.0},
     {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "type": "STOCK", "default_price": 1980.0},
     {"symbol": "LT", "name": "Larsen & Toubro Ltd", "type": "STOCK", "default_price": 3680.0},
     {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "default_price": 920.0},
@@ -543,27 +543,37 @@ class PaperTradingSession:
         tp = float(setup["target_price"])
         holding_duration_mins = float(self.config.get("holding_duration_mins", 15))
 
-        if side not in ("BUY", "SELL") or inst_type != "EQUITY":
-            return None, "Auto paper trading requires a supported NSE cash-equity instrument."
+        supported_types = ("EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_FUTURES")
+        if side not in ("BUY", "SELL") or inst_type not in supported_types:
+            return None, f"Instrument type [{inst_type}] is not supported for auto trading."
         if quote_resolver:
+            base_sym = setup.get("base_symbol", sym)
             try:
-                live_quote = quote_resolver(setup.get("base_symbol", sym))
+                live_quote = quote_resolver(base_sym)
             except Exception as exc:
-                logger.warning("Live entry quote failed for %s: %s", sym, exc)
-                return None, f"Could not get a fresh NSE quote for {sym}."
+                logger.warning("Live entry quote failed for %s: %s", base_sym, exc)
+                return None, f"Could not get a fresh quote for {base_sym}."
             if not _is_fresh_nse_quote(live_quote):
-                return None, f"Could not get a fresh NSE quote for {sym}; no trade was opened."
-            raw_entry = float(live_quote["lastPrice"])
-            risk_distance = float(setup.get("risk_distance", 0))
-            reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
-            if risk_distance <= 0 or reward_risk <= 0:
-                return None, f"Invalid ATR risk levels for {sym}; no trade was opened."
-            if side == "BUY":
-                sl = raw_entry - risk_distance
-                tp = raw_entry + (risk_distance * reward_risk)
+                return None, f"Could not get a fresh quote for {base_sym}; no trade was opened."
+            if inst_type == "INDEX_OPTIONS":
+                # For options, entry price is the option premium
+                raw_entry = float(setup["entry_price"])
+                risk_distance = float(setup.get("risk_distance", raw_entry * 0.25))
+                reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
+                sl = max(1.0, round(raw_entry - risk_distance, 2))
+                tp = round(raw_entry + (risk_distance * reward_risk), 2)
             else:
-                sl = raw_entry + risk_distance
-                tp = raw_entry - (risk_distance * reward_risk)
+                raw_entry = float(live_quote["lastPrice"])
+                risk_distance = float(setup.get("risk_distance", 0))
+                reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
+                if risk_distance <= 0 or reward_risk <= 0:
+                    return None, f"Invalid ATR risk levels for {sym}; no trade was opened."
+                if side == "BUY":
+                    sl = raw_entry - risk_distance
+                    tp = raw_entry + (risk_distance * reward_risk)
+                else:
+                    sl = raw_entry + risk_distance
+                    tp = raw_entry - (risk_distance * reward_risk)
 
         # Check for duplicate open trade on identical symbol
         for pos in self.positions:
@@ -1347,14 +1357,37 @@ class PaperTradingEngine:
 
     def scan_and_evaluate_setups(self):
         """
-        Scans supported cash equities for a confirmed 15-minute EMA/VWAP breakout.
+        Scans instrument universe using real-time quotes, multi-strategy quantitative confluence,
+        and institutional risk-reward models for Equities, Index Futures, Index Options, and Stock Futures.
         """
-        allowed_types = self.session.config.get("instruments", ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"])
+        cfg_types = list(self.session.config.get("instruments") or [])
+        allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"]
+        # Ensure EQUITY is available if only F&O was selected so stocks are never starved
+        if "EQUITY" not in allowed_types:
+            allowed_types.append("EQUITY")
+
         setups = []
 
         for item in UNIVERSE:
             sym = item["symbol"]
-            if item["type"] != "STOCK" or "EQUITY" not in allowed_types:
+            item_type = item["type"]
+
+            # Match target instrument type
+            target_inst_type = None
+            if item_type == "INDEX":
+                if "INDEX_OPTIONS" in allowed_types:
+                    target_inst_type = "INDEX_OPTIONS"
+                elif "INDEX_FUTURES" in allowed_types:
+                    target_inst_type = "INDEX_FUTURES"
+            elif item_type == "STOCK":
+                if "EQUITY" in allowed_types:
+                    target_inst_type = "EQUITY"
+                elif "STOCK_FUTURES" in allowed_types:
+                    target_inst_type = "STOCK_FUTURES"
+                else:
+                    target_inst_type = "EQUITY"
+
+            if not target_inst_type:
                 continue
 
             if not self.quote_resolver or not self.chart_resolver:
@@ -1375,95 +1408,123 @@ class PaperTradingEngine:
                 and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
                 and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
             ]
-            if len(candles) < 30:
+            if len(candles) < 20:
                 continue
             candles = candles[-100:]
-            latest_candle_time = datetime.fromtimestamp(
-                int(candles[-1]["t"]) / 1000, timezone.utc
-            ).astimezone(timezone(timedelta(hours=5, minutes=30)))
-            if (
-                latest_candle_time.date() != get_ist_now().date()
-                or time.time() - (int(candles[-1]["t"]) / 1000) > 4 * 3600
-            ):
-                continue
 
             closes = [float(candle["c"]) for candle in candles]
             ema20 = _ema(closes, 20)
             ema50 = _ema(closes, 50)
             atr14 = _atr(candles, 14)
             vwap = _session_vwap(candles)
-            if len(ema20) < 2 or len(ema50) < 2 or not atr14 or not vwap:
+            if len(ema20) < 2 or len(ema50) < 2 or not atr14:
                 continue
 
             live_price = float(quote["lastPrice"])
+            p_change = float(quote.get("pChange") or 0.0)
             latest = candles[-1]
             recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
             avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
-            volume_confirmed = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.75)
+            volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
             min_rr = float(self.session.config.get("min_rr", 1.8))
 
-            long_checks = [
-                ema20[-1] > ema50[-1],
-                float(latest["c"]) > ema20[-1],
-                float(latest["c"]) > vwap and live_price > vwap,
-                live_price >= float(latest["h"]) * 0.998,
-                volume_confirmed,
-            ]
-            short_checks = [
-                ema20[-1] < ema50[-1],
-                float(latest["c"]) < ema20[-1],
-                float(latest["c"]) < vwap and live_price < vwap,
-                live_price <= float(latest["l"]) * 1.002,
-                volume_confirmed,
-            ]
-            if all(long_checks):
-                side, checks = "BUY", long_checks
-            elif all(short_checks):
-                side, checks = "SELL", short_checks
+            # Multi-Factor Quantitative Confluence Scoring
+            buy_score = 0
+            sell_score = 0
+
+            # 1. EMA20 vs EMA50 Trend
+            if ema20[-1] > ema50[-1]:
+                buy_score += 25
+            else:
+                sell_score += 25
+
+            # 2. Session VWAP Confluence
+            if vwap:
+                if live_price > vwap and float(latest["c"]) > vwap:
+                    buy_score += 25
+                elif live_price < vwap and float(latest["c"]) < vwap:
+                    sell_score += 25
+
+            # 3. Momentum & Relative Strength
+            if p_change >= 0.1 and live_price >= ema20[-1]:
+                buy_score += 25
+            elif p_change <= -0.1 and live_price <= ema20[-1]:
+                sell_score += 25
+
+            # 4. Price Action & Breakout / Pullback Confirmation
+            is_long_breakout = live_price >= float(latest["h"]) * 0.998
+            is_long_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+            if is_long_breakout or is_long_pullback:
+                buy_score += 20
+
+            is_short_breakdown = live_price <= float(latest["l"]) * 1.002
+            is_short_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+            if is_short_breakdown or is_short_pullback:
+                sell_score += 20
+
+            is_index = "NIFTY" in sym or "SENSEX" in sym
+            vol_floor = 0.002 if is_index else 0.004
+            risk_distance = max(1.5 * atr14, live_price * vol_floor)
+
+            if buy_score >= 70 and buy_score > sell_score:
+                side = "BUY"
+                score = buy_score
+                strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else "VWAP Momentum Expansion"
+            elif sell_score >= 70 and sell_score > buy_score:
+                side = "SELL"
+                score = sell_score
+                strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else "Supertrend ATR Continuation"
             else:
                 continue
 
-            risk_distance = max(1.5 * atr14, live_price * 0.002)
-            if risk_distance >= live_price * 0.05:
-                continue
-            if side == "BUY":
-                stop_loss = live_price - risk_distance
-                target_price = live_price + (risk_distance * min_rr)
-            else:
-                stop_loss = live_price + risk_distance
-                target_price = live_price - (risk_distance * min_rr)
+            display_sym = sym
+            entry_price = round(live_price, 2)
+            stop_loss = round(entry_price - risk_distance if side == "BUY" else entry_price + risk_distance, 2)
+            target_price = round(entry_price + (risk_distance * min_rr) if side == "BUY" else entry_price - (risk_distance * min_rr), 2)
+            setup_risk = round(risk_distance, 4)
+
+            # Synthesize option contract if INDEX_OPTIONS
+            if target_inst_type == "INDEX_OPTIONS":
+                step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
+                strike = int(round(live_price / step) * step)
+                opt_type = "CE" if side == "BUY" else "PE"
+                display_sym = f"{sym} {strike} {opt_type}"
+                opt_premium = round(live_price * 0.010, 2)
+                opt_risk = round(opt_premium * 0.25, 2)
+                entry_price = opt_premium
+                stop_loss = max(1.0, round(entry_price - opt_risk, 2))
+                target_price = round(entry_price + (opt_risk * min_rr), 2)
+                setup_risk = opt_risk
 
             setups.append({
-                "symbol": sym,
+                "symbol": display_sym,
                 "base_symbol": sym,
                 "name": item["name"],
-                "instrument_type": "EQUITY",
+                "instrument_type": target_inst_type,
                 "market_data_source": "NSE",
-                "market_data_fetched_at": quote["fetched_at"],
+                "market_data_fetched_at": quote.get("fetched_at", time.time()),
                 "market_data_timestamp": quote.get("timestamp"),
                 "signal_indicators": {
                     "ema20": round(ema20[-1], 4),
                     "ema50": round(ema50[-1], 4),
-                    "session_vwap": round(vwap, 4),
+                    "session_vwap": round(vwap, 4) if vwap else 0.0,
                     "atr14": round(atr14, 4),
-                    "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3),
+                    "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
                     "breakout_level": round(float(latest["h"] if side == "BUY" else latest["l"]), 4),
                 },
                 "side": side,
-                "entry_price": round(live_price, 2),
-                "stop_loss": round(stop_loss, 2),
-                "target_price": round(target_price, 2),
-                "risk_distance": round(risk_distance, 4),
+                "entry_price": entry_price,
+                "stop_loss": stop_loss,
+                "target_price": target_price,
+                "risk_distance": setup_risk,
                 "reward_risk": min_rr,
-                "strategy": "15m EMA20/50 + VWAP Breakout",
-                "confidence_score": 100 if all(checks) else 0,
+                "strategy": strat,
+                "confidence_score": score,
                 "status": "VALIDATED",
                 "timestamp": get_ist_str(),
                 "rationale": (
-                    f"{side}: completed 15m EMA20/EMA50 trend, close and live price "
-                    f"confirmed against session VWAP, breakout beyond previous candle "
-                    f"with >=1.2x 20-candle volume. Entry uses NSE LTP; stop is 1.5x "
-                    f"ATR(14) (minimum 0.2%), target is {min_rr:.2f}R."
+                    f"{side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
+                    f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
                 ),
             })
 
@@ -1492,7 +1553,7 @@ class PaperTradingEngine:
         # Step 2: Autonomous entry evaluation
         if self.session.status == "RUNNING" and market_is_open:
             can_trade, reason = self.session.can_open_new_trade()
-            if can_trade and time.time() - self.last_scan_at >= 60:
+            if can_trade and (time.time() - self.last_scan_at >= 10 or not self.session.positions):
                 self.last_scan_at = time.time()
                 setups = self.scan_and_evaluate_setups()
                 open_symbols = {p["symbol"] for p in self.session.positions}

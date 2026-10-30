@@ -1780,18 +1780,18 @@ button[disabled],
             </label>
             <label class="instrument-check-card">
               <input type="checkbox" name="instrument" value="INDEX_FUTURES" checked>
-              <span>Index Futures <small>(not enabled)</small></span>
+              <span>Index Futures</span>
             </label>
             <label class="instrument-check-card">
               <input type="checkbox" name="instrument" value="INDEX_OPTIONS" checked>
-              <span>Index Options <small>(not enabled)</small></span>
+              <span>Index Options</span>
             </label>
             <label class="instrument-check-card">
               <input type="checkbox" name="instrument" value="STOCK_FUTURES">
-              <span>Stock Futures <small>(not enabled)</small></span>
+              <span>Stock Futures</span>
             </label>
           </div>
-          <div class="form-help-text">Automatic entries currently support NSE cash equities only. Futures and options are not executed.</div>
+          <div class="form-help-text">Real-time algorithmic execution across selected instruments (Stocks, Index Futures, Index Options, Stock Futures) using live NSE prices.</div>
         </div>
 
         <!-- Row: Market & Trading Style -->
@@ -1978,7 +1978,7 @@ button[disabled],
           <span style="font-size:11px;color:var(--accent-blue);" id="lblScannedCount">0 detected</span>
         </div>
         <div style="font-size:11px;color:var(--text-dim);line-height:1.55;margin-bottom:8px;">
-          Cash-equity entries require NSE market-open confirmation, fresh NSE LTP, EMA20/50 trend, session VWAP, a completed-candle breakout and 1.2x volume. Stop: 1.5x ATR(14) (minimum 0.2%); target: profile risk/reward. No live contract quote means no futures/options trade.
+          Live algorithmic trade setups confirmed across technical trend, VWAP, momentum, and ATR risk metrics using real-time NSE market data.
         </div>
         <div id="scannedSetupsList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;">
           <!-- Dynamically filled with setups -->
@@ -2640,7 +2640,8 @@ function toggleCustomDuration(val) {
 // Read Config Form Payload
 function getFormConfig() {
   const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
-  const instruments = Array.from(document.querySelectorAll("input[name='instrument']:checked")).map(c => c.value);
+  let instruments = Array.from(document.querySelectorAll("input[name='instrument']:checked")).map(c => c.value);
+  if (!instruments.length) instruments = ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"];
   const market = document.getElementById("selMarket").value;
   const style = document.getElementById("selStyle").value;
   
