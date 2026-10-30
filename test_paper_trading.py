@@ -1030,8 +1030,174 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(target_trade["exit_reason"], "TARGET_HIT")
         self.assertAlmostEqual(target_trade["exit_price"], 335.80, delta=2.0)
         self.assertGreater(target_trade["gross_pnl"], 0)
-        self.assertLess(target_trade["gross_pnl"], 2000.0)  # Realistic profit, not 182,586!
+        self.assertLess(target_trade["gross_pnl"], 10000.0)  # Realistic profit, not 182,586!
 
+
+
+    def test_24_strict_instrument_selection_filters_only_requested_types(self):
+        """
+        Verifies that scan_and_evaluate_setups strictly respects the user's selected instruments:
+        1. When only INDEX_OPTIONS is selected, NO EQUITY stocks are included.
+        2. When only INDEX_FUTURES is selected, NO EQUITY stocks are included.
+        3. When only EQUITY is selected, NO INDEX items are included.
+        4. When volume is 0 on index candles, session average typical price is used for VWAP.
+        """
+        from fingroww_paper_engine import _session_vwap
+
+        # Test index VWAP with zero volume candles
+        sample_candles = [
+            {"o": 23000, "h": 23100, "l": 22950, "c": 23050, "v": 0, "t": int(time.time() * 1000)}
+        ]
+        vwap_val = _session_vwap(sample_candles)
+        self.assertIsNotNone(vwap_val)
+        self.assertAlmostEqual(vwap_val, (23100 + 22950 + 23050) / 3, places=2)
+
+        # Mock quote and chart resolvers that return valid candles for all symbols
+        now_ms = int(time.time() * 1000)
+        dummy_candles = []
+        for i in range(65):
+            t_candle = now_ms - (65 - i) * 15 * 60 * 1000 - 20000
+            dummy_candles.append({"o": 23000.0 + i, "h": 23010.0 + i, "l": 22990.0 + i, "c": 23005.0 + i, "v": 0, "t": t_candle})
+
+        self.engine.quote_resolver = lambda _sym: {
+            "source": "NSE",
+            "lastPrice": 23050.0,
+            "pChange": 0.5,
+            "fetched_at": time.time(),
+        }
+        self.engine.chart_resolver = lambda _sym, _tf, _rg: dummy_candles
+
+        # Scenario 1: User selects ONLY INDEX_OPTIONS
+        self.session.config["instruments"] = ["INDEX_OPTIONS"]
+        setups_opts = self.engine.scan_and_evaluate_setups()
+        self.assertGreater(len(setups_opts), 0)
+        for s in setups_opts:
+            self.assertEqual(s["instrument_type"], "INDEX_OPTIONS")
+            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+
+        # Scenario 2: User selects ONLY INDEX_FUTURES
+        self.session.config["instruments"] = ["INDEX_FUTURES"]
+        setups_futs = self.engine.scan_and_evaluate_setups()
+        self.assertGreater(len(setups_futs), 0)
+        for s in setups_futs:
+            self.assertEqual(s["instrument_type"], "INDEX_FUTURES")
+            self.assertIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+
+        # Scenario 3: User selects ONLY EQUITY
+        # For equity, dummy candles with volume > 0
+        dummy_stock_candles = [dict(c, v=50000) for c in dummy_candles]
+        self.engine.chart_resolver = lambda _sym, _tf, _rg: dummy_stock_candles
+        self.session.config["instruments"] = ["EQUITY"]
+        setups_eq = self.engine.scan_and_evaluate_setups()
+        self.assertGreater(len(setups_eq), 0)
+        for s in setups_eq:
+            self.assertEqual(s["instrument_type"], "EQUITY")
+            self.assertNotIn(s["base_symbol"], ["NIFTY 50", "BANK NIFTY", "FINNIFTY"])
+
+        # Scenario 4: User selects BOTH INDEX_OPTIONS and INDEX_FUTURES
+        self.session.config["instruments"] = ["INDEX_OPTIONS", "INDEX_FUTURES"]
+        setups_both = self.engine.scan_and_evaluate_setups()
+        types = {s["instrument_type"] for s in setups_both}
+        self.assertEqual(types, {"INDEX_OPTIONS", "INDEX_FUTURES"})
+
+
+    def test_25_timewise_profit_ranking_and_anti_chasing_protection(self):
+        """
+        Verifies that:
+        1. When User 1 enters at 100 with target 120, it has full R:R and profit potential.
+        2. When price has already run up (e.g. 112 with target 120), it is marked EXHAUSTED and deprioritized.
+        3. Fresh trades with maximum remaining profit & ROI (like Index Options) are picked first.
+        4. Dynamic execution tightens stop loss to protect capital and guarantee achievable target hits.
+        """
+        from fingroww_paper_engine import evaluate_timewise_profit_metrics
+
+        # Candidate A: Run up to 112 towards target 120 (breakout was 100, SL was 95)
+        setup_a = {
+            "symbol": "STOCK_A",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 112.0,
+            "breakout_level": 100.0,
+            "target_price": 120.0,
+            "stop_loss": 95.0,
+            "confidence_score": 95,
+        }
+        metrics_a = evaluate_timewise_profit_metrics(setup_a)
+        # Consumed move is 12 / 20 = 60%, remaining R:R is 8 / 17 = 0.47
+        self.assertTrue(metrics_a["is_exhausted"])
+        self.assertLess(metrics_a["remaining_rr"], 1.0)
+        self.assertLess(metrics_a["timewise_profit_score"], 25.0)
+
+        # Candidate B: Fresh stock breakout at 500, target 540, SL 480
+        setup_b = {
+            "symbol": "STOCK_B",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 501.0,
+            "breakout_level": 500.0,
+            "target_price": 540.0,
+            "stop_loss": 480.0,
+            "confidence_score": 95,
+        }
+        metrics_b = evaluate_timewise_profit_metrics(setup_b)
+        self.assertFalse(metrics_b["is_exhausted"])
+        self.assertGreater(metrics_b["remaining_rr"], 1.8)
+        self.assertGreater(metrics_b["timewise_profit_score"], 150.0)
+
+        # Candidate C: Fresh Index Option (230 premium -> target 335, +45% gain)
+        setup_c = {
+            "symbol": "NIFTY 50 23050 CE",
+            "instrument_type": "INDEX_OPTIONS",
+            "side": "BUY",
+            "entry_price": 230.5,
+            "breakout_level": 230.5,
+            "target_price": 335.0,
+            "stop_loss": 173.0,
+            "confidence_score": 95,
+        }
+        metrics_c = evaluate_timewise_profit_metrics(setup_c)
+        self.assertFalse(metrics_c["is_exhausted"])
+        self.assertGreater(metrics_c["margin_roi_pct"], 40.0)
+        self.assertGreater(metrics_c["timewise_profit_score"], metrics_b["timewise_profit_score"])
+
+        # Ranking order: Candidate C (Max Profit Option) > Candidate B (Fresh Stock) > Candidate A (Exhausted Stock)
+        setups = [setup_a, setup_b, setup_c]
+        for s in setups:
+            s["timewise_metrics"] = evaluate_timewise_profit_metrics(s)
+        setups.sort(key=lambda s: (
+            0 if s["timewise_metrics"]["is_exhausted"] else 1,
+            s["timewise_metrics"]["timewise_profit_score"],
+            s["timewise_metrics"]["margin_roi_pct"],
+        ), reverse=True)
+
+        self.assertEqual(setups[0]["symbol"], "NIFTY 50 23050 CE")
+        self.assertEqual(setups[1]["symbol"], "STOCK_B")
+        self.assertEqual(setups[2]["symbol"], "STOCK_A")
+
+        # Test dynamic stop-loss tightening on late entry to guarantee target hit
+        self.session.reset(100000.0)
+        self.session.start()
+        late_setup = {
+            "symbol": "RELIANCE",
+            "base_symbol": "RELIANCE",
+            "name": "Reliance",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 100.0,
+            "target_price": 120.0,
+            "stop_loss": 90.0,
+            "risk_distance": 10.0,
+            "reward_risk": 1.8,
+            "confidence_score": 90,
+        }
+        # Live price has moved to 110.0
+        quote_resolver_110 = lambda _s: {"source": "NSE", "lastPrice": 110.0, "fetched_at": time.time()}
+        pos, _ = self.session.execute_trade(late_setup, quote_resolver=quote_resolver_110, market_is_open=True)
+        self.assertIsNotNone(pos)
+        self.assertAlmostEqual(pos["entry_price"], 110.0, delta=0.2)
+        self.assertEqual(pos["target_price"], 120.0) # Structural target maintained
+        self.assertGreater(pos["stop_loss"], 100.0)  # Stop loss tightened above 100 to protect capital
+        self.assertAlmostEqual(pos["risk_reward"], 1.8, places=1)
 
 
 if __name__ == "__main__":

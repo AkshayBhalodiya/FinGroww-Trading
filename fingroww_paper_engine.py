@@ -106,6 +106,71 @@ UNIVERSE = [
 ]
 
 
+def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
+    """
+    Computes real-time profit potential, margin ROI %, remaining R:R, 
+    and progress to target for dynamic timewise prioritization.
+    Prioritizes setups that offer the highest profit at the exact execution second.
+    """
+    sym = setup.get("symbol", "")
+    inst_type = setup.get("instrument_type", "EQUITY")
+    side = setup.get("side", "BUY")
+
+    if current_live_quote and current_live_quote.get("lastPrice"):
+        raw_spot = float(current_live_quote["lastPrice"])
+        if inst_type == "INDEX_OPTIONS":
+            current_price = PaperTradingSession._calculate_option_current_price(setup, raw_spot)
+        else:
+            current_price = raw_spot
+    else:
+        current_price = float(setup.get("entry_price", 0.0))
+
+    tp = float(setup.get("target_price", 0.0))
+    sl = float(setup.get("stop_loss", 0.0))
+    breakout_level = float(setup.get("breakout_level") or current_price)
+
+    if side == "BUY":
+        remaining_profit_points = max(0.0, tp - current_price)
+        current_risk_points = max(0.5, current_price - sl)
+        total_move = max(0.5, tp - breakout_level)
+        consumed_move = max(0.0, current_price - breakout_level)
+    else:
+        remaining_profit_points = max(0.0, current_price - tp)
+        current_risk_points = max(0.5, sl - current_price)
+        total_move = max(0.5, breakout_level - tp)
+        consumed_move = max(0.0, breakout_level - current_price)
+
+    progress_pct = round((consumed_move / total_move) * 100, 1) if total_move > 0 else 0.0
+    effective_rr = round(remaining_profit_points / current_risk_points, 2) if current_risk_points > 0 else 0.0
+    price_gain_pct = round((remaining_profit_points / max(current_price, 0.01)) * 100, 2)
+
+    if inst_type == "INDEX_OPTIONS":
+        margin_roi_pct = price_gain_pct
+    elif "FUTURE" in inst_type:
+        margin_roi_pct = round(price_gain_pct * 10.0, 2)
+    else:
+        margin_roi_pct = round(price_gain_pct * 5.0, 2)
+
+    is_exhausted = (progress_pct >= 50.0) or (effective_rr < 1.15) or (remaining_profit_points <= 0)
+    base_confidence = float(setup.get("confidence_score", 80))
+    if is_exhausted:
+        timewise_score = round(base_confidence * 0.15 * max(effective_rr, 0.1), 2)
+    else:
+        roi_multiplier = 1.0 + min(margin_roi_pct / 100.0, 2.0)
+        timewise_score = round(base_confidence * effective_rr * roi_multiplier, 2)
+
+    return {
+        "current_price": round(current_price, 2),
+        "remaining_profit_points": round(remaining_profit_points, 2),
+        "profit_potential_pct": price_gain_pct,
+        "margin_roi_pct": margin_roi_pct,
+        "remaining_rr": effective_rr,
+        "progress_pct": progress_pct,
+        "is_exhausted": is_exhausted,
+        "timewise_profit_score": timewise_score,
+    }
+
+
 def _is_fresh_nse_quote(quote, max_age_seconds=120):
     if not isinstance(quote, dict) or quote.get("source") != "NSE":
         return False
@@ -162,7 +227,13 @@ def _session_vwap(candles):
             session_candles.append(candle)
     volume_sum = sum(float(candle.get("v") or 0) for candle in session_candles)
     if volume_sum <= 0:
-        return None
+        if not session_candles:
+            return None
+        # For index instruments (e.g. NIFTY 50, BANK NIFTY) where Yahoo Finance provides no traded volume,
+        # compute the session average typical price (H + L + C) / 3 as the session benchmark price.
+        return sum(
+            ((float(c["h"]) + float(c["l"]) + float(c["c"])) / 3) for c in session_candles
+        ) / len(session_candles)
     return sum(
         ((float(candle["h"]) + float(candle["l"]) + float(candle["c"])) / 3)
         * float(candle.get("v") or 0)
@@ -614,12 +685,26 @@ class PaperTradingSession:
                 reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
                 if risk_distance <= 0 or reward_risk <= 0:
                     return None, f"Invalid ATR risk levels for {sym}; no trade was opened."
+                
+                structural_tp = float(setup.get("target_price") or 0.0)
                 if side == "BUY":
-                    sl = raw_entry - risk_distance
-                    tp = raw_entry + (risk_distance * reward_risk)
+                    if structural_tp > raw_entry:
+                        tp = structural_tp
+                        remaining_gain = tp - raw_entry
+                        dynamic_risk = min(risk_distance, remaining_gain / reward_risk)
+                        sl = round(raw_entry - dynamic_risk, 2)
+                    else:
+                        sl = raw_entry - risk_distance
+                        tp = raw_entry + (risk_distance * reward_risk)
                 else:
-                    sl = raw_entry + risk_distance
-                    tp = raw_entry - (risk_distance * reward_risk)
+                    if 0 < structural_tp < raw_entry:
+                        tp = structural_tp
+                        remaining_gain = raw_entry - tp
+                        dynamic_risk = min(risk_distance, remaining_gain / reward_risk)
+                        sl = round(raw_entry + dynamic_risk, 2)
+                    else:
+                        sl = raw_entry + risk_distance
+                        tp = raw_entry - (risk_distance * reward_risk)
 
         # Check for duplicate open trade on identical symbol
         for pos in self.positions:
@@ -635,12 +720,25 @@ class PaperTradingSession:
                 sl = max(1.0, round(exec_price - risk_distance, 2))
                 tp = round(exec_price + (risk_distance * reward_risk), 2)
             else:
+                structural_tp = float(setup.get("target_price") or 0.0)
                 if side == "BUY":
-                    sl = exec_price - risk_distance
-                    tp = exec_price + (risk_distance * reward_risk)
+                    if structural_tp > exec_price:
+                        tp = structural_tp
+                        remaining_gain = tp - exec_price
+                        dynamic_risk = min(risk_distance, remaining_gain / reward_risk)
+                        sl = round(exec_price - dynamic_risk, 2)
+                    else:
+                        sl = round(exec_price - risk_distance, 2)
+                        tp = round(exec_price + (risk_distance * reward_risk), 2)
                 else:
-                    sl = exec_price + risk_distance
-                    tp = exec_price - (risk_distance * reward_risk)
+                    if 0 < structural_tp < exec_price:
+                        tp = structural_tp
+                        remaining_gain = exec_price - tp
+                        dynamic_risk = min(risk_distance, remaining_gain / reward_risk)
+                        sl = round(exec_price + dynamic_risk, 2)
+                    else:
+                        sl = round(exec_price + risk_distance, 2)
+                        tp = round(exec_price - (risk_distance * reward_risk), 2)
 
         if side == "BUY" and not sl < exec_price < tp:
             return None, f"Invalid stop-loss or target relative to live entry for {sym}."
@@ -659,7 +757,14 @@ class PaperTradingSession:
 
         # Max margin allowed for this trade: 35% of current available balance
         max_margin = self.available_balance * 0.35
-        lot_size = LOT_SIZES.get(sym.upper(), 1)
+        base_sym = setup.get("base_symbol", sym)
+        lot_size = LOT_SIZES.get(sym.upper()) or LOT_SIZES.get(base_sym.upper())
+        if not lot_size:
+            for k, v in LOT_SIZES.items():
+                if k in sym.upper() or k in base_sym.upper():
+                    lot_size = v
+                    break
+        lot_size = lot_size or 1
 
         if "FUTURE" in inst_type:
             # Futures intraday MIS margin (~10% in Indian market)
@@ -1450,9 +1555,12 @@ class PaperTradingEngine:
         """
         cfg_types = list(self.session.config.get("instruments") or [])
         allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"]
-        # Ensure EQUITY is available if only F&O was selected so stocks are never starved
-        if "EQUITY" not in allowed_types:
-            allowed_types.append("EQUITY")
+
+        # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
+        has_index_options = "INDEX_OPTIONS" in allowed_types
+        has_index_futures = "INDEX_FUTURES" in allowed_types
+        has_equity = "EQUITY" in allowed_types
+        has_stock_futures = "STOCK_FUTURES" in allowed_types
 
         setups = []
 
@@ -1460,22 +1568,20 @@ class PaperTradingEngine:
             sym = item["symbol"]
             item_type = item["type"]
 
-            # Match target instrument type
-            target_inst_type = None
+            # Determine all target instrument types to generate for this item based strictly on user configuration
+            targets_for_item = []
             if item_type == "INDEX":
-                if "INDEX_OPTIONS" in allowed_types:
-                    target_inst_type = "INDEX_OPTIONS"
-                elif "INDEX_FUTURES" in allowed_types:
-                    target_inst_type = "INDEX_FUTURES"
+                if has_index_options:
+                    targets_for_item.append("INDEX_OPTIONS")
+                if has_index_futures:
+                    targets_for_item.append("INDEX_FUTURES")
             elif item_type == "STOCK":
-                if "EQUITY" in allowed_types:
-                    target_inst_type = "EQUITY"
-                elif "STOCK_FUTURES" in allowed_types:
-                    target_inst_type = "STOCK_FUTURES"
-                else:
-                    target_inst_type = "EQUITY"
+                if has_equity:
+                    targets_for_item.append("EQUITY")
+                if has_stock_futures:
+                    targets_for_item.append("STOCK_FUTURES")
 
-            if not target_inst_type:
+            if not targets_for_item:
                 continue
 
             if not self.quote_resolver or not self.chart_resolver:
@@ -1565,64 +1671,82 @@ class PaperTradingEngine:
             else:
                 continue
 
-            display_sym = sym
-            entry_price = round(live_price, 2)
-            stop_loss = round(entry_price - risk_distance if side == "BUY" else entry_price + risk_distance, 2)
-            target_price = round(entry_price + (risk_distance * min_rr) if side == "BUY" else entry_price - (risk_distance * min_rr), 2)
-            setup_risk = round(risk_distance, 4)
+            for target_inst_type in targets_for_item:
+                curr_side = side
+                display_sym = sym
+                entry_price = round(live_price, 2)
+                stop_loss = round(entry_price - risk_distance if curr_side == "BUY" else entry_price + risk_distance, 2)
+                target_price = round(entry_price + (risk_distance * min_rr) if curr_side == "BUY" else entry_price - (risk_distance * min_rr), 2)
+                setup_risk = round(risk_distance, 4)
+                opt_type = None
+                strike = None
+                delta = None
 
-            # Synthesize option contract if INDEX_OPTIONS
-            if target_inst_type == "INDEX_OPTIONS":
-                step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
-                strike = int(round(live_price / step) * step)
-                opt_type = "CE" if side == "BUY" else "PE"
-                display_sym = f"{sym} {strike} {opt_type}"
-                opt_premium = round(live_price * 0.010, 2)
-                opt_risk = round(opt_premium * 0.25, 2)
-                entry_price = opt_premium
-                stop_loss = max(1.0, round(entry_price - opt_risk, 2))
-                target_price = round(entry_price + (opt_risk * min_rr), 2)
-                setup_risk = opt_risk
-                side = "BUY"  # Retail option buyer buys the contract (CE or PE)
+                # Synthesize option contract if INDEX_OPTIONS
+                if target_inst_type == "INDEX_OPTIONS":
+                    step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
+                    strike = int(round(live_price / step) * step)
+                    opt_type = "CE" if curr_side == "BUY" else "PE"
+                    display_sym = f"{sym} {strike} {opt_type}"
+                    opt_premium = round(live_price * 0.010, 2)
+                    opt_risk = round(opt_premium * 0.25, 2)
+                    entry_price = opt_premium
+                    stop_loss = max(1.0, round(entry_price - opt_risk, 2))
+                    target_price = round(entry_price + (opt_risk * min_rr), 2)
+                    setup_risk = opt_risk
+                    curr_side = "BUY"  # Retail option buyer buys the contract (CE or PE)
+                    delta = 0.50
 
-            setups.append({
-                "symbol": display_sym,
-                "base_symbol": sym,
-                "name": item["name"],
-                "instrument_type": target_inst_type,
-                "market_data_source": "NSE",
-                "market_data_fetched_at": quote.get("fetched_at", time.time()),
-                "market_data_timestamp": quote.get("timestamp"),
-                "signal_indicators": {
-                    "ema20": round(ema20[-1], 4),
-                    "ema50": round(ema50[-1], 4),
-                    "session_vwap": round(vwap, 4) if vwap else 0.0,
-                    "atr14": round(atr14, 4),
-                    "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
-                    "breakout_level": round(float(latest["h"] if side == "BUY" else latest["l"]), 4),
-                },
-                "side": side,
-                "entry_price": entry_price,
-                "stop_loss": stop_loss,
-                "target_price": target_price,
-                "risk_distance": setup_risk,
-                "reward_risk": min_rr,
-                "strategy": strat,
-                "confidence_score": score,
-                "status": "VALIDATED",
-                "timestamp": get_ist_str(),
-                "underlying_price": live_price,
-                "option_type": opt_type if target_inst_type == "INDEX_OPTIONS" else None,
-                "strike": strike if target_inst_type == "INDEX_OPTIONS" else None,
-                "delta": 0.50 if target_inst_type == "INDEX_OPTIONS" else None,
-                "rationale": (
-                    f"{side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
-                    f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
-                ) if target_inst_type != "INDEX_OPTIONS" else (
-                    f"BUY {display_sym}: ATM option tracking {sym} trend. "
-                    f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
-                ),
-            })
+                setup_item = {
+                    "symbol": display_sym,
+                    "base_symbol": sym,
+                    "name": item["name"],
+                    "instrument_type": target_inst_type,
+                    "market_data_source": "NSE",
+                    "market_data_fetched_at": quote.get("fetched_at", time.time()),
+                    "market_data_timestamp": quote.get("timestamp"),
+                    "signal_indicators": {
+                        "ema20": round(ema20[-1], 4),
+                        "ema50": round(ema50[-1], 4),
+                        "session_vwap": round(vwap, 4) if vwap else 0.0,
+                        "atr14": round(atr14, 4),
+                        "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
+                        "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 4),
+                    },
+                    "side": curr_side,
+                    "entry_price": entry_price,
+                    "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 2),
+                    "stop_loss": stop_loss,
+                    "target_price": target_price,
+                    "risk_distance": setup_risk,
+                    "reward_risk": min_rr,
+                    "strategy": strat,
+                    "confidence_score": score,
+                    "status": "VALIDATED",
+                    "timestamp": get_ist_str(),
+                    "underlying_price": live_price,
+                    "option_type": opt_type,
+                    "strike": strike,
+                    "delta": delta,
+                    "rationale": (
+                        f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
+                        f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
+                    ) if target_inst_type != "INDEX_OPTIONS" else (
+                        f"BUY {display_sym}: ATM option tracking {sym} trend. "
+                        f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
+                    ),
+                }
+
+                # Evaluate timewise profit metrics
+                t_metrics = evaluate_timewise_profit_metrics(setup_item, quote)
+                setup_item["timewise_metrics"] = t_metrics
+                setup_item["profit_potential_pct"] = t_metrics["profit_potential_pct"]
+                setup_item["margin_roi_pct"] = t_metrics["margin_roi_pct"]
+                setup_item["remaining_rr"] = t_metrics["remaining_rr"]
+                setup_item["is_exhausted"] = t_metrics["is_exhausted"]
+                setup_item["timewise_profit_score"] = t_metrics["timewise_profit_score"]
+
+                setups.append(setup_item)
 
         self.session.scanned_signals = setups
         return setups
@@ -1655,8 +1779,19 @@ class PaperTradingEngine:
                 open_symbols = {p["symbol"] for p in self.session.positions}
                 viable_setups = [s for s in setups if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols]
                 
-                # Sort by highest confidence score
-                viable_setups.sort(key=lambda x: x["confidence_score"], reverse=True)
+                # Dynamic Timewise Opportunity Ranking:
+                # Prioritize setups with MAXIMUM remaining profit potential, highest margin ROI %,
+                # and best effective Risk/Reward at this exact moment. Reject or deprioritize exhausted trades.
+                def _timewise_rank_key(s):
+                    m = s.get("timewise_metrics") or {}
+                    return (
+                        0 if m.get("is_exhausted") else 1,
+                        m.get("timewise_profit_score", s.get("confidence_score", 0)),
+                        m.get("margin_roi_pct", 0),
+                        m.get("profit_potential_pct", 0),
+                    )
+
+                viable_setups.sort(key=_timewise_rank_key, reverse=True)
 
                 for candidate in viable_setups:
                     pos, err = self.session.execute_trade(

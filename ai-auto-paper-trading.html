@@ -1775,19 +1775,19 @@ button[disabled],
           <label class="form-label">Trading Instruments (Select one or more)</label>
           <div class="instruments-toggle-grid">
             <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="EQUITY" checked>
+              <input type="checkbox" name="instrument" value="EQUITY" onchange="onInstrumentChanged()" checked>
               <span>Stocks (Equity)</span>
             </label>
             <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="INDEX_FUTURES" checked>
+              <input type="checkbox" name="instrument" value="INDEX_FUTURES" onchange="onInstrumentChanged()" checked>
               <span>Index Futures</span>
             </label>
             <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="INDEX_OPTIONS" checked>
+              <input type="checkbox" name="instrument" value="INDEX_OPTIONS" onchange="onInstrumentChanged()" checked>
               <span>Index Options</span>
             </label>
             <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="STOCK_FUTURES">
+              <input type="checkbox" name="instrument" value="STOCK_FUTURES" onchange="onInstrumentChanged()">
               <span>Stock Futures</span>
             </label>
           </div>
@@ -1917,6 +1917,9 @@ button[disabled],
         <div class="control-actions-bar">
           <button type="button" id="btnStart" class="btn-control btn-start" onclick="handleStartTrading()">
             <i class="fa-solid fa-play"></i> Start Auto Paper Trading
+          </button>
+          <button type="button" id="btnSaveConfig" class="btn-control btn-start" style="background:rgba(59,130,246,0.18);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;" onclick="applyConfig(this)">
+            <i class="fa-solid fa-floppy-disk"></i> Save Settings
           </button>
           <button type="button" id="btnPause" class="btn-control btn-pause" onclick="handlePauseTrading()" style="display:none;">
             <i class="fa-solid fa-pause"></i> Pause
@@ -2689,6 +2692,15 @@ function getFormConfig() {
   };
 }
 
+async function onInstrumentChanged() {
+  const checked = Array.from(document.querySelectorAll("input[name='instrument']:checked")).map(c => c.value);
+  if (!checked.length) {
+    showToast("Please select at least one trading instrument.", "warning");
+    return;
+  }
+  await applyConfig();
+}
+
 async function applyConfig(btnEl = null) {
   return withActionLock("apply_config", async () => {
     const config = getFormConfig();
@@ -2982,11 +2994,14 @@ function syncConfigFormWithState(state) {
     });
   }
 
-  // Instrument checkboxes
+  // Instrument checkboxes (protect from being overwritten while user is interacting)
+  const isInteractingWithInst = document.activeElement && document.activeElement.name === "instrument";
   const insts = cfg.instruments || ["EQUITY"];
-  document.querySelectorAll("input[name='instrument']").forEach(cb => {
-    cb.checked = insts.includes(cb.value);
-  });
+  if (!isInteractingWithInst) {
+    document.querySelectorAll("input[name='instrument']").forEach(cb => {
+      cb.checked = insts.includes(cb.value);
+    });
+  }
 
   // Market & Style
   if (document.getElementById("selMarket")) document.getElementById("selMarket").value = cfg.market || "NSE";
@@ -3440,6 +3455,11 @@ function renderScannedSetups(setups) {
 
   list.innerHTML = setups.slice(0, 4).map(s => {
     const isBuy = s.side === "BUY";
+    const m = s.timewise_metrics || {};
+    const roiBadge = m.margin_roi_pct ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(59,130,246,0.18);color:#60a5fa;font-weight:700;">+${m.profit_potential_pct}% (ROI +${m.margin_roi_pct}%)</span>` : '';
+    const rrBadge = m.remaining_rr ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.12);color:var(--accent-green);font-weight:600;">R:R ${m.remaining_rr}:1</span>` : '';
+    const statusBadge = m.is_exhausted ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(239,68,68,0.15);color:var(--accent-red);font-weight:700;">Exhausted</span>` : `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.15);color:var(--accent-green);font-weight:700;">🔥 Max Profit</span>`;
+
     return `
       <div style="padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font-size:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -3448,10 +3468,14 @@ function renderScannedSetups(setups) {
             <span style="font-weight:800;color:var(--text-main);">${s.symbol}</span>
             <span style="color:var(--text-dim);font-size:11px;">(${s.strategy})</span>
           </div>
-          <span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.15);color:var(--accent-green);">${s.status}</span>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${roiBadge}
+            ${rrBadge}
+            ${statusBadge}
+          </div>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
-          NSE LTP ${formatInr(s.entry_price)} | SL ${formatInr(s.stop_loss)} | Target ${formatInr(s.target_price)} | R:R ${Number(s.reward_risk).toFixed(2)}:1
+          NSE LTP ${formatInr(s.entry_price)} | SL ${formatInr(s.stop_loss)} | Target ${formatInr(s.target_price)} | Room: +${m.remaining_profit_points || 0} pts
         </div>
         <div style="font-size:10.5px;color:var(--text-dim);margin-top:4px;">${s.rationale}</div>
       </div>`;
