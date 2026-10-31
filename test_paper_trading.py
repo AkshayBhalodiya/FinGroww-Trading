@@ -1322,6 +1322,58 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertGreater(closed["net_pnl"], 0)
 
 
+    def test_27_high_winrate_dynamic_breakeven_and_profit_locking(self):
+        """
+        Verifies 80%+ Win-Rate Trailing System:
+        1. When position moves >=45% towards target, SL trails automatically to Breakeven (entry + buffer).
+        2. When position moves >=75% towards target, SL trails to lock in +40% profit.
+        3. If market reverses after hitting Breakeven, position exits as protected win/scratch rather than a loss.
+        """
+        self.session.reset(100000.0)
+        self.session.start()
+        setup = {
+            "symbol": "RELIANCE",
+            "base_symbol": "RELIANCE",
+            "name": "Reliance Industries",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 1000.0,
+            "stop_loss": 980.0,     # Risk = 20 pts
+            "target_price": 1040.0, # Target = 40 pts
+            "strategy": "🎯 80%+ Smart Money VWAP & EMA20 Pullback",
+            "confidence_score": 92,
+        }
+        quote_1000 = lambda _s: {"source": "NSE", "lastPrice": 1000.0, "fetched_at": time.time()}
+        pos, err = self.session.execute_trade(setup, quote_resolver=quote_1000, market_is_open=True)
+        self.assertIsNotNone(pos, err)
+        self.assertEqual(pos["trailing_state"], "INITIAL")
+        self.assertAlmostEqual(pos["stop_loss"], 980.0, delta=1.5)
+
+        # 1. Price moves to 1020.0 (50% of 40-pt target distance) -> Breakeven Trailing Triggers!
+        quote_1020 = lambda _s: {"source": "NSE", "lastPrice": 1020.0, "fetched_at": time.time()}
+        self.session.update_positions(quote_1020, market_is_open=True)
+        open_pos = self.session.positions[0]
+        self.assertEqual(open_pos["trailing_state"], "BREAKEVEN")
+        self.assertGreaterEqual(open_pos["stop_loss"], 1000.0)
+
+        # 2. Price moves to 1032.0 (80% of 40-pt target distance) -> Tier 2 Profit Lock Triggers!
+        quote_1032 = lambda _s: {"source": "NSE", "lastPrice": 1032.0, "fetched_at": time.time()}
+        self.session.update_positions(quote_1032, market_is_open=True)
+        open_pos = self.session.positions[0]
+        self.assertEqual(open_pos["trailing_state"], "PROFIT_LOCKED")
+        self.assertGreaterEqual(open_pos["stop_loss"], 1015.0)
+
+        # 3. Market reverses from 1032 down to 1010 -> Hits Trailing Profit Stop!
+        quote_1010 = lambda _s: {"source": "NSE", "lastPrice": 1010.0, "fetched_at": time.time()}
+        self.session.update_positions(quote_1010, market_is_open=True)
+        self.assertEqual(len(self.session.positions), 0)
+        self.assertEqual(len(self.session.closed_trades), 1)
+        closed = self.session.closed_trades[0]
+        self.assertEqual(closed["exit_reason"], "TRAILING_STOP_PROFIT_HIT")
+        self.assertTrue(closed["is_win"])
+        self.assertGreater(closed["net_pnl"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
 

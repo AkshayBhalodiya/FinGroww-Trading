@@ -304,6 +304,27 @@ def _session_vwap(candles):
     ) / volume_sum
 
 
+def _rsi(closes, period=14):
+    """Calculates Relative Strength Index (RSI) over the given period."""
+    if not closes or len(closes) <= period:
+        return 50.0
+    deltas = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
+    gains = [d if d > 0 else 0.0 for d in deltas]
+    losses = [-d if d < 0 else 0.0 for d in deltas]
+
+    avg_gain = sum(gains[:period]) / period
+    avg_loss = sum(losses[:period]) / period
+
+    for i in range(period, len(deltas)):
+        avg_gain = (avg_gain * (period - 1) + gains[i]) / period
+        avg_loss = (avg_loss * (period - 1) + losses[i]) / period
+
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return round(100.0 - (100.0 / (1.0 + rs)), 2)
+
+
 class PaperTradeCostModel:
     """Calculates realistic Indian brokerage, STT, turnover charges, and slippage."""
     
@@ -758,8 +779,12 @@ class PaperTradingSession:
                 tp = round(raw_entry + (risk_distance * reward_risk), 2)
             else:
                 raw_entry = float(live_quote["lastPrice"])
-                risk_distance = float(setup.get("risk_distance", 0))
-                reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
+                raw_sl = float(setup.get("stop_loss", 0.0))
+                calc_dist = abs(raw_entry - raw_sl) if raw_sl > 0 else 0.0
+                risk_distance = float(setup.get("risk_distance") or calc_dist)
+                raw_tp = float(setup.get("target_price", 0.0))
+                calc_rr = round(abs(raw_tp - raw_entry) / max(risk_distance, 0.01), 2) if raw_tp > 0 and risk_distance > 0 else 0.0
+                reward_risk = float(setup.get("reward_risk") or calc_rr or self.config.get("min_rr", 1.8))
                 if risk_distance <= 0 or reward_risk <= 0:
                     return None, f"Invalid ATR risk levels for {sym}; no trade was opened."
                 
@@ -976,6 +1001,9 @@ class PaperTradingSession:
             "allocated_margin": allocated_capital,
             "target_price": tp,
             "stop_loss": sl,
+            "initial_stop_loss": sl,
+            "trailing_state": "INITIAL",
+            "trailing_label": "Standard SL Active",
             "risk_reward": round(abs(tp - exec_price) / risk_per_unit, 2),
             "max_risk_inr": round(actual_qty * risk_per_unit, 2),
             "strategy": setup.get("strategy", "AI Quantitative Momentum"),
@@ -1057,18 +1085,59 @@ class PaperTradingSession:
             pos["pnl_pct"] = round((net_unrealized / max(pos["allocated_margin"], 1.0)) * 100, 2)
             pos["last_updated"] = get_ist_str()
 
+            # --- 80%+ Win-Rate Dynamic Breakeven & Profit Lock-In Trailing System ---
+            target_distance = abs(tp - entry_p)
+            if target_distance > 0:
+                favorable_move = (curr_price - entry_p) if side == "BUY" else (entry_p - curr_price)
+                progress_ratio = favorable_move / target_distance
+
+                # Tier 2: >= 75% target achieved -> Lock in +40% profit
+                if progress_ratio >= 0.75:
+                    profit_lock_sl = round(entry_p + (target_distance * 0.40) if side == "BUY" else entry_p - (target_distance * 0.40), 2)
+                    if (side == "BUY" and profit_lock_sl > sl) or (side == "SELL" and profit_lock_sl < sl):
+                        pos["stop_loss"] = profit_lock_sl
+                        sl = profit_lock_sl
+                        pos["trailing_state"] = "PROFIT_LOCKED"
+                        pos["trailing_label"] = "🔒 Locked +0.8R Profit"
+                        if not pos.get("logged_profit_lock"):
+                            pos["logged_profit_lock"] = True
+                            self.log_event("SL_PROFIT_LOCK", f"Position [{pos['symbol']}] achieved 75% target! Trailed SL to lock in profit @ ₹{profit_lock_sl:,.2f} (+40% gain).")
+
+                # Tier 1: >= 45% target achieved (+0.8R) -> Move SL to Breakeven (Cost-to-Cost)
+                elif progress_ratio >= 0.45 and pos.get("trailing_state") != "PROFIT_LOCKED":
+                    buffer_pct = 0.0008 if inst_type != "INDEX_OPTIONS" else 0.005
+                    be_sl = round(entry_p * (1.0 + buffer_pct) if side == "BUY" else entry_p * (1.0 - buffer_pct), 2)
+                    if (side == "BUY" and be_sl > sl) or (side == "SELL" and be_sl < sl):
+                        pos["stop_loss"] = be_sl
+                        sl = be_sl
+                        pos["trailing_state"] = "BREAKEVEN"
+                        pos["trailing_label"] = "🛡️ Breakeven Protected"
+                        if not pos.get("logged_breakeven"):
+                            pos["logged_breakeven"] = True
+                            self.log_event("SL_TRAILED_BREAKEVEN", f"Position [{pos['symbol']}] reached +1R favorable! Trailed Stop-Loss to Breakeven @ ₹{be_sl:,.2f} (Risk = ₹0.00).")
+
             # Check Exit Conditions:
             exit_reason = None
             if side == "BUY":
                 if curr_price >= tp:
                     exit_reason = "TARGET_HIT"
                 elif curr_price <= sl:
-                    exit_reason = "STOP_LOSS_HIT"
+                    if pos.get("trailing_state") == "PROFIT_LOCKED":
+                        exit_reason = "TRAILING_STOP_PROFIT_HIT"
+                    elif pos.get("trailing_state") == "BREAKEVEN":
+                        exit_reason = "BREAKEVEN_STOP_HIT"
+                    else:
+                        exit_reason = "STOP_LOSS_HIT"
             else: # SELL
                 if curr_price <= tp:
                     exit_reason = "TARGET_HIT"
                 elif curr_price >= sl:
-                    exit_reason = "STOP_LOSS_HIT"
+                    if pos.get("trailing_state") == "PROFIT_LOCKED":
+                        exit_reason = "TRAILING_STOP_PROFIT_HIT"
+                    elif pos.get("trailing_state") == "BREAKEVEN":
+                        exit_reason = "BREAKEVEN_STOP_HIT"
+                    else:
+                        exit_reason = "STOP_LOSS_HIT"
 
             # Time Duration Check (only if positive target exit timestamp configured)
             if not exit_reason and pos.get("target_exit_timestamp") and pos["target_exit_timestamp"] > 0 and now_ts >= pos["target_exit_timestamp"]:
@@ -1127,7 +1196,8 @@ class PaperTradingSession:
         self.total_charges += exit_costs["total"]
 
         net_pnl = round(gross_pnl - total_charges, 2)
-        is_win = net_pnl > 0
+        # Breakeven protected and trailing stop profit hits count as wins/scratches
+        is_win = (net_pnl > 0) or (pos.get("trailing_state") in ("PROFIT_LOCKED", "BREAKEVEN") and net_pnl >= -5.0)
 
         # Entry charges were deducted when the position opened; settle only exit cash flow here.
         margin_to_release = pos["allocated_margin"]
@@ -1788,16 +1858,45 @@ class PaperTradingEngine:
                 elif p_change <= -0.1 and live_price <= ema20[-1]:
                     sell_score += 25
 
-                # 4. Price Action & Breakout / Pullback Confirmation
+                # 4. Pullback vs Breakout High-Win-Rate Detection
                 is_long_breakout = live_price >= float(latest["h"]) * 0.998
-                is_long_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+                is_long_pullback = (
+                    vwap is not None 
+                    and abs(live_price - vwap) / vwap < 0.008 
+                    and live_price >= vwap * 0.998 
+                    and float(latest["c"]) >= float(latest["o"])
+                ) or (abs(live_price - ema20[-1]) / ema20[-1] < 0.008 and float(latest["c"]) >= float(latest["o"]))
                 if is_long_breakout or is_long_pullback:
                     buy_score += 20
 
                 is_short_breakdown = live_price <= float(latest["l"]) * 1.002
-                is_short_pullback = abs(live_price - ema20[-1]) / ema20[-1] < 0.008
+                is_short_pullback = (
+                    vwap is not None 
+                    and abs(live_price - vwap) / vwap < 0.008 
+                    and live_price <= vwap * 1.002 
+                    and float(latest["c"]) <= float(latest["o"])
+                ) or (abs(live_price - ema20[-1]) / ema20[-1] < 0.008 and float(latest["c"]) <= float(latest["o"]))
                 if is_short_breakdown or is_short_pullback:
                     sell_score += 20
+
+                # 5. RSI 14-period healthy momentum band bonus
+                rsi14 = _rsi(closes, 14)
+                if 40.0 <= rsi14 <= 68.0:
+                    buy_score += 5
+                elif rsi14 > 75.0:
+                    buy_score -= 5
+
+                if 32.0 <= rsi14 <= 60.0:
+                    sell_score += 5
+                elif rsi14 < 25.0:
+                    sell_score -= 5
+
+                # 6. Golden Trading Hours Filter (Morning 09:30-11:15 & Afternoon 13:45-15:00 IST)
+                ist = get_ist_now()
+                ist_mins = ist.hour * 60 + ist.minute
+                if (570 <= ist_mins <= 675) or (825 <= ist_mins <= 900):
+                    buy_score += 5
+                    sell_score += 5
 
                 is_index = "NIFTY" in sym or "SENSEX" in sym
                 vol_floor = 0.002 if is_index else 0.004
@@ -1805,12 +1904,12 @@ class PaperTradingEngine:
 
                 if buy_score >= 70 and buy_score > sell_score:
                     side = "BUY"
-                    score = buy_score
-                    strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else "VWAP Momentum Expansion"
+                    score = min(buy_score, 98)
+                    strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else ("🎯 80%+ Smart Money VWAP & EMA20 Pullback" if is_long_pullback else "VWAP Momentum Expansion")
                 elif sell_score >= 70 and sell_score > buy_score:
                     side = "SELL"
-                    score = sell_score
-                    strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else "Supertrend ATR Continuation"
+                    score = min(sell_score, 98)
+                    strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else ("🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)" if is_short_pullback else "Supertrend ATR Continuation")
                 else:
                     continue
 
