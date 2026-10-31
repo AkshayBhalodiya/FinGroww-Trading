@@ -36,7 +36,9 @@ import fingroww_market_server
 class TestPaperTradingEngine(unittest.TestCase):
 
     def setUp(self):
-        today_ist = datetime.now(timezone(timedelta(hours=5, minutes=30))).replace(
+        now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+        days_offset = (now.weekday() - 2) if now.weekday() >= 5 else 0
+        today_ist = (now - timedelta(days=days_offset)).replace(
             hour=11, minute=0, second=0, microsecond=0
         )
         trading_time_patcher = patch(
