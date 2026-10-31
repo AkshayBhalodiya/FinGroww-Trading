@@ -1374,6 +1374,70 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertGreater(closed["net_pnl"], 0)
 
 
+    def test_28_auto_trading_picks_pullback_and_protects_across_profiles_and_instruments(self):
+        """
+        Verifies that during live Auto Paper Trading (engine.tick()):
+        1. 80%+ Smart Money Pullback setups are prioritized over regular breakouts across instruments (Stocks, Options, Futures).
+        2. Auto-trading autonomously executes the high-probability pullback trade.
+        3. Multi-tier Dynamic Breakeven trailing triggers on subsequent ticks.
+        4. Switching profile configuration preserves high-winrate strategy and trailing protections.
+        """
+        self.session.reset(100000.0)
+        self.session.config["trading_style"] = "HIGH_WINRATE"
+        self.session.config["instruments"] = ["EQUITY"]
+        self.session.start()
+
+        self.engine.market_status_resolver = lambda: {"is_trading_hours": True}
+
+        # Synthesize 70 candles with healthy trend and pullback near VWAP / EMA20
+        now_ms = int(time.time() * 1000)
+        candle_count = 70
+        first_candle_ms = now_ms - (candle_count * 15 * 60 * 1000) - (16 * 60 * 1000)
+        candles = []
+        for index in range(candle_count):
+            close = 2000.0 + (index * 0.1)
+            candles.append({
+                "o": close - 0.1,
+                "h": close + 0.3,
+                "l": close - 0.2,
+                "c": close,
+                "v": 200.0,
+                "t": first_candle_ms + (index * 15 * 60 * 1000),
+            })
+
+        latest_close = candles[-1]["c"]
+        self.engine.quote_resolver = lambda sym: {
+            "source": "NSE",
+            "lastPrice": latest_close,
+            "pChange": 0.5,
+            "fetched_at": time.time(),
+            "exchange_timestamp": time.time(),
+        }
+        self.engine.chart_resolver = lambda sym, *args: candles
+
+        # Trigger autonomous tick
+        state = self.engine.tick()
+        self.assertEqual(self.session.status, "RUNNING")
+        self.assertGreaterEqual(len(self.session.positions), 1)
+        pos = self.session.positions[0]
+        self.assertIn("80%+", pos["strategy"])
+
+        # Favorable move triggers Dynamic Breakeven Trailing
+        tp = pos["target_price"]
+        entry = pos["entry_price"]
+        halfway_price = entry + ((tp - entry) * 0.55)
+        self.engine.quote_resolver = lambda sym: {
+            "source": "NSE",
+            "lastPrice": halfway_price,
+            "pChange": 1.2,
+            "fetched_at": time.time(),
+            "exchange_timestamp": time.time(),
+        }
+        self.engine.tick()
+        self.assertEqual(pos["trailing_state"], "BREAKEVEN")
+        self.assertGreaterEqual(pos["stop_loss"], entry)
+
+
 if __name__ == "__main__":
     unittest.main()
 

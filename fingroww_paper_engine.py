@@ -552,7 +552,7 @@ class PaperTradingSession:
             "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"],
             "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
             "market": "NSE",
-            "trading_style": "INTRADAY", # INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
+            "trading_style": "HIGH_WINRATE", # HIGH_WINRATE, INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
             "holding_duration_mins": 15, # 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
@@ -1905,11 +1905,21 @@ class PaperTradingEngine:
                 if buy_score >= 70 and buy_score > sell_score:
                     side = "BUY"
                     score = min(buy_score, 98)
-                    strat = "15m EMA20/50 + VWAP Breakout" if is_long_breakout else ("🎯 80%+ Smart Money VWAP & EMA20 Pullback" if is_long_pullback else "VWAP Momentum Expansion")
+                    if is_long_pullback:
+                        strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback"
+                    elif is_long_breakout:
+                        strat = "15m EMA20/50 + VWAP Breakout"
+                    else:
+                        strat = "VWAP Momentum Expansion"
                 elif sell_score >= 70 and sell_score > buy_score:
                     side = "SELL"
                     score = min(sell_score, 98)
-                    strat = "15m EMA20/50 + VWAP Breakdown" if is_short_breakdown else ("🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)" if is_short_pullback else "Supertrend ATR Continuation")
+                    if is_short_pullback:
+                        strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)"
+                    elif is_short_breakdown:
+                        strat = "15m EMA20/50 + VWAP Breakdown"
+                    else:
+                        strat = "Supertrend ATR Continuation" 
                 else:
                     continue
 
@@ -2031,8 +2041,11 @@ class PaperTradingEngine:
                 # and best effective Risk/Reward at this exact moment. Reject or deprioritize exhausted trades.
                 def _timewise_rank_key(s):
                     m = s.get("timewise_metrics") or {}
+                    # Prioritize 80%+ Smart Money Pullback setups for optimal win rate
+                    is_pullback = 1 if "80%+" in s.get("strategy", "") else 0
                     return (
                         0 if m.get("is_exhausted") else 1,
+                        is_pullback,
                         m.get("timewise_profit_score", s.get("confidence_score", 0)),
                         m.get("margin_roi_pct", 0),
                         m.get("profit_potential_pct", 0),

@@ -2341,6 +2341,7 @@ button[disabled],
         <div>
           <label class="form-label">Trading Style</label>
           <select id="newProfStyle" class="custom-select">
+            <option value="HIGH_WINRATE" selected>🎯 80%+ Win-Rate Smart Money Pullback & Breakeven</option>
             <option value="INTRADAY">Intraday (Day Trades)</option>
             <option value="SCALPING">Scalping (Quick 1-5m)</option>
             <option value="SWING">Swing (Days)</option>
@@ -2936,7 +2937,7 @@ async function submitCreateProfile() {
     instruments: insts,
     trading_style: style,
     risk_profile: risk,
-    holding_duration_mins: style === "INTRADAY" ? 15 : (style === "SWING" ? 1440 : 10080),
+    holding_duration_mins: (style === "HIGH_WINRATE" || style === "INTRADAY") ? 15 : (style === "SWING" ? 1440 : 10080),
   };
 
   const btn = document.getElementById("btnSubmitCreateProfile");
