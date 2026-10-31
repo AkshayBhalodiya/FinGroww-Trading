@@ -732,7 +732,7 @@ table.chain-table tbody tr:hover {
       </div>
       <div class="opts-ctrl">
         <label>Lot Size (Shares / Lot)</label>
-        <input type="number" id="calcLotSize" class="opts-input" value="25">
+        <input type="number" id="calcLotSize" class="opts-input" value="65">
       </div>
       <div class="opts-ctrl">
         <label>Number of Lots</label>
@@ -1311,19 +1311,27 @@ function renderSignalRecommendation(data) {
   $("cardDelta").textContent = delta;
   $("cardTheta").textContent = theta;
 
-  // Exact Lot Size Preset Registry
+  // Exact Lot Size Preset Registry (Official NSE / BSE Master)
   let lotSize = 65;
   const symUpper = (data.symbol || "").toUpperCase();
   if (symUpper.includes("NIFTY 50") || symUpper === "NIFTY") lotSize = 65;
   else if (symUpper.includes("BANK")) lotSize = 30;
   else if (symUpper.includes("FINNIFTY")) lotSize = 65;
+  else if (symUpper.includes("MIDCPNIFTY")) lotSize = 120;
   else if (symUpper.includes("SENSEX")) lotSize = 20;
-  else if (symUpper.includes("RELIANCE")) lotSize = 250;
-  else if (symUpper.includes("HDFCBANK")) lotSize = 550;
-  else if (symUpper.includes("TATAMOTORS")) lotSize = 1425;
+  else if (symUpper.includes("RELIANCE")) lotSize = 500;
+  else if (symUpper.includes("HDFCBANK")) lotSize = 650;
+  else if (symUpper.includes("TATAMOTORS")) lotSize = 800;
   else if (symUpper.includes("SBIN")) lotSize = 750;
-  else if (symUpper.includes("TCS")) lotSize = 175;
+  else if (symUpper.includes("TCS")) lotSize = 225;
   else if (symUpper.includes("INFY")) lotSize = 400;
+  else if (symUpper.includes("LT")) lotSize = 175;
+  else if (symUpper.includes("TRENT")) lotSize = 225;
+  else if (symUpper.includes("COFORGE")) lotSize = 475;
+  else if (symUpper.includes("TATAPOWER")) lotSize = 1450;
+  else if (symUpper.includes("FEDERALBNK")) lotSize = 2500;
+  else if (symUpper.includes("PERSISTENT") || symUpper.includes("POLYCAB") || symUpper.includes("BAJFINANCE")) lotSize = 125;
+  else if (symUpper.includes("DIXON") || symUpper.includes("MARUTI")) lotSize = 50;
 
   if ($("calcLotSize")) $("calcLotSize").value = lotSize;
 
@@ -1458,7 +1466,7 @@ function pickStrikeOption(sym, strike, type, ltp) {
 
 function calculateOptionRisk() {
   const cap = +$("calcCapital").value || 50000;
-  const lotSize = +$("calcLotSize").value || 25;
+  const lotSize = +$("calcLotSize").value || 65;
   const lotCount = +$("calcLotCount").value || 1;
   const ltp = +$("sigEntryPrice").textContent || 145.5;
 

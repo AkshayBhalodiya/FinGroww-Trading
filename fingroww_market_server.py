@@ -1992,7 +1992,7 @@ def paper_create_profile():
 
     capital = float(data.get("initial_capital", 100000.0))
     instruments = data.get("instruments", ["EQUITY"])
-    style = data.get("trading_style", "INTRADAY")
+    style = data.get("trading_style", "HIGH_WINRATE")
     risk = data.get("risk_profile", "MODERATE")
     holding_mins = int(data.get("holding_duration_mins", 15))
 
