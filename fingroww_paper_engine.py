@@ -65,38 +65,64 @@ def format_duration_display(seconds):
     rem_days = days % 30
     return f"{months}mo {rem_days}d" if rem_days > 0 else f"{months}mo"
 
-# F&O Lot Sizes for Indian Instruments
+# F&O Lot Sizes for Indian Instruments (Official NSE / BSE Master)
 LOT_SIZES = {
-    "NIFTY 50": 25,
-    "NIFTY": 25,
-    "BANK NIFTY": 15,
-    "BANKNIFTY": 15,
-    "FINNIFTY": 25,
-    "MIDCPNIFTY": 50,
-    "SENSEX": 10,
-    "RELIANCE": 250,
-    "HDFCBANK": 550,
+    # Major Indices (Official NSE & BSE F&O Lot Sizes)
+    "NIFTY 50": 65,
+    "NIFTY": 65,
+    "BANK NIFTY": 30,
+    "BANKNIFTY": 30,
+    "FINNIFTY": 65,
+    "MIDCPNIFTY": 120,
+    "NIFTYNXT50": 25,
+    "SENSEX": 20,
+    "BANKEX": 30,
+
+    # Large Cap Stocks
+    "RELIANCE": 500,
+    "HDFCBANK": 650,
     "ICICIBANK": 700,
     "INFY": 400,
-    "TCS": 175,
+    "TCS": 225,
     "SBIN": 750,
-    "TATAMOTORS": 700,
+    "TATAMOTORS": 800,
     "BHARTIARTL": 475,
     "ITC": 1600,
-    "LT": 150,
+    "LT": 175,
     "AXISBANK": 625,
     "KOTAKBANK": 400,
     "MARUTI": 50,
     "BAJFINANCE": 125,
+
     # Midcap Additions
-    "TRENT": 100,
-    "PERSISTENT": 100,
-    "TATAPOWER": 1350,
+    "TRENT": 225,
+    "PERSISTENT": 125,
+    "TATAPOWER": 1450,
     "POLYCAB": 125,
-    "FEDERALBNK": 5000,
+    "FEDERALBNK": 2500,
     "DIXON": 50,
-    "CUMMINSIND": 200,
-    "COFORGE": 75,
+    "CUMMINSIND": 100,
+    "COFORGE": 475,
+
+    # Additional Popular F&O Equities
+    "ADANIENT": 300,
+    "ADANIPORTS": 400,
+    "ASIANPAINT": 200,
+    "BAJAJ-AUTO": 75,
+    "BAJAJFINSV": 500,
+    "BPCL": 1800,
+    "COALINDIA": 2100,
+    "HCLTECH": 350,
+    "HEROMOTOCO": 150,
+    "HINDUNILVR": 300,
+    "JSWSTEEL": 675,
+    "NTPC": 1500,
+    "ONGC": 3850,
+    "POWERGRID": 1800,
+    "SUNPHARMA": 350,
+    "TATASTEEL": 5500,
+    "TITAN": 175,
+    "WIPRO": 1500,
 }
 
 # Supported Watchlist Universe across Market Capitalizations
