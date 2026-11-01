@@ -1547,6 +1547,7 @@ button[disabled],
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
       <li><a href="ai-auto-paper-trading.html" class="active"><i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Auto Paper</a></li>
+      <li><a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 📊 5Y Backtest</a></li>
       <li><a href="today-options.html" style="color:var(--accent-gold);"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options</a></li>
       <li><a href="options.html" style="color:var(--accent-purple);"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Intel</a></li>
       <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Trades</a></li>
@@ -2430,6 +2431,7 @@ button[disabled],
       <div>
         <label class="form-label">Strategy</label>
         <select id="btStrategy" class="custom-select">
+          <option value="🎯 80%+ Smart Money Pullback & Breakeven" selected>🎯 80%+ Smart Money Pullback & Breakeven</option>
           <option value="15m ORB Breakout" selected>15m Opening Range Breakout</option>
           <option value="20/50 EMA Golden Cross">20/50 EMA Golden Cross</option>
           <option value="VWAP Momentum Expansion">VWAP Momentum Expansion</option>
@@ -2463,6 +2465,7 @@ button[disabled],
     </div>
 
     <div class="modal-actions">
+      <a href="backtest.html" class="btn btn-sm btn-outline" style="color:var(--accent-blue);border-color:var(--accent-blue);font-weight:700;"><i class="fa-solid fa-chart-line"></i> Open Full 5-Year Lab</a>
       <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalBacktest')">Close</button>
       <button type="button" id="btnRunBt" class="btn btn-sm btn-primary" onclick="runStrategyBacktest()">
         <i class="fa-solid fa-play"></i> Run Simulation
