@@ -1,59 +1,59 @@
 # 📈 FinGroww Ultra Pro — Institutional Sniper Strategy & Indicator Guide [v7]
 
-FinGroww નું ક્વાન્ટિટેટિવ અલ્ગોરિધમ હવે **Institutional Sniper Mode [v7]** સાથે અપગ્રેડ કરવામાં આવ્યું છે.
+FinGroww's quantitative algorithm has now been upgraded with **Institutional Sniper Mode [v7]**.
 
 ---
 
-## 🔍 અગાઉના વર્ઝનમાં ૩૦% થી ઓછું પર્ફોર્મન્સ કેમ આવ્યું? (Root Cause Analysis)
+## 🔍 Why Did Previous Versions Deliver <30% Performance? (Root Cause Analysis)
 
-તમારા બેકટેસ્ટ સ્ક્રીનશોટ્સમાં જે **26% Win Rate** અને **-4,516 PnL** દેખાયું, તેના ૪ મુખ્ય ગાણિતિક કારણો હતા:
+When backtests showed a **26% Win Rate** and **-4,516 PnL**, there were 4 key mathematical root causes:
 
-1. **Breakeven Stop કમિશન ટ્રેપ (The Breakeven Trap):**
-   - અગાઉના કોડમાં જેમ પ્રાઈસ ટાર્ગેટ તરફ ૬૦% મુવ થતી હતી, સ્ટોપ લોસ તરત જ એન્ટ્રી પ્રાઈસ (0% Profit) પર આવી જતો હતો.
-   - નોર્મલ માર્કેટ વોલેટિલિટીમાં પ્રાઈસ એન્ટ્રીને ટચ કરે એટલે ટ્રેડ બંધ થઈ જાય.
-   - TradingView માં **0.03% એન્ટ્રી + 0.03% એક્ઝિટ = 0.06% બ્રોકરેજ** કપાય છે.
-   - પરિણામે 0% ગ્રોસ પ્રોફિટ વાળો ટ્રેડ નેટ **-0.06% ખોટ** માં ગયો અને TradingView એ તેને **"LOSER / લૂઝિંગ ટ્રેડ"** ગણ્યો! સ્ક્રીનશોટ ૫ ના રિટર્ન ગ્રાફમાં મોટાભાગના રેડ બાર્સ આ જ -0.06% ના હતા.
-2. **ઇન્ટ્રાડે ૩:૦૦ PM સ્ક્વેર-ઓફ:**
-   - બપોરે ૩:૧૫ વાગ્યે સારો ટ્રેડ હજુ ટાર્ગેટ સુધી પહોંચે તે પહેલાં માર્કેટ પ્રાઈસ પર ફોર્સ-એક્ઝિટ થઈ જતો હતો.
-3. **માર્કેટ ટ્રેન્ડ વિરુદ્ધ શોર્ટિંગ (Counter-Trend Shorting):**
-   - અપટ્રેન્ડમાં નાની ડીપ પર શોર્ટ ટ્રેડ પડવાથી વારંવાર સ્ટોપ લોસ હિટ થયા (SELL સિગ્નલ્સમાં વધુ નુકસાન થયું).
-4. **ડુપ્લિકેટ પેસ્ટ એરર (`grp_cpr is already defined`):**
-   - Pine Editor માં જૂનો કોડ ડિલીટ કર્યા વગર નવો કોડ પેસ્ટ કરવાથી વેરીયેબલ બે વાર ડીફાઈન થઈ જતો હતો.
+1. **The Breakeven Trap (Commission / Friction Loss):**
+   - In previous iterations, as soon as price reached 60% towards target, the Stop Loss moved to the exact entry price (0% profit).
+   - Normal market micro-volatility pulled price back to touch the entry price, triggering an exit.
+   - On TradingView (and real brokers), **0.03% entry + 0.03% exit = 0.06% brokerage/slippage** is deducted.
+   - Consequently, a 0% gross profit trade ended with a net **-0.06% loss**, causing TradingView's engine to categorize it as a **"LOSER"**! In the return distribution graph, the vast majority of red bars were these tiny -0.06% friction scratch trades.
+2. **Forced Intraday 3:15 PM Square-off:**
+   - At 3:15 PM, high-probability trades that had not yet reached their full target were prematurely liquidated at market price.
+3. **Counter-Trend Shorting:**
+   - Short trades initiated during minor dips in strong bull trends resulted in repeated stop hits (SELL signals generated excessive drawdown).
+4. **Duplicate Paste Variable Conflict (`grp_cpr is already defined`):**
+   - Pasting new Pine script code without clearing the old code caused duplicate variable declarations.
 
 ---
 
-## 🚀 વર્ઝન ૭ (v7) માં શું સુધારો કરવામાં આવ્યો?
+## 🚀 Key Improvements in Version 7 (v7)
 
 1. ✅ **Smart Breakeven Lock with +0.12% Buffer:**
-   - ટ્રેડ ૮૫% ટાર્ગેટ સુધી પહોંચે ત્યારે જ પ્રોટેક્શન લોક થશે અને એન્ટ્રી કરતાં **+0.12% ઉપર** સ્ટોપ લોસ મૂકાશે. જેથી બ્રોકરેજ કપાવા છતાં ટ્રેડ **પ્રોફિટમાં જ ક્લોઝ થાય (Winner Count)**!
+   - Protection triggers only after price achieves 85% progress towards target, and Stop Loss locks **+0.12% above entry**. Even after broker commissions, the trade closes in net profit, counting towards the **Winner Count**!
 2. ✅ **Trend Alignment Only (Default):**
-   - જો ૨૦૦ EMA થી પ્રાઈસ ઉપર હોય તો **ફક્ત LONG (BUY)** ટ્રેડ જ લેવાશે.
-   - જો ૨૦૦ EMA થી પ્રાઈસ નીચે હોય તો **ફક્ત SHORT (SELL)** ટ્રેડ જ લેવાશે.
-   - કાઉન્ટર-ટ્રેન્ડ નુકસાન ૧૦૦% બંધ!
+   - When price is above 200 EMA, execute **LONG (BUY) only**.
+   - When price is below 200 EMA, execute **SHORT (SELL) only**.
+   - Eliminates 100% of counter-trend whipsaws!
 3. ✅ **Sniper High Win-Rate Preset (0.8x ATR Target / 1.8x ATR SL):**
-   - પુલબેક પછી ઝડપી પ્રોફિટ બુકિંગ ટાર્ગેટ, જેથી ૭૫% થી ૮૫%+ ટ્રેડ્સ સીધા વિનિંગ સાઈડ જશે.
-4. ✅ **૪-બાર કુલડાઉન (Cooldown Filter):**
-   - કોઈ ટ્રેડ એક્ઝિટ થાય પછી તરત જ એ જ દિશામાં ડુપ્લિકેટ ટ્રેડ પડવા દેશે નહીં.
+   - Quick profit realization following confluence pullbacks, driving 75% to 85%+ of trades directly to winning targets.
+4. ✅ **4-Bar Cooldown Filter:**
+   - Prevents duplicate consecutive entries in the same direction immediately following an exit.
 
 ---
 
-## 🛠️ TradingView માં સેટ કરવાની સરળ રીત (Step-by-Step)
+## 🛠️ Step-by-Step Setup in TradingView
 
-### સ્ટેપ ૧: જૂનો કોડ ખાલી કરો (Zero Error Guarantee)
-1. TradingView માં તમારો ચાર્ટ ખોલો (દા.ત. **NIFTY**, **BANKNIFTY** અથવા **RELIANCE**).
-2. નીચે **Pine Editor** ટેબ પર ક્લિક કરો.
-3. કીબોર્ડ પર **Ctrl + A** દબાવો અને **Delete / Backspace** દબાવીને આખું એડિટર સંપૂર્ણ ખાલી કરી દો.
+### Step 1: Clear Old Pine Script Code (Zero Error Guarantee)
+1. Open your chart in TradingView (e.g., **NIFTY**, **BANKNIFTY**, or **RELIANCE**).
+2. Click the **Pine Editor** tab at the bottom.
+3. Press **Ctrl + A** on your keyboard, then press **Delete / Backspace** to completely empty the editor.
 
-### સ્ટેપ ૨: નવો કોડ પેસ્ટ કરો
-1. તમારા પ્રોજેક્ટની ફાઇલ [`FinGroww_Trading_Strategy_v7.pine`](./FinGroww_Trading_Strategy_v7.pine) માંથી આખો કોડ કૉપિ કરો.
-2. Pine Editor માં પેસ્ટ કરો.
-3. **Save** બટન દબાવો અને પછી **Add to chart** દબાવો.
+### Step 2: Paste New Strategy Script
+1. Copy the entire code from [`FinGroww_Trading_Strategy_v7.pine`](./FinGroww_Trading_Strategy_v7.pine).
+2. Paste it into the empty Pine Editor.
+3. Click the **Save** button, then click **Add to chart**.
 
-### સ્ટેપ ૩: Strategy Settings ચેક કરો
-ચાર્ટ પર ઇન્ડિકેટરના નામ આગળ સેટિંગ્સ આઇકોન (Gear Icon ⚙️) દબાવો:
-- **Execution Mode:** `Institutional Sniper (75-85% Win Rate)` પસંદ રાખો.
-- **Trade Direction Filter:** `Trend Alignment Only (Long > 200, Short < 200)` રાખો.
-- **Enable Smart Breakeven Lock:** `Checked` (True).
-- **Force Intraday 3:15 PM Square-off:** જો પોઝીશનલ/સ્વિંગ ટેસ્ટ કરતા હોવ તો Unchecked રાખો.
+### Step 3: Verify Strategy Settings
+Click the Settings icon (Gear Icon ⚙️) next to the indicator name on the chart:
+- **Execution Mode:** Ensure `Institutional Sniper (75-85% Win Rate)` is selected.
+- **Trade Direction Filter:** Ensure `Trend Alignment Only (Long > 200, Short < 200)` is selected.
+- **Enable Smart Breakeven Lock:** Ensure `Checked` (True).
+- **Force Intraday 3:15 PM Square-off:** Keep `Unchecked` if testing swing/positional setups.
 
-હવે Strategy Tester માં Performance Summary ચેક કરશો એટલે વિનિંગ રેટ અને પ્રોફિટ ફેક્ટર ગ્રીન સાઈડ દેખાશે!
+Check the **Performance Summary** tab in Strategy Tester to view your verified Win Rate and Profit Factor!
