@@ -87,6 +87,23 @@ INDIAN_LOT_SIZES = {
     "TATASTEEL": 5500,
     "TITAN": 175,
     "WIPRO": 1500,
+    "M&M": 350,
+    "BEL": 2700,
+    "HAL": 300,
+    "VOLTAS": 600,
+    "APOLLOHOSP": 125,
+    "CHOLAFIN": 625,
+    "INDHOTEL": 1000,
+    "DEEPAKNTR": 300,
+    "ASTRAL": 275,
+    "BHEL": 2625,
+    "CONCOR": 1000,
+    "AUROPHARMA": 550,
+    "ASHOKLEY": 5000,
+    "PETRONET": 3000,
+    "ZOMATO": 2000,
+    "JIOFIN": 2500,
+    "MOTHERSON": 6100,
 }
 
 # -------------------------------------------------------------------------

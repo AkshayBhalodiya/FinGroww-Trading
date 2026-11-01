@@ -1806,6 +1806,14 @@ def paper_update_config():
         if not isinstance(mcaps, list) or len(mcaps) == 0:
             return jsonify({"error": "Please select at least one market cap segment."}), 400
 
+    if "max_open_positions" in data:
+        try:
+            m_pos = int(data["max_open_positions"])
+            if 1 <= m_pos <= 50:
+                data["max_open_positions"] = m_pos
+        except (ValueError, TypeError):
+            pass
+
     u_sess.update_config(data)
     u_sess.save_to_db()
     return jsonify({"ok": True, "state": u_sess.get_state()})

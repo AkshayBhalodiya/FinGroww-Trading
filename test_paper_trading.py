@@ -1238,7 +1238,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         for s in setups_small:
             self.assertEqual(s["market_cap"], "SMALL_CAP")
             self.assertEqual(s["instrument_type"], "EQUITY")  # Small caps on Indian exchanges only trade in Equity
-            self.assertIn(s["base_symbol"], ["CDSL", "BSE", "ANGELONE", "SUZLON", "KALYANKJIL", "MAZDOCK", "RVNL", "HUDCO"])
+            self.assertIn(s["base_symbol"], ["CDSL", "BSE", "ANGELONE", "SUZLON", "KALYANKJIL", "MAZDOCK", "RVNL", "HUDCO", "IREDA", "IRFC", "COCHINSHIP", "NBCC", "SJVN", "ZOMATO", "JIOFIN", "MOTHERSON"])
 
         # Select ONLY LARGE_CAP
         self.session.config["market_caps"] = ["LARGE_CAP"]

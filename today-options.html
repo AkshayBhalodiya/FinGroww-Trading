@@ -1446,14 +1446,67 @@ const BACKEND_HOSTS = [
 
 // Exact Real Market Spec Registry
 const CONTRACT_SPECS = [
-  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1196.20, strikeStep: 10 },
+  // Major Benchmark Indices
   { symbol: "NIFTY 50", nseSym: "NIFTY", yahooTicker: "^NSEI", kind: "index", lot: 65, exp: "13-OCT-2026", defaultSpot: 22749.75, strikeStep: 50 },
-  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 650, exp: "29-OCT-2026", defaultSpot: 680.20, strikeStep: 5 },
   { symbol: "BANK NIFTY", nseSym: "BANKNIFTY", yahooTicker: "^NSEBANK", kind: "index", lot: 30, exp: "14-OCT-2026", defaultSpot: 53974.90, strikeStep: 100 },
-  { symbol: "TATAMOTORS", nseSym: "TATAMOTORS", yahooTicker: "TATAMOTORS.NS", kind: "stock", lot: 800, exp: "29-OCT-2026", defaultSpot: 390.00, strikeStep: 5 },
+  { symbol: "FINNIFTY", nseSym: "FINNIFTY", yahooTicker: "NIFTY_FIN_SERVICE.NS", kind: "index", lot: 65, exp: "14-OCT-2026", defaultSpot: 24303.75, strikeStep: 50 },
+  { symbol: "MIDCPNIFTY", nseSym: "MIDCPNIFTY", yahooTicker: "NIFTY_MID_SELECT.NS", kind: "index", lot: 120, exp: "14-OCT-2026", defaultSpot: 12450.00, strikeStep: 25 },
+
+  // Banking & Financials Leaders
+  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 650, exp: "29-OCT-2026", defaultSpot: 680.20, strikeStep: 5 },
+  { symbol: "ICICIBANK", nseSym: "ICICIBANK", yahooTicker: "ICICIBANK.NS", kind: "stock", lot: 700, exp: "29-OCT-2026", defaultSpot: 1386.90, strikeStep: 10 },
   { symbol: "SBIN", nseSym: "SBIN", yahooTicker: "SBIN.NS", kind: "stock", lot: 750, exp: "29-OCT-2026", defaultSpot: 945.10, strikeStep: 10 },
+  { symbol: "AXISBANK", nseSym: "AXISBANK", yahooTicker: "AXISBANK.NS", kind: "stock", lot: 625, exp: "29-OCT-2026", defaultSpot: 1220.00, strikeStep: 10 },
+  { symbol: "KOTAKBANK", nseSym: "KOTAKBANK", yahooTicker: "KOTAKBANK.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1850.00, strikeStep: 10 },
+  { symbol: "BAJFINANCE", nseSym: "BAJFINANCE", yahooTicker: "BAJFINANCE.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 7200.00, strikeStep: 50 },
+  { symbol: "BAJAJFINSV", nseSym: "BAJAJFINSV", yahooTicker: "BAJAJFINSV.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1780.00, strikeStep: 10 },
+  { symbol: "FEDERALBNK", nseSym: "FEDERALBNK", yahooTicker: "FEDERALBNK.NS", kind: "stock", lot: 2500, exp: "29-OCT-2026", defaultSpot: 205.00, strikeStep: 2.5 },
+
+  // Technology Giants
   { symbol: "TCS", nseSym: "TCS", yahooTicker: "TCS.NS", kind: "stock", lot: 225, exp: "29-OCT-2026", defaultSpot: 2496.90, strikeStep: 20 },
-  { symbol: "INFYS", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1163.00, strikeStep: 10 }
+  { symbol: "INFY", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1163.00, strikeStep: 10 },
+  { symbol: "HCLTECH", nseSym: "HCLTECH", yahooTicker: "HCLTECH.NS", kind: "stock", lot: 350, exp: "29-OCT-2026", defaultSpot: 1860.00, strikeStep: 20 },
+  { symbol: "WIPRO", nseSym: "WIPRO", yahooTicker: "WIPRO.NS", kind: "stock", lot: 1500, exp: "29-OCT-2026", defaultSpot: 560.00, strikeStep: 5 },
+  { symbol: "COFORGE", nseSym: "COFORGE", yahooTicker: "COFORGE.NS", kind: "stock", lot: 475, exp: "29-OCT-2026", defaultSpot: 7800.00, strikeStep: 50 },
+  { symbol: "PERSISTENT", nseSym: "PERSISTENT", yahooTicker: "PERSISTENT.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 5420.00, strikeStep: 50 },
+
+  // Energy, Utilities & Oil
+  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1196.20, strikeStep: 10 },
+  { symbol: "TATAPOWER", nseSym: "TATAPOWER", yahooTicker: "TATAPOWER.NS", kind: "stock", lot: 1450, exp: "29-OCT-2026", defaultSpot: 415.00, strikeStep: 5 },
+  { symbol: "NTPC", nseSym: "NTPC", yahooTicker: "NTPC.NS", kind: "stock", lot: 1500, exp: "29-OCT-2026", defaultSpot: 395.00, strikeStep: 5 },
+  { symbol: "POWERGRID", nseSym: "POWERGRID", yahooTicker: "POWERGRID.NS", kind: "stock", lot: 1800, exp: "29-OCT-2026", defaultSpot: 330.00, strikeStep: 2.5 },
+  { symbol: "ONGC", nseSym: "ONGC", yahooTicker: "ONGC.NS", kind: "stock", lot: 3850, exp: "29-OCT-2026", defaultSpot: 280.00, strikeStep: 2.5 },
+  { symbol: "COALINDIA", nseSym: "COALINDIA", yahooTicker: "COALINDIA.NS", kind: "stock", lot: 2100, exp: "29-OCT-2026", defaultSpot: 485.00, strikeStep: 5 },
+
+  // Auto & Mobility
+  { symbol: "TATAMOTORS", nseSym: "TATAMOTORS", yahooTicker: "TATAMOTORS.NS", kind: "stock", lot: 800, exp: "29-OCT-2026", defaultSpot: 390.00, strikeStep: 5 },
+  { symbol: "MARUTI", nseSym: "MARUTI", yahooTicker: "MARUTI.NS", kind: "stock", lot: 50, exp: "29-OCT-2026", defaultSpot: 12500.00, strikeStep: 100 },
+  { symbol: "M&M", nseSym: "M&M", yahooTicker: "M&M.NS", kind: "stock", lot: 350, exp: "29-OCT-2026", defaultSpot: 2980.00, strikeStep: 20 },
+  { symbol: "BAJAJ-AUTO", nseSym: "BAJAJ-AUTO", yahooTicker: "BAJAJ-AUTO.NS", kind: "stock", lot: 75, exp: "29-OCT-2026", defaultSpot: 9600.00, strikeStep: 100 },
+
+  // Metals & Infrastructure
+  { symbol: "LT", nseSym: "LT", yahooTicker: "LT.NS", kind: "stock", lot: 175, exp: "29-OCT-2026", defaultSpot: 3665.10, strikeStep: 20 },
+  { symbol: "TATASTEEL", nseSym: "TATASTEEL", yahooTicker: "TATASTEEL.NS", kind: "stock", lot: 5500, exp: "29-OCT-2026", defaultSpot: 160.00, strikeStep: 1 },
+  { symbol: "JSWSTEEL", nseSym: "JSWSTEEL", yahooTicker: "JSWSTEEL.NS", kind: "stock", lot: 675, exp: "29-OCT-2026", defaultSpot: 980.00, strikeStep: 10 },
+  { symbol: "POLYCAB", nseSym: "POLYCAB", yahooTicker: "POLYCAB.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 6700.00, strikeStep: 50 },
+
+  // FMCG, Telecom & Consumer
+  { symbol: "BHARTIARTL", nseSym: "BHARTIARTL", yahooTicker: "BHARTIARTL.NS", kind: "stock", lot: 475, exp: "29-OCT-2026", defaultSpot: 1978.80, strikeStep: 10 },
+  { symbol: "ITC", nseSym: "ITC", yahooTicker: "ITC.NS", kind: "stock", lot: 1600, exp: "29-OCT-2026", defaultSpot: 475.00, strikeStep: 5 },
+  { symbol: "HINDUNILVR", nseSym: "HINDUNILVR", yahooTicker: "HINDUNILVR.NS", kind: "stock", lot: 300, exp: "29-OCT-2026", defaultSpot: 2550.00, strikeStep: 20 },
+  { symbol: "TITAN", nseSym: "TITAN", yahooTicker: "TITAN.NS", kind: "stock", lot: 175, exp: "29-OCT-2026", defaultSpot: 3450.00, strikeStep: 25 },
+  { symbol: "TRENT", nseSym: "TRENT", yahooTicker: "TRENT.NS", kind: "stock", lot: 225, exp: "29-OCT-2026", defaultSpot: 6850.00, strikeStep: 50 },
+  { symbol: "ASIANPAINT", nseSym: "ASIANPAINT", yahooTicker: "ASIANPAINT.NS", kind: "stock", lot: 200, exp: "29-OCT-2026", defaultSpot: 2750.00, strikeStep: 20 },
+
+  // Pharma & High Growth Industrial
+  { symbol: "SUNPHARMA", nseSym: "SUNPHARMA", yahooTicker: "SUNPHARMA.NS", kind: "stock", lot: 350, exp: "29-OCT-2026", defaultSpot: 1880.00, strikeStep: 10 },
+  { symbol: "DIXON", nseSym: "DIXON", yahooTicker: "DIXON.NS", kind: "stock", lot: 50, exp: "29-OCT-2026", defaultSpot: 14200.00, strikeStep: 100 },
+  { symbol: "CUMMINSIND", nseSym: "CUMMINSIND", yahooTicker: "CUMMINSIND.NS", kind: "stock", lot: 100, exp: "29-OCT-2026", defaultSpot: 3650.00, strikeStep: 25 },
+  { symbol: "ADANIENT", nseSym: "ADANIENT", yahooTicker: "ADANIENT.NS", kind: "stock", lot: 300, exp: "29-OCT-2026", defaultSpot: 2950.00, strikeStep: 20 },
+  { symbol: "ADANIPORTS", nseSym: "ADANIPORTS", yahooTicker: "ADANIPORTS.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1350.00, strikeStep: 10 },
+  { symbol: "BEL", nseSym: "BEL", yahooTicker: "BEL.NS", kind: "stock", lot: 2700, exp: "29-OCT-2026", defaultSpot: 295.00, strikeStep: 5 },
+  { symbol: "HAL", nseSym: "HAL", yahooTicker: "HAL.NS", kind: "stock", lot: 300, exp: "29-OCT-2026", defaultSpot: 4650.00, strikeStep: 50 },
+  { symbol: "VOLTAS", nseSym: "VOLTAS", yahooTicker: "VOLTAS.NS", kind: "stock", lot: 600, exp: "29-OCT-2026", defaultSpot: 1750.00, strikeStep: 20 }
 ];
 
 let OPTION_SETUPS = [];

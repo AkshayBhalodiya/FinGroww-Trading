@@ -123,30 +123,66 @@ LOT_SIZES = {
     "TATASTEEL": 5500,
     "TITAN": 175,
     "WIPRO": 1500,
+    "M&M": 350,
+    "BEL": 2700,
+    "HAL": 300,
+    "VOLTAS": 600,
+    "APOLLOHOSP": 125,
+    "CHOLAFIN": 625,
+    "INDHOTEL": 1000,
+    "DEEPAKNTR": 300,
+    "ASTRAL": 275,
+    "BHEL": 2625,
+    "CONCOR": 1000,
+    "AUROPHARMA": 550,
+    "ASHOKLEY": 5000,
+    "PETRONET": 3000,
+    "ZOMATO": 2000,
+    "JIOFIN": 2500,
+    "MOTHERSON": 6100,
 }
 
-# Supported Watchlist Universe across Market Capitalizations
+# Supported Watchlist Universe across Market Capitalizations (Expanded Multi-Profile Catalog)
 UNIVERSE = [
-    # Large Cap Indices
+    # Large Cap Benchmark Indices
     {"symbol": "NIFTY 50", "name": "Nifty 50 Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 24850.0},
     {"symbol": "BANK NIFTY", "name": "Bank Nifty Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 53200.0},
     {"symbol": "FINNIFTY", "name": "FinNifty Index", "type": "INDEX", "market_cap": "LARGE_CAP", "default_price": 24200.0},
     
-    # Large Cap Stocks
-    {"symbol": "RELIANCE", "name": "Reliance Industries", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1285.0},
+    # Large Cap Blue-Chip Equities
+    {"symbol": "RELIANCE", "name": "Reliance Industries Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1285.0},
     {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 685.0},
     {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1390.0},
     {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1175.0},
-    {"symbol": "TCS", "name": "Tata Consultancy Services", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2510.0},
+    {"symbol": "TCS", "name": "Tata Consultancy Services Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2510.0},
     {"symbol": "SBIN", "name": "State Bank of India", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 948.0},
     {"symbol": "AXISBANK", "name": "Axis Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1220.0},
+    {"symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1850.0},
     {"symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1980.0},
     {"symbol": "LT", "name": "Larsen & Toubro Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 3680.0},
-    {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 920.0},
+    {"symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 7200.0},
+    {"symbol": "BAJAJFINSV", "name": "Bajaj Finserv Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1780.0},
     {"symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 820.0},
     {"symbol": "ITC", "name": "ITC Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 475.0},
+    {"symbol": "HINDUNILVR", "name": "Hindustan Unilever Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2550.0},
+    {"symbol": "MARUTI", "name": "Maruti Suzuki India Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 12500.0},
+    {"symbol": "M&M", "name": "Mahindra & Mahindra Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2980.0},
+    {"symbol": "TITAN", "name": "Titan Company Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 3450.0},
+    {"symbol": "SUNPHARMA", "name": "Sun Pharmaceutical Industries Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1880.0},
+    {"symbol": "NTPC", "name": "NTPC Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 395.0},
+    {"symbol": "POWERGRID", "name": "Power Grid Corporation of India", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 330.0},
+    {"symbol": "TATASTEEL", "name": "Tata Steel Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 160.0},
+    {"symbol": "JSWSTEEL", "name": "JSW Steel Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 980.0},
+    {"symbol": "ADANIENT", "name": "Adani Enterprises Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2950.0},
+    {"symbol": "ADANIPORTS", "name": "Adani Ports & SEZ Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1350.0},
+    {"symbol": "ASIANPAINT", "name": "Asian Paints Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2750.0},
+    {"symbol": "COALINDIA", "name": "Coal India Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 485.0},
+    {"symbol": "HCLTECH", "name": "HCL Technologies Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1860.0},
+    {"symbol": "WIPRO", "name": "Wipro Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 560.0},
+    {"symbol": "ONGC", "name": "Oil & Natural Gas Corp Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 280.0},
+    {"symbol": "BAJAJ-AUTO", "name": "Bajaj Auto Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 9600.0},
 
-    # Mid Cap Index & Stocks (High Growth & F&O Supported)
+    # Mid Cap Index & High-Growth Momentum Stocks (F&O Supported)
     {"symbol": "MIDCPNIFTY", "name": "Nifty Midcap Select Index", "type": "INDEX", "market_cap": "MID_CAP", "default_price": 12450.0},
     {"symbol": "TRENT", "name": "Trent Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 6850.0},
     {"symbol": "PERSISTENT", "name": "Persistent Systems Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 5420.0},
@@ -156,8 +192,21 @@ UNIVERSE = [
     {"symbol": "DIXON", "name": "Dixon Technologies Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 14200.0},
     {"symbol": "CUMMINSIND", "name": "Cummins India Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 3650.0},
     {"symbol": "COFORGE", "name": "Coforge Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 7800.0},
+    {"symbol": "BEL", "name": "Bharat Electronics Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 295.0},
+    {"symbol": "HAL", "name": "Hindustan Aeronautics Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 4650.0},
+    {"symbol": "VOLTAS", "name": "Voltas Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 1750.0},
+    {"symbol": "APOLLOHOSP", "name": "Apollo Hospitals Enterprise Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 7100.0},
+    {"symbol": "CHOLAFIN", "name": "Cholamandalam Investment & Finance", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 1460.0},
+    {"symbol": "INDHOTEL", "name": "The Indian Hotels Co Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 720.0},
+    {"symbol": "DEEPAKNTR", "name": "Deepak Nitrite Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 2820.0},
+    {"symbol": "ASTRAL", "name": "Astral Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 2050.0},
+    {"symbol": "BHEL", "name": "Bharat Heavy Electricals Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 245.0},
+    {"symbol": "CONCOR", "name": "Container Corporation of India", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 870.0},
+    {"symbol": "AUROPHARMA", "name": "Aurobindo Pharma Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 1420.0},
+    {"symbol": "ASHOKLEY", "name": "Ashok Leyland Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 225.0},
+    {"symbol": "PETRONET", "name": "Petronet LNG Ltd", "type": "STOCK", "market_cap": "MID_CAP", "default_price": 340.0},
 
-    # Small Cap Stocks (High-Momentum Cash Equities for Swing & Long-Term Growth)
+    # Small Cap Momentum & High-Alpha Cash Equities
     {"symbol": "CDSL", "name": "Central Depository Services Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 1540.0},
     {"symbol": "BSE", "name": "BSE Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 4650.0},
     {"symbol": "ANGELONE", "name": "Angel One Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 2850.0},
@@ -166,6 +215,14 @@ UNIVERSE = [
     {"symbol": "MAZDOCK", "name": "Mazagon Dock Shipbuilders Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 4200.0},
     {"symbol": "RVNL", "name": "Rail Vikas Nigam Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 480.0},
     {"symbol": "HUDCO", "name": "Housing & Urban Development Corp", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 220.0},
+    {"symbol": "IREDA", "name": "Indian Renewable Energy Dev Agency", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 215.0},
+    {"symbol": "IRFC", "name": "Indian Railway Finance Corporation", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 155.0},
+    {"symbol": "COCHINSHIP", "name": "Cochin Shipyard Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 1650.0},
+    {"symbol": "NBCC", "name": "NBCC India Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 105.0},
+    {"symbol": "SJVN", "name": "SJVN Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 118.0},
+    {"symbol": "ZOMATO", "name": "Zomato Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 265.0},
+    {"symbol": "JIOFIN", "name": "Jio Financial Services Ltd", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 315.0},
+    {"symbol": "MOTHERSON", "name": "Samvardhana Motherson International", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 175.0},
 ]
 
 
@@ -1556,7 +1613,7 @@ class PaperTradingSession:
             "user_name": self.user_name,
             "user_id": self.user_id,
             "instruments": self.config.get("instruments", ["EQUITY"]),
-            "trading_style": self.config.get("trading_style", "INTRADAY"),
+            "trading_style": self.config.get("trading_style", "HIGH_WINRATE"),
             "risk_profile": self.config.get("risk_profile", "MODERATE"),
             "holding_duration_mins": self.config.get("holding_duration_mins", 15),
             "initial_capital": self.initial_capital,
@@ -1741,7 +1798,7 @@ class PaperTradingEngine:
         cfg_market_caps = list(self.session.config.get("market_caps") or [])
         allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
 
-        trading_style = self.session.config.get("trading_style", "INTRADAY")
+        trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
         is_long_term_style = (trading_style == "LONG_TERM")
 
         # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
@@ -2410,7 +2467,7 @@ class MultiUserPaperSessionManager:
 
         # 3. Ensure standard benchmark profiles exist if not already present
         default_benchmarks = [
-            {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "INTRADAY", "risk": "MODERATE"},
+            {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "HIGH_WINRATE", "risk": "MODERATE"},
             {"user_name": "Vijay_Options_Pro", "instruments": ["INDEX_OPTIONS"], "capital": 50000.0, "style": "SCALPING", "risk": "AGGRESSIVE"},
             {"user_name": "Rahul_Futures_Swing", "instruments": ["INDEX_FUTURES", "STOCK_FUTURES"], "capital": 200000.0, "style": "SWING", "risk": "CONSERVATIVE"},
             {"user_name": "Pooja_Equity_Value", "instruments": ["EQUITY"], "capital": 75000.0, "style": "POSITIONAL", "risk": "MODERATE"},
@@ -2436,7 +2493,7 @@ class MultiUserPaperSessionManager:
                         "instruments": p["instruments"],
                         "trading_style": p["style"],
                         "risk_profile": p["risk"],
-                        "holding_duration_mins": 15 if p["style"] == "INTRADAY" else (1440 if p["style"] == "SWING" else 10080),
+                        "holding_duration_mins": 15 if p["style"] in ("INTRADAY", "HIGH_WINRATE") else (1440 if p["style"] == "SWING" else 10080),
                     },
                     db=self.db
                 )
@@ -2536,7 +2593,7 @@ class MultiUserPaperSessionManager:
                 "user_name": sess.user_name,
                 "user_id": sess.user_id,
                 "instruments": sess.config.get("instruments", ["EQUITY"]),
-                "trading_style": sess.config.get("trading_style", "INTRADAY"),
+                "trading_style": sess.config.get("trading_style", "HIGH_WINRATE"),
                 "risk_profile": sess.config.get("risk_profile", "MODERATE"),
                 "holding_duration_mins": sess.config.get("holding_duration_mins", 15),
                 "initial_capital": sess.initial_capital,
