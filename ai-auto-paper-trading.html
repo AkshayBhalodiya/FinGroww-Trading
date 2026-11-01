@@ -3069,7 +3069,7 @@ function syncConfigFormWithState(state) {
 
   // Market & Style
   if (document.getElementById("selMarket")) document.getElementById("selMarket").value = cfg.market || "NSE";
-  if (document.getElementById("selStyle")) document.getElementById("selStyle").value = cfg.trading_style || "INTRADAY";
+  if (document.getElementById("selStyle")) document.getElementById("selStyle").value = cfg.trading_style || "HIGH_WINRATE";
 
   // Duration
   const durMins = cfg.holding_duration_mins || 15;
@@ -3110,7 +3110,7 @@ function syncConfigFormWithState(state) {
   }
   const tagStyle = document.getElementById("tagProfileStyle");
   if (tagStyle) {
-    tagStyle.innerHTML = `<i class="fa-solid fa-bolt"></i> ${cfg.trading_style || 'Intraday'}`;
+    tagStyle.innerHTML = `<i class="fa-solid fa-bolt"></i> ${cfg.trading_style || 'HIGH_WINRATE'}`;
   }
   const tagRisk = document.getElementById("tagProfileRisk");
   if (tagRisk) {
@@ -3194,7 +3194,7 @@ async function refreshLeaderboard(btnEl = null) {
           <div style="font-size:11px;color:var(--text-dim);">${p.badge || 'Trader'}</div>
         </td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${instBadges || 'All'}</div></td>
-        <td style="font-size:12px;font-weight:700;color:var(--accent-blue);">${p.trading_style || 'INTRADAY'}</td>
+        <td style="font-size:12px;font-weight:700;color:var(--accent-blue);">${p.trading_style || 'HIGH_WINRATE'}</td>
         <td style="font-size:11.5px;color:var(--text-muted);">${p.risk_profile || 'MODERATE'}</td>
         <td style="font-family:var(--font-mono);font-size:12.5px;">${formatInr(p.initial_capital)}</td>
         <td style="font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--text-main);">${formatInr(p.account_equity)}</td>

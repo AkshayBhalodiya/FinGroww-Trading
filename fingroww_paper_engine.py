@@ -1613,7 +1613,7 @@ class PaperTradingSession:
             "user_name": self.user_name,
             "user_id": self.user_id,
             "instruments": self.config.get("instruments", ["EQUITY"]),
-            "trading_style": self.config.get("trading_style", "INTRADAY"),
+            "trading_style": self.config.get("trading_style", "HIGH_WINRATE"),
             "risk_profile": self.config.get("risk_profile", "MODERATE"),
             "holding_duration_mins": self.config.get("holding_duration_mins", 15),
             "initial_capital": self.initial_capital,
@@ -1798,7 +1798,7 @@ class PaperTradingEngine:
         cfg_market_caps = list(self.session.config.get("market_caps") or [])
         allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
 
-        trading_style = self.session.config.get("trading_style", "INTRADAY")
+        trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
         is_long_term_style = (trading_style == "LONG_TERM")
 
         # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
@@ -2467,7 +2467,7 @@ class MultiUserPaperSessionManager:
 
         # 3. Ensure standard benchmark profiles exist if not already present
         default_benchmarks = [
-            {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "INTRADAY", "risk": "MODERATE"},
+            {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "HIGH_WINRATE", "risk": "MODERATE"},
             {"user_name": "Vijay_Options_Pro", "instruments": ["INDEX_OPTIONS"], "capital": 50000.0, "style": "SCALPING", "risk": "AGGRESSIVE"},
             {"user_name": "Rahul_Futures_Swing", "instruments": ["INDEX_FUTURES", "STOCK_FUTURES"], "capital": 200000.0, "style": "SWING", "risk": "CONSERVATIVE"},
             {"user_name": "Pooja_Equity_Value", "instruments": ["EQUITY"], "capital": 75000.0, "style": "POSITIONAL", "risk": "MODERATE"},
@@ -2493,7 +2493,7 @@ class MultiUserPaperSessionManager:
                         "instruments": p["instruments"],
                         "trading_style": p["style"],
                         "risk_profile": p["risk"],
-                        "holding_duration_mins": 15 if p["style"] == "INTRADAY" else (1440 if p["style"] == "SWING" else 10080),
+                        "holding_duration_mins": 15 if p["style"] in ("INTRADAY", "HIGH_WINRATE") else (1440 if p["style"] == "SWING" else 10080),
                     },
                     db=self.db
                 )
@@ -2593,7 +2593,7 @@ class MultiUserPaperSessionManager:
                 "user_name": sess.user_name,
                 "user_id": sess.user_id,
                 "instruments": sess.config.get("instruments", ["EQUITY"]),
-                "trading_style": sess.config.get("trading_style", "INTRADAY"),
+                "trading_style": sess.config.get("trading_style", "HIGH_WINRATE"),
                 "risk_profile": sess.config.get("risk_profile", "MODERATE"),
                 "holding_duration_mins": sess.config.get("holding_duration_mins", 15),
                 "initial_capital": sess.initial_capital,
