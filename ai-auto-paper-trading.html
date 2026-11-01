@@ -2842,6 +2842,8 @@ async function executeCloseAllConfirmed() {
       showToast(`All positions closed for [${currentUserName}].`, "info");
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
+    } else if (res && res.error) {
+      showToast(res.error, "error");
     }
   }, btn, "Closing Positions...");
 }
@@ -2880,6 +2882,8 @@ async function manualClosePosition(tradeId, btnEl = null) {
       showToast(`Position closed manually.`, "success");
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
+    } else if (res && res.error) {
+      showToast(res.error, "error");
     }
   }, btn, "Exiting...");
 }
@@ -2898,6 +2902,8 @@ async function testExpirePosition(tradeId, btnEl = null) {
       showToast(`⌛ Holding duration reached! Position auto-closed (TIME_EXPIRED).`, "success");
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
+    } else if (res && res.error) {
+      showToast(res.error, "error");
     }
   }, btn, "Expiring...");
 }

@@ -32,8 +32,8 @@ def get_ist_now():
 # F&O Lot sizes for major Indian indices & stocks (Official NSE / BSE Master)
 INDIAN_LOT_SIZES = {
     # Major Indices
-    "NIFTY 50": 65,
-    "NIFTY": 65,
+    "NIFTY 50": 75,
+    "NIFTY": 75,
     "BANK NIFTY": 30,
     "BANKNIFTY": 30,
     "FINNIFTY": 65,
