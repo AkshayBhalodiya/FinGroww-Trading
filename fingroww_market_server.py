@@ -2027,28 +2027,38 @@ def paper_run_backtest():
     """Runs deterministic strategy backtest on historical candles with realistic transaction costs."""
     data = request.get_json(silent=True) or {}
     sym = normalize_symbol(data.get("symbol", "NIFTY 50"))
-    strat = data.get("strategy", "15m ORB Breakout")
+    strat = data.get("strategy", "🎯 80%+ Smart Money Pullback & Breakeven")
     cap = float(data.get("initial_capital", 100000.0))
     risk_prof = data.get("risk_profile", "MODERATE")
+    years = int(data.get("years", 5))
 
-    # Fetch historical candles for backtesting
+    # Fetch historical daily candles (e.g. 5-year data span)
     ticker = yahoo_ticker(sym)
     candles = None
     try:
-        rows, meta = fetch_yahoo_chart(ticker, "15m", "1mo")
+        range_str = f"{years}y" if years in (1, 2, 3, 5) else "5y"
+        rows, meta = fetch_yahoo_chart(ticker, "1d", range_str)
         if rows and len(rows) >= 30:
             candles = rows
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Could not fetch Yahoo historical candles for %s: %s", sym, exc)
 
     results = PaperTradingEngine.run_backtest(
         symbol=sym,
         strategy=strat,
         initial_capital=cap,
         candles=candles,
-        risk_profile=risk_prof
+        risk_profile=risk_prof,
+        years=years,
     )
     return jsonify(results)
+
+
+@app.get("/backtest.html")
+@app.get("/backtest")
+@app.get("/strategy-backtest")
+def serve_backtest_page():
+    return send_from_directory(".", "backtest.html")
 
 
 @app.get("/ai-auto-paper-trading.html")
