@@ -732,7 +732,7 @@ table.chain-table tbody tr:hover {
       </div>
       <div class="opts-ctrl">
         <label>Lot Size (Shares / Lot)</label>
-        <input type="number" id="calcLotSize" class="opts-input" value="75">
+        <input type="number" id="calcLotSize" class="opts-input" value="65">
       </div>
       <div class="opts-ctrl">
         <label>Number of Lots</label>
@@ -1312,9 +1312,9 @@ function renderSignalRecommendation(data) {
   $("cardTheta").textContent = theta;
 
   // Exact Lot Size Preset Registry (Official NSE / BSE Master)
-  let lotSize = 75;
+  let lotSize = 65;
   const symUpper = (data.symbol || "").toUpperCase();
-  if (symUpper.includes("NIFTY 50") || symUpper === "NIFTY") lotSize = 75;
+  if (symUpper.includes("NIFTY 50") || symUpper === "NIFTY") lotSize = 65;
   else if (symUpper.includes("BANK")) lotSize = 30;
   else if (symUpper.includes("FINNIFTY")) lotSize = 65;
   else if (symUpper.includes("MIDCPNIFTY")) lotSize = 120;
@@ -1466,7 +1466,7 @@ function pickStrikeOption(sym, strike, type, ltp) {
 
 function calculateOptionRisk() {
   const cap = +$("calcCapital").value || 50000;
-  const lotSize = +$("calcLotSize").value || 75;
+  const lotSize = +$("calcLotSize").value || 65;
   const lotCount = +$("calcLotCount").value || 1;
   const ltp = +$("sigEntryPrice").textContent || 145.5;
 

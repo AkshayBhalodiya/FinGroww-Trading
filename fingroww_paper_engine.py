@@ -68,8 +68,8 @@ def format_duration_display(seconds):
 # F&O Lot Sizes for Indian Instruments (Official NSE / BSE Master)
 LOT_SIZES = {
     # Major Indices (Official NSE & BSE F&O Lot Sizes)
-    "NIFTY 50": 75,
-    "NIFTY": 75,
+    "NIFTY 50": 65,
+    "NIFTY": 65,
     "BANK NIFTY": 30,
     "BANKNIFTY": 30,
     "FINNIFTY": 65,

@@ -300,7 +300,7 @@ class TestPaperTradingCornerCases(unittest.TestCase):
             "timeframe": "15m",
             "confidence": 85,
             "setup_type": "PULLBACK",
-            "lot_size": 75,
+            "lot_size": 65,
         }
         pos, err = self.session.execute_trade(
             setup,
@@ -464,8 +464,8 @@ class TestPaperTradingCornerCases(unittest.TestCase):
     # -------------------------------------------------------------
     def test_corner_11_revised_lot_sizes(self):
         """Corner Case: Ensure all F&O lot sizes match latest SEBI specifications."""
-        self.assertEqual(LOT_SIZES.get("NIFTY 50"), 75, "NIFTY 50 lot size must be 75")
-        self.assertEqual(LOT_SIZES.get("NIFTY"), 75, "NIFTY lot size must be 75")
+        self.assertEqual(LOT_SIZES.get("NIFTY 50"), 65, "NIFTY 50 lot size must be 65")
+        self.assertEqual(LOT_SIZES.get("NIFTY"), 65, "NIFTY lot size must be 65")
         self.assertEqual(LOT_SIZES.get("BANK NIFTY"), 30, "BANK NIFTY lot size must be 30")
         self.assertEqual(LOT_SIZES.get("FINNIFTY"), 65, "FINNIFTY lot size must be 65")
         self.assertEqual(LOT_SIZES.get("MIDCPNIFTY"), 120, "MIDCPNIFTY lot size must be 120")
