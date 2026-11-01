@@ -650,8 +650,8 @@ class PaperTradingSession:
 
     @_session_locked
     def reset(self, initial_capital=None):
-        if initial_capital:
-            self.config["initial_capital"] = float(initial_capital)
+        if initial_capital is not None:
+            self.config["initial_capital"] = max(0.0, float(initial_capital))
         cap = float(self.config.get("initial_capital", 100000.0))
         self.initial_capital = cap
         self.available_balance = cap
@@ -1039,7 +1039,7 @@ class PaperTradingSession:
 
         now_ts = time.time()
         ist_now = get_ist_now()
-        is_eod_square_off = (ist_now.hour == 15 and ist_now.minute >= 20)
+        is_eod_square_off = (ist_now.hour > 15 or (ist_now.hour == 15 and ist_now.minute >= 20))
 
         positions_to_close = []
 
@@ -1197,7 +1197,11 @@ class PaperTradingSession:
 
         net_pnl = round(gross_pnl - total_charges, 2)
         # Breakeven protected and trailing stop profit hits count as wins/scratches
-        is_win = (net_pnl > 0) or (pos.get("trailing_state") in ("PROFIT_LOCKED", "BREAKEVEN") and net_pnl >= -5.0)
+        is_win = (
+            (net_pnl > 0)
+            or (reason in ("BREAKEVEN_STOP_HIT", "TRAILING_STOP_PROFIT_HIT"))
+            or (pos.get("trailing_state") in ("PROFIT_LOCKED", "BREAKEVEN") and gross_pnl >= 0)
+        )
 
         # Entry charges were deducted when the position opened; settle only exit cash flow here.
         margin_to_release = pos["allocated_margin"]
@@ -1231,6 +1235,7 @@ class PaperTradingSession:
             "charges": total_charges,
             "slippage": pos["slippage"],
             "exit_reason": reason,
+            "trailing_state": pos.get("trailing_state", "INITIAL"),
             "strategy": pos["strategy"],
             "signal_rationale": pos.get("signal_rationale"),
             "signal_indicators": pos.get("signal_indicators", {}),
