@@ -2619,33 +2619,31 @@ async function fetchPaperApi(path, options = {}) {
   if (isLocalHost) {
     if (!candidateHosts.includes("http://127.0.0.1:8787")) candidateHosts.push("http://127.0.0.1:8787");
     if (!candidateHosts.includes("http://localhost:8787")) candidateHosts.push("http://localhost:8787");
+    if (!candidateHosts.includes("")) candidateHosts.push("");
     if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
   } else {
-    // When hosted online (e.g. Vercel, Netlify, Custom domain), route directly to Render Cloud backend
+    // When hosted online (e.g. Vercel, Netlify, Custom domain), try current origin first (Vercel serverless / proxy) then Render
+    if (!candidateHosts.includes("")) candidateHosts.push("");
     if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
-    if (!candidateHosts.includes("https://fingroww-trading-server.onrender.com")) candidateHosts.push("https://fingroww-trading-server.onrender.com");
-    // Only try relative path if on the same origin as the backend (e.g. Render direct)
-    if (window.location.hostname.includes("onrender.com") && !candidateHosts.includes("")) {
-      candidateHosts.push("");
-    }
   }
 
   for (const host of candidateHosts) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4500);
     try {
       const url = host ? (host + path) : path;
       const r = await fetch(url, { 
         ...options, 
+        signal: controller.signal,
         headers: { "Content-Type": "application/json", ...(options.headers || {}) } 
       });
-      if (r.ok) {
-        activePaperApiHost = host;
-        return await r.json();
-      }
-      if (r.status < 500) {
+      clearTimeout(timer);
+      if (r.ok || r.status < 500) {
         activePaperApiHost = host;
         return await r.json();
       }
     } catch (e) {
+      clearTimeout(timer);
       // Fallback to next candidate
     }
   }
@@ -3749,16 +3747,23 @@ async function fetchMarketStatus() {
     document.getElementById("lblLatency").textContent = data.latency_ms ? `${data.latency_ms}ms` : "--";
     if (sessionState) updateUiWithState(sessionState);
   } else {
+    // When backend is connecting or waking up, check client IST trading hours schedule
+    const nowUtc = new Date();
+    const istTime = new Date(nowUtc.getTime() + (5.5 * 60 * 60 * 1000));
+    const day = istTime.getUTCDay();
+    const mins = istTime.getUTCHours() * 60 + istTime.getUTCMinutes();
+    const isRegularTradingHours = (day >= 1 && day <= 5) && (mins >= 555 && mins < 930);
+
     currentMarketStatus = {
-      is_trading_hours: false,
-      freshness: "STATUS_UNAVAILABLE",
-      market_status_source: "Unavailable (fail-closed)",
+      is_trading_hours: isRegularTradingHours,
+      freshness: "CONNECTING_CLOUD",
+      market_status_source: "Connecting to Cloud Backend...",
     };
     const badge = document.getElementById("marketBadge");
-    badge.className = "badge-market-closed";
-    badge.textContent = "NSE STATUS UNAVAILABLE (BLOCKED)";
-    document.getElementById("scanStatusLabel").textContent = "Status unavailable · trading blocked";
-    document.getElementById("lblDataFreshness").textContent = "NSE status unavailable — automatic trading blocked";
+    badge.className = isRegularTradingHours ? "badge-market-open" : "badge-market-closed";
+    badge.textContent = isRegularTradingHours ? "NSE: OPEN (Connecting...)" : "NSE: CLOSED";
+    document.getElementById("scanStatusLabel").textContent = isRegularTradingHours ? "Connecting to backend..." : "Waiting for NSE market open";
+    document.getElementById("lblDataFreshness").textContent = "Connecting to market server...";
     document.getElementById("lblLatency").textContent = "--";
     if (sessionState) updateUiWithState(sessionState);
   }

@@ -2263,10 +2263,10 @@ async function fetchApi(path, options = {}) {
     }
   }
 
-  // 2. Try live production cloud endpoints with 7000ms timeout (allows Render to wake up)
-  for (const host of ["https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"]) {
+  // 2. Try current origin (Vercel Serverless / Proxy) and Render cloud with 4000ms timeout
+  for (const host of ["", "https://fingroww-trading.onrender.com"]) {
     try {
-      const r = await fetchWithTimeout(host + path, options, 7000);
+      const r = await fetchWithTimeout((host ? host : "") + path, options, 4000);
       if (r.ok) return r;
     } catch (e) {}
   }

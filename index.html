@@ -1766,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Dynamic MongoDB Active Signal Ticker Sync
   (async function syncHomeSignal() {
-    for (const host of ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", "https://fingroww-trading-server.onrender.com"]) {
+    for (const host of ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com", ""]) {
       try {
         const r = await fetch(host + "/api/signals?status=ACTIVE&limit=1", { cache: "no-store" });
         if (r.ok) {

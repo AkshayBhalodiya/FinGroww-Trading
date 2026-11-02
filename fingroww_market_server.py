@@ -152,7 +152,7 @@ def init_nse():
                 "Accept": "text/html,application/xhtml+xml",
                 "Referer": NSE + "/",
             },
-            timeout=15,
+            timeout=3.0,
         )
         last_init = time.time()
 
@@ -169,7 +169,7 @@ def nse_get(path, params=None):
                     "Referer": NSE + "/market-data/live-market-indices",
                 },
                 params=params,
-                timeout=15,
+                timeout=3.0,
             )
             if r.status_code in (401, 403):
                 with lock:

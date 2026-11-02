@@ -23,6 +23,7 @@ import random
 import json
 import logging
 import sqlite3
+import tempfile
 import threading
 from contextlib import closing
 from datetime import datetime, timezone, timedelta
@@ -467,7 +468,7 @@ class PaperTradeCostModel:
             return round(price * (1.0 - slippage_pct), 2)
 
 
-DATASTORE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_datastore.json")
+DATASTORE_FILE = os.path.join(tempfile.gettempdir(), "paper_datastore.json") if os.getenv("VERCEL") else os.path.join(os.path.dirname(os.path.abspath(__file__)), "paper_datastore.json")
 
 def load_datastore_from_disk():
     """Restores persistent sessions, profiles, positions, and trades from disk."""
@@ -519,6 +520,8 @@ def _session_locked(method):
 
 
 def _paper_db_path():
+    if os.getenv("VERCEL"):
+        return os.path.join(tempfile.gettempdir(), "paper_trading.db")
     return os.getenv(
         "FINGROWW_PAPER_DB_PATH",
         os.path.join(os.path.dirname(__file__), "data", "paper_trading.db"),
