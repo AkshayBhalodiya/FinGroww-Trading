@@ -1842,11 +1842,16 @@ class PaperTradingEngine:
                 continue
             try:
                 quote = self.quote_resolver(sym)
-                chart_rows = self.chart_resolver(sym, "15m", "5d")
             except Exception as exc:
-                logger.warning("Could not scan %s using live market data: %s", sym, exc)
+                logger.warning("Could not scan quote for %s: %s", sym, exc)
                 continue
             if not _is_fresh_nse_quote(quote):
+                continue
+
+            try:
+                chart_rows = self.chart_resolver(sym, "15m", "5d")
+            except Exception as exc:
+                logger.warning("Could not scan chart for %s: %s", sym, exc)
                 continue
 
             now_ms = int(time.time() * 1000)
@@ -2095,7 +2100,7 @@ class PaperTradingEngine:
         # Step 2: Autonomous entry evaluation
         if self.session.status == "RUNNING" and market_is_open:
             can_trade, reason = self.session.can_open_new_trade()
-            if can_trade and (time.time() - self.last_scan_at >= 10 or not self.session.positions):
+            if can_trade and (time.time() - self.last_scan_at >= 12):
                 self.last_scan_at = time.time()
                 setups = self.scan_and_evaluate_setups()
                 open_symbols = {p["symbol"] for p in self.session.positions}

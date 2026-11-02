@@ -213,7 +213,7 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
             + requests.utils.quote(ticker, safe="^.")
             + f"?interval={interval}&range={range_}&events=div%2Csplits&includePrePost=false"
         )
-        r = requests.get(url, headers={**HEADERS, "Accept": "application/json"}, timeout=15)
+        r = requests.get(url, headers={**HEADERS, "Accept": "application/json"}, timeout=3.5)
         r.raise_for_status()
         result = (r.json().get("chart") or {}).get("result")
         if not result:
