@@ -443,6 +443,10 @@ def resolve_live_quote(symbol):
         if quote and quote.get("lastPrice"):
             quote["fetched_at"] = time.time()
             with paper_quote_cache_lock:
+                if len(paper_live_quote_cache) > 100:
+                    oldest = sorted(paper_live_quote_cache.keys(), key=lambda k: paper_live_quote_cache[k].get("fetched_at", 0))[:40]
+                    for k in oldest:
+                        paper_live_quote_cache.pop(k, None)
                 paper_live_quote_cache[symbol] = dict(quote)
         return quote
     except Exception as exc:
@@ -477,6 +481,10 @@ def paper_chart_resolver(symbol, interval="15m", range_="5d"):
     rows, _ = fetch_yahoo_chart(yahoo_ticker(symbol), interval, range_)
     if rows:
         with paper_quote_cache_lock:
+            if len(paper_chart_cache) > 40:
+                oldest = sorted(paper_chart_cache.keys(), key=lambda k: paper_chart_cache[k].get("fetched_at", 0))[:20]
+                for k in oldest:
+                    paper_chart_cache.pop(k, None)
             paper_chart_cache[cache_key] = {"fetched_at": time.time(), "rows": rows}
     return rows
 
@@ -1466,7 +1474,7 @@ def _refresh_scanner_quotes_async():
         quotes = {}
         symbols = [item["symbol"] for item in IndianMarketScanner.WATCHLIST_UNIVERSE]
         
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=3) as executor:
             future_to_sym = {executor.submit(resolve_quote, s): s for s in symbols}
             for fut in as_completed(future_to_sym, timeout=6.0):
                 s = future_to_sym[fut]
