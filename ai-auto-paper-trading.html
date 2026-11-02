@@ -2629,7 +2629,7 @@ async function fetchPaperApi(path, options = {}) {
 
   for (const host of candidateHosts) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4500);
+    const timer = setTimeout(() => controller.abort(), 12000);
     try {
       const url = host ? (host + path) : path;
       const r = await fetch(url, { 

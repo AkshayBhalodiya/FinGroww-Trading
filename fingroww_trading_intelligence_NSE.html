@@ -2234,7 +2234,7 @@ function renderBacktestPanel(bt){
 const CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 6500) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -2266,7 +2266,7 @@ async function fetchApi(path, options = {}) {
   // 2. Try current origin (Vercel Serverless / Proxy) and Render cloud with 4000ms timeout
   for (const host of ["", "https://fingroww-trading.onrender.com"]) {
     try {
-      const r = await fetchWithTimeout((host ? host : "") + path, options, 4000);
+      const r = await fetchWithTimeout((host ? host : "") + path, options, 12000);
       if (r.ok) return r;
     } catch (e) {}
   }

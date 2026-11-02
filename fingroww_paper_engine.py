@@ -1790,6 +1790,260 @@ class PaperTradingEngine:
         self.market_status_resolver = market_status_resolver
         self.last_scan_at = 0.0
 
+    def _eval_single_item(self, item, targets_for_item, allowed_market_caps, is_long_term_style, min_rr):
+        sym = item["symbol"]
+        item_mcap = item.get("market_cap", "LARGE_CAP")
+        if not self.quote_resolver or not self.chart_resolver:
+            return []
+        try:
+            quote = self.quote_resolver(sym)
+        except Exception as exc:
+            logger.warning("Could not scan quote for %s: %s", sym, exc)
+            return []
+        if not _is_fresh_nse_quote(quote):
+            return []
+
+        try:
+            chart_rows = self.chart_resolver(sym, "15m", "5d")
+        except Exception as exc:
+            logger.warning("Could not scan chart for %s: %s", sym, exc)
+            return []
+
+        now_ms = int(time.time() * 1000)
+        candles = [
+            candle for candle in (chart_rows or [])
+            if isinstance(candle, dict)
+            and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
+            and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
+        ]
+        if len(candles) < 20:
+            return []
+        candles = candles[-100:]
+
+        closes = [float(candle["c"]) for candle in candles]
+        ema20 = _ema(closes, 20)
+        ema50 = _ema(closes, 50)
+        atr14 = _atr(candles, 14)
+        vwap = _session_vwap(candles)
+        if len(ema20) < 2 or len(ema50) < 2 or not atr14:
+            return []
+
+        live_price = float(quote["lastPrice"])
+        p_change = float(quote.get("pChange") or 0.0)
+        latest = candles[-1]
+        recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
+        avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
+        volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
+
+        if is_long_term_style:
+            # Long-Term Equity Investment (CNC Cash Holding)
+            if live_price < ema50[-1]:
+                return []
+
+            lt_score = 65
+            if ema20[-1] >= ema50[-1]:
+                lt_score += 15
+            if live_price >= float(latest["h"]) * 0.995 or abs(live_price - ema20[-1]) / ema20[-1] < 0.015:
+                lt_score += 15
+            if p_change >= 0.0:
+                lt_score += 5
+
+            if lt_score < 70:
+                return []
+
+            side = "BUY"
+            score = min(lt_score, 98)
+            strat = "Long-Term Quantitative Trend & Value (CNC)"
+            risk_distance = round(live_price * 0.07, 2)
+            min_rr = 2.85
+        else:
+            # Multi-Factor Quantitative Confluence Scoring (Intraday & Swing)
+            buy_score = 0
+            sell_score = 0
+
+            # 1. EMA20 vs EMA50 Trend
+            if ema20[-1] > ema50[-1]:
+                buy_score += 25
+            else:
+                sell_score += 25
+
+            # 2. Session VWAP Confluence
+            if vwap:
+                if live_price > vwap and float(latest["c"]) > vwap:
+                    buy_score += 25
+                elif live_price < vwap and float(latest["c"]) < vwap:
+                    sell_score += 25
+                elif abs(live_price - vwap) / max(vwap, 1.0) < 0.008:
+                    if ema20[-1] > ema50[-1]:
+                        buy_score += 15
+                    else:
+                        sell_score += 15
+
+            # 3. Momentum & Relative Strength
+            if p_change >= 0.05 and live_price >= ema20[-1] * 0.995:
+                buy_score += 25
+            elif p_change <= -0.05 and live_price <= ema20[-1] * 1.005:
+                sell_score += 25
+            elif p_change >= 0.0:
+                buy_score += 15
+            else:
+                sell_score += 15
+
+            # 4. Pullback vs Breakout High-Win-Rate Detection
+            is_long_breakout = live_price >= float(latest["h"])
+            is_long_pullback = not is_long_breakout and (
+                (
+                    vwap is not None 
+                    and abs(live_price - vwap) / max(vwap, 1.0) < 0.010 
+                    and live_price >= vwap * 0.995 
+                    and float(latest["c"]) >= float(latest["o"])
+                ) or (abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010)
+            )
+            if is_long_breakout or is_long_pullback:
+                buy_score += 20
+
+            is_short_breakdown = live_price <= float(latest["l"])
+            is_short_pullback = not is_short_breakdown and (
+                (
+                    vwap is not None 
+                    and abs(live_price - vwap) / max(vwap, 1.0) < 0.010 
+                    and live_price <= vwap * 1.005 
+                    and float(latest["c"]) <= float(latest["o"])
+                ) or (abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010)
+            )
+            if is_short_breakdown or is_short_pullback:
+                sell_score += 20
+
+            # 5. RSI 14-period healthy momentum band bonus
+            rsi14 = _rsi(closes, 14)
+            if 40.0 <= rsi14 <= 68.0:
+                buy_score += 5
+            elif rsi14 > 75.0:
+                buy_score -= 5
+
+            if 32.0 <= rsi14 <= 60.0:
+                sell_score += 5
+            elif rsi14 < 25.0:
+                sell_score -= 5
+
+            # 6. Golden Trading Hours Filter
+            ist = get_ist_now()
+            ist_mins = ist.hour * 60 + ist.minute
+            if (570 <= ist_mins <= 675) or (825 <= ist_mins <= 900):
+                buy_score += 5
+                sell_score += 5
+
+            is_index = "NIFTY" in sym or "SENSEX" in sym
+            vol_floor = 0.002 if is_index else 0.004
+            risk_distance = max(1.5 * atr14, live_price * vol_floor)
+
+            if buy_score >= 60 and buy_score > sell_score:
+                side = "BUY"
+                score = min(buy_score, 98)
+                if is_long_breakout:
+                    strat = "15m EMA20/50 + VWAP Breakout"
+                elif is_long_pullback:
+                    strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback"
+                else:
+                    strat = "VWAP Momentum Expansion"
+            elif sell_score >= 60 and sell_score > buy_score:
+                side = "SELL"
+                score = min(sell_score, 98)
+                if is_short_breakdown:
+                    strat = "15m EMA20/50 + VWAP Breakdown"
+                elif is_short_pullback:
+                    strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)"
+                else:
+                    strat = "Supertrend ATR Continuation"
+            else:
+                return []
+                return []
+
+        item_setups = []
+        for target_inst_type in targets_for_item:
+            curr_side = side
+            display_sym = sym
+            entry_price = round(live_price, 2)
+            stop_loss = round(entry_price - risk_distance if curr_side == "BUY" else entry_price + risk_distance, 2)
+            target_price = round(entry_price + (risk_distance * min_rr) if curr_side == "BUY" else entry_price - (risk_distance * min_rr), 2)
+            setup_risk = round(risk_distance, 4)
+            opt_type = None
+            strike = None
+            delta = None
+
+            # Synthesize option contract if INDEX_OPTIONS
+            if target_inst_type == "INDEX_OPTIONS":
+                step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
+                strike = int(round(live_price / step) * step)
+                opt_type = "CE" if curr_side == "BUY" else "PE"
+                display_sym = f"{sym} {strike} {opt_type}"
+                opt_premium = round(live_price * 0.010, 2)
+                opt_risk = round(opt_premium * 0.25, 2)
+                entry_price = opt_premium
+                stop_loss = max(1.0, round(entry_price - opt_risk, 2))
+                target_price = round(entry_price + (opt_risk * min_rr), 2)
+                setup_risk = opt_risk
+                curr_side = "BUY"  # Retail option buyer buys contract
+                delta = 0.50
+
+            setup_item = {
+                "symbol": display_sym,
+                "base_symbol": sym,
+                "name": item["name"],
+                "instrument_type": target_inst_type,
+                "market_cap": item_mcap,
+                "product_type": "CNC" if (target_inst_type == "EQUITY" and is_long_term_style) else ("MIS" if target_inst_type == "EQUITY" else target_inst_type),
+                "is_long_term": is_long_term_style,
+                "market_data_source": "NSE",
+                "market_data_fetched_at": quote.get("fetched_at", time.time()),
+                "market_data_timestamp": quote.get("timestamp"),
+                "signal_indicators": {
+                    "ema20": round(ema20[-1], 4),
+                    "ema50": round(ema50[-1], 4),
+                    "session_vwap": round(vwap, 4) if vwap else 0.0,
+                    "atr14": round(atr14, 4),
+                    "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
+                    "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 4),
+                },
+                "side": curr_side,
+                "entry_price": entry_price,
+                "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 2),
+                "stop_loss": stop_loss,
+                "target_price": target_price,
+                "risk_distance": setup_risk,
+                "reward_risk": min_rr,
+                "strategy": strat,
+                "confidence_score": score,
+                "status": "VALIDATED",
+                "timestamp": get_ist_str(),
+                "underlying_price": live_price,
+                "option_type": opt_type,
+                "strike": strike,
+                "delta": delta,
+                "rationale": (
+                    f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: ₹{target_price:.2f} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
+                ) if (is_long_term_style and target_inst_type == "EQUITY") else (
+                    f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
+                    f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
+                ) if target_inst_type != "INDEX_OPTIONS" else (
+                    f"BUY {display_sym}: ATM option tracking {sym} trend. "
+                    f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
+                ),
+            }
+
+            # Evaluate timewise profit metrics
+            t_metrics = evaluate_timewise_profit_metrics(setup_item, quote)
+            setup_item["timewise_metrics"] = t_metrics
+            setup_item["profit_potential_pct"] = t_metrics["profit_potential_pct"]
+            setup_item["margin_roi_pct"] = t_metrics["margin_roi_pct"]
+            setup_item["remaining_rr"] = t_metrics["remaining_rr"]
+            setup_item["is_exhausted"] = t_metrics["is_exhausted"]
+            setup_item["timewise_profit_score"] = t_metrics["timewise_profit_score"]
+
+            item_setups.append(setup_item)
+
+        return item_setups
+
     def scan_and_evaluate_setups(self):
         """
         Scans instrument universe using real-time quotes, multi-strategy quantitative confluence,
@@ -1809,19 +2063,15 @@ class PaperTradingEngine:
         has_index_futures = "INDEX_FUTURES" in allowed_types
         has_equity = "EQUITY" in allowed_types
         has_stock_futures = "STOCK_FUTURES" in allowed_types
+        min_rr = float(self.session.config.get("min_rr", 1.8))
 
-        setups = []
-
+        eligible = []
         for item in UNIVERSE:
-            sym = item["symbol"]
             item_type = item["type"]
             item_mcap = item.get("market_cap", "LARGE_CAP")
-
-            # 1. Filter by user's selected Market Caps (Large Cap, Mid Cap, Small Cap)
             if item_mcap not in allowed_market_caps:
                 continue
 
-            # Determine all target instrument types to generate for this item based strictly on user configuration
             targets_for_item = []
             if item_type == "INDEX":
                 if has_index_options:
@@ -1831,249 +2081,56 @@ class PaperTradingEngine:
             elif item_type == "STOCK":
                 if has_equity:
                     targets_for_item.append("EQUITY")
-                # Small caps on Indian exchanges do not have F&O derivative contracts
                 if has_stock_futures and item_mcap in ("LARGE_CAP", "MID_CAP"):
                     targets_for_item.append("STOCK_FUTURES")
 
-            if not targets_for_item:
-                continue
+            if targets_for_item:
+                eligible.append((item, targets_for_item))
 
-            if not self.quote_resolver or not self.chart_resolver:
-                continue
+        # Prioritize Benchmark Indices first, then Large Caps, Mid Caps, Small Caps
+        eligible.sort(key=lambda x: (
+            0 if x[0]["type"] == "INDEX" else 1,
+            0 if x[0].get("market_cap") == "LARGE_CAP" else (1 if x[0].get("market_cap") == "MID_CAP" else 2)
+        ))
+
+        # Balance candidate selection across each selected market cap so Mid and Small caps get representation
+        by_mcap = {}
+        for it, tg in eligible:
+            mc = it.get("market_cap", "LARGE_CAP")
+            by_mcap.setdefault(mc, []).append((it, tg))
+
+        batch = []
+        per_cap = max(4, 18 // max(len(by_mcap), 1))
+        for mc in allowed_market_caps:
+            if mc in by_mcap:
+                batch.extend(by_mcap[mc][:per_cap])
+        if not batch:
+            batch = eligible[:16]
+
+        setups = []
+        from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_item = {
+                executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
+                for it, tg in batch
+            }
             try:
-                quote = self.quote_resolver(sym)
-            except Exception as exc:
-                logger.warning("Could not scan quote for %s: %s", sym, exc)
-                continue
-            if not _is_fresh_nse_quote(quote):
-                continue
-
-            try:
-                chart_rows = self.chart_resolver(sym, "15m", "5d")
-            except Exception as exc:
-                logger.warning("Could not scan chart for %s: %s", sym, exc)
-                continue
-
-            now_ms = int(time.time() * 1000)
-            candles = [
-                candle for candle in (chart_rows or [])
-                if isinstance(candle, dict)
-                and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
-                and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
-            ]
-            if len(candles) < 20:
-                continue
-            candles = candles[-100:]
-
-            closes = [float(candle["c"]) for candle in candles]
-            ema20 = _ema(closes, 20)
-            ema50 = _ema(closes, 50)
-            atr14 = _atr(candles, 14)
-            vwap = _session_vwap(candles)
-            if len(ema20) < 2 or len(ema50) < 2 or not atr14:
-                continue
-
-            live_price = float(quote["lastPrice"])
-            p_change = float(quote.get("pChange") or 0.0)
-            latest = candles[-1]
-            recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
-            avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
-            volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
-            min_rr = float(self.session.config.get("min_rr", 1.8))
-
-            if is_long_term_style:
-                # Long-Term Equity Investment (CNC Cash Holding)
-                # Indian rules: Overnight delivery investment is BUY only
-                if live_price < ema50[-1]:
-                    continue  # Macro trend must be bullish (trading above 50-period average)
-
-                lt_score = 65
-                if ema20[-1] >= ema50[-1]:
-                    lt_score += 15
-                if live_price >= float(latest["h"]) * 0.995 or abs(live_price - ema20[-1]) / ema20[-1] < 0.015:
-                    lt_score += 15
-                if p_change >= 0.0:
-                    lt_score += 5
-
-                if lt_score < 70:
-                    continue
-
-                side = "BUY"
-                score = min(lt_score, 98)
-                strat = "Long-Term Quantitative Trend & Value (CNC)"
-                # Structural investment levels: 7% protective stop, +20% target
-                risk_distance = round(live_price * 0.07, 2)
-                min_rr = 2.85 # ~20% target / 7% stop = ~2.85:1 R:R
-            else:
-                # Multi-Factor Quantitative Confluence Scoring (Intraday & Swing)
-                buy_score = 0
-                sell_score = 0
-
-                # 1. EMA20 vs EMA50 Trend
-                if ema20[-1] > ema50[-1]:
-                    buy_score += 25
-                else:
-                    sell_score += 25
-
-                # 2. Session VWAP Confluence
-                if vwap:
-                    if live_price > vwap and float(latest["c"]) > vwap:
-                        buy_score += 25
-                    elif live_price < vwap and float(latest["c"]) < vwap:
-                        sell_score += 25
-
-                # 3. Momentum & Relative Strength
-                if p_change >= 0.1 and live_price >= ema20[-1]:
-                    buy_score += 25
-                elif p_change <= -0.1 and live_price <= ema20[-1]:
-                    sell_score += 25
-
-                # 4. Pullback vs Breakout High-Win-Rate Detection
-                is_long_breakout = live_price >= float(latest["h"]) * 0.998
-                is_long_pullback = (
-                    vwap is not None 
-                    and abs(live_price - vwap) / vwap < 0.008 
-                    and live_price >= vwap * 0.998 
-                    and float(latest["c"]) >= float(latest["o"])
-                ) or (abs(live_price - ema20[-1]) / ema20[-1] < 0.008 and float(latest["c"]) >= float(latest["o"]))
-                if is_long_breakout or is_long_pullback:
-                    buy_score += 20
-
-                is_short_breakdown = live_price <= float(latest["l"]) * 1.002
-                is_short_pullback = (
-                    vwap is not None 
-                    and abs(live_price - vwap) / vwap < 0.008 
-                    and live_price <= vwap * 1.002 
-                    and float(latest["c"]) <= float(latest["o"])
-                ) or (abs(live_price - ema20[-1]) / ema20[-1] < 0.008 and float(latest["c"]) <= float(latest["o"]))
-                if is_short_breakdown or is_short_pullback:
-                    sell_score += 20
-
-                # 5. RSI 14-period healthy momentum band bonus
-                rsi14 = _rsi(closes, 14)
-                if 40.0 <= rsi14 <= 68.0:
-                    buy_score += 5
-                elif rsi14 > 75.0:
-                    buy_score -= 5
-
-                if 32.0 <= rsi14 <= 60.0:
-                    sell_score += 5
-                elif rsi14 < 25.0:
-                    sell_score -= 5
-
-                # 6. Golden Trading Hours Filter (Morning 09:30-11:15 & Afternoon 13:45-15:00 IST)
-                ist = get_ist_now()
-                ist_mins = ist.hour * 60 + ist.minute
-                if (570 <= ist_mins <= 675) or (825 <= ist_mins <= 900):
-                    buy_score += 5
-                    sell_score += 5
-
-                is_index = "NIFTY" in sym or "SENSEX" in sym
-                vol_floor = 0.002 if is_index else 0.004
-                risk_distance = max(1.5 * atr14, live_price * vol_floor)
-
-                if buy_score >= 70 and buy_score > sell_score:
-                    side = "BUY"
-                    score = min(buy_score, 98)
-                    if is_long_pullback:
-                        strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback"
-                    elif is_long_breakout:
-                        strat = "15m EMA20/50 + VWAP Breakout"
-                    else:
-                        strat = "VWAP Momentum Expansion"
-                elif sell_score >= 70 and sell_score > buy_score:
-                    side = "SELL"
-                    score = min(sell_score, 98)
-                    if is_short_pullback:
-                        strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)"
-                    elif is_short_breakdown:
-                        strat = "15m EMA20/50 + VWAP Breakdown"
-                    else:
-                        strat = "Supertrend ATR Continuation" 
-                else:
-                    continue
-
-            for target_inst_type in targets_for_item:
-                curr_side = side
-                display_sym = sym
-                entry_price = round(live_price, 2)
-                stop_loss = round(entry_price - risk_distance if curr_side == "BUY" else entry_price + risk_distance, 2)
-                target_price = round(entry_price + (risk_distance * min_rr) if curr_side == "BUY" else entry_price - (risk_distance * min_rr), 2)
-                setup_risk = round(risk_distance, 4)
-                opt_type = None
-                strike = None
-                delta = None
-
-                # Synthesize option contract if INDEX_OPTIONS
-                if target_inst_type == "INDEX_OPTIONS":
-                    step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
-                    strike = int(round(live_price / step) * step)
-                    opt_type = "CE" if curr_side == "BUY" else "PE"
-                    display_sym = f"{sym} {strike} {opt_type}"
-                    opt_premium = round(live_price * 0.010, 2)
-                    opt_risk = round(opt_premium * 0.25, 2)
-                    entry_price = opt_premium
-                    stop_loss = max(1.0, round(entry_price - opt_risk, 2))
-                    target_price = round(entry_price + (opt_risk * min_rr), 2)
-                    setup_risk = opt_risk
-                    curr_side = "BUY"  # Retail option buyer buys the contract (CE or PE)
-                    delta = 0.50
-
-                setup_item = {
-                    "symbol": display_sym,
-                    "base_symbol": sym,
-                    "name": item["name"],
-                    "instrument_type": target_inst_type,
-                    "market_cap": item_mcap,
-                    "product_type": "CNC" if (target_inst_type == "EQUITY" and is_long_term_style) else ("MIS" if target_inst_type == "EQUITY" else target_inst_type),
-                    "is_long_term": is_long_term_style,
-                    "market_data_source": "NSE",
-                    "market_data_fetched_at": quote.get("fetched_at", time.time()),
-                    "market_data_timestamp": quote.get("timestamp"),
-                    "signal_indicators": {
-                        "ema20": round(ema20[-1], 4),
-                        "ema50": round(ema50[-1], 4),
-                        "session_vwap": round(vwap, 4) if vwap else 0.0,
-                        "atr14": round(atr14, 4),
-                        "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
-                        "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 4),
-                    },
-                    "side": curr_side,
-                    "entry_price": entry_price,
-                    "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 2),
-                    "stop_loss": stop_loss,
-                    "target_price": target_price,
-                    "risk_distance": setup_risk,
-                    "reward_risk": min_rr,
-                    "strategy": strat,
-                    "confidence_score": score,
-                    "status": "VALIDATED",
-                    "timestamp": get_ist_str(),
-                    "underlying_price": live_price,
-                    "option_type": opt_type,
-                    "strike": strike,
-                    "delta": delta,
-                    "rationale": (
-                        f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: ₹{target_price:.2f} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
-                    ) if (is_long_term_style and target_inst_type == "EQUITY") else (
-                        f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
-                        f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
-                    ) if target_inst_type != "INDEX_OPTIONS" else (
-                        f"BUY {display_sym}: ATM option tracking {sym} trend. "
-                        f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
-                    ),
-                }
-
-                # Evaluate timewise profit metrics
-                t_metrics = evaluate_timewise_profit_metrics(setup_item, quote)
-                setup_item["timewise_metrics"] = t_metrics
-                setup_item["profit_potential_pct"] = t_metrics["profit_potential_pct"]
-                setup_item["margin_roi_pct"] = t_metrics["margin_roi_pct"]
-                setup_item["remaining_rr"] = t_metrics["remaining_rr"]
-                setup_item["is_exhausted"] = t_metrics["is_exhausted"]
-                setup_item["timewise_profit_score"] = t_metrics["timewise_profit_score"]
-
-                setups.append(setup_item)
+                for fut in as_completed(future_to_item, timeout=7.0):
+                    try:
+                        res = fut.result()
+                        if res:
+                            setups.extend(res)
+                    except Exception:
+                        pass
+            except TimeoutError:
+                for fut in future_to_item:
+                    if fut.done() and not fut.cancelled():
+                        try:
+                            res = fut.result()
+                            if res:
+                                setups.extend(res)
+                        except Exception:
+                            pass
 
         self.session.scanned_signals = setups
         return setups

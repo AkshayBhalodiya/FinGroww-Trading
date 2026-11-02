@@ -9,3 +9,4 @@ worker_tmp_dir = "/dev/shm"
 max_requests = 1000
 max_requests_jitter = 100
 keepalive = 5
+
