@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 import requests
 import time
 import threading
@@ -132,58 +132,61 @@ TF_YAHOO = {
 }
 
 
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        resp = Response()
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control"
+        return resp
+
+
 @app.after_request
 def add_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control"
     return resp
 
 
 def init_nse():
     global last_init
     with lock:
-        if time.time() - last_init < 120:
+        if time.time() - last_init < 60:
             return
-        session.get(
-            NSE + "/market-data/live-equity-market",
-            headers={
-                **HEADERS,
-                "Accept": "text/html,application/xhtml+xml",
-                "Referer": NSE + "/",
-            },
-            timeout=3.0,
-        )
         last_init = time.time()
+        try:
+            session.get(
+                NSE + "/market-data/live-equity-market",
+                headers={
+                    **HEADERS,
+                    "Accept": "text/html,application/xhtml+xml",
+                    "Referer": NSE + "/",
+                },
+                timeout=2.0,
+            )
+        except Exception:
+            pass
 
 
 def nse_get(path, params=None):
-    for attempt in range(2):
-        try:
-            init_nse()
-            r = session.get(
-                NSE + path,
-                headers={
-                    **HEADERS,
-                    "Accept": "application/json, text/javascript, */*; q=0.01",
-                    "Referer": NSE + "/market-data/live-market-indices",
-                },
-                params=params,
-                timeout=3.0,
-            )
-            if r.status_code in (401, 403):
-                with lock:
-                    globals()["last_init"] = 0
-                if attempt == 0:
-                    time.sleep(0.4)
-                    continue
-                return None
-            r.raise_for_status()
+    try:
+        init_nse()
+        r = session.get(
+            NSE + path,
+            headers={
+                **HEADERS,
+                "Accept": "application/json, text/javascript, */*; q=0.01",
+                "Referer": NSE + "/market-data/live-market-indices",
+            },
+            params=params,
+            timeout=2.0,
+        )
+        if r.status_code == 200:
             return r.json()
-        except Exception:
-            if attempt == 1:
-                return None
-            time.sleep(0.4)
+    except Exception:
+        pass
     return None
 
 

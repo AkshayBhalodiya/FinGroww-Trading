@@ -2638,9 +2638,14 @@ async function fetchPaperApi(path, options = {}) {
         headers: { "Content-Type": "application/json", ...(options.headers || {}) } 
       });
       clearTimeout(timer);
-      if (r.ok || r.status < 500) {
-        activePaperApiHost = host;
-        return await r.json();
+      if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404)) {
+        try {
+          const json = await r.json();
+          activePaperApiHost = host;
+          return json;
+        } catch (parseErr) {
+          // Response was not JSON, fallback to next host
+        }
       }
     } catch (e) {
       clearTimeout(timer);
