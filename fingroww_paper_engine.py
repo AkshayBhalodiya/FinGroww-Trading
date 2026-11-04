@@ -1141,9 +1141,10 @@ class PaperTradingSession:
             # Subtract estimated exit charges to show realistic net PnL
             is_delivery = pos.get("is_delivery", False)
             est_exit_charges = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", curr_price, qty, is_delivery=is_delivery)["total"]
-            net_unrealized = round(gross_pnl - pos["entry_charges"] - est_exit_charges, 2)
+            net_unrealized = round(gross_pnl - float(pos.get("entry_charges", 0.0)) - est_exit_charges, 2)
             pos["unrealized_pnl"] = net_unrealized
-            pos["pnl_pct"] = round((net_unrealized / max(pos["allocated_margin"], 1.0)) * 100, 2)
+            pos_margin = float(pos.get("allocated_margin") or (entry_p * qty) or 1.0)
+            pos["pnl_pct"] = round((net_unrealized / max(pos_margin, 1.0)) * 100, 2)
             pos["last_updated"] = get_ist_str()
 
             # --- 80%+ Win-Rate Dynamic Breakeven & Profit Lock-In Trailing System ---
@@ -1253,7 +1254,7 @@ class PaperTradingSession:
         # Exit Charges
         is_delivery = pos.get("is_delivery", False)
         exit_costs = PaperTradeCostModel.calculate_charges(inst_type, "SELL" if side == "BUY" else "BUY", exec_exit_p, qty, is_delivery=is_delivery)
-        total_charges = round(pos["entry_charges"] + exit_costs["total"], 2)
+        total_charges = round(float(pos.get("entry_charges", 0.0)) + exit_costs["total"], 2)
         self.total_charges += exit_costs["total"]
 
         net_pnl = round(gross_pnl - total_charges, 2)

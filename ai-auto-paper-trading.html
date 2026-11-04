@@ -3296,13 +3296,15 @@ function updateUiWithState(state) {
   
   // Realized PnL
   const realEl = document.getElementById("metricRealizedPnl");
-  realEl.textContent = formatInr(acc.realized_pnl);
-  realEl.className = "acc-val " + (acc.realized_pnl > 0 ? "val-green" : (acc.realized_pnl < 0 ? "val-red" : ""));
+  const rVal = Number(acc.realized_pnl) || 0;
+  realEl.textContent = (rVal > 0 ? "+" : "") + formatInr(rVal);
+  realEl.className = "acc-val " + (rVal > 0 ? "val-green" : (rVal < 0 ? "val-red" : ""));
 
   // Unrealized PnL
   const unrealEl = document.getElementById("metricUnrealizedPnl");
-  unrealEl.textContent = formatInr(acc.unrealized_pnl);
-  unrealEl.className = "acc-val " + (acc.unrealized_pnl > 0 ? "val-green" : (acc.unrealized_pnl < 0 ? "val-red" : ""));
+  const uVal = Number(acc.unrealized_pnl) || 0;
+  unrealEl.textContent = (uVal > 0 ? "+" : "") + formatInr(uVal);
+  unrealEl.className = "acc-val " + (uVal > 0 ? "val-green" : (uVal < 0 ? "val-red" : ""));
   const unrealizedLabel = document.getElementById("metricUnrealizedLabel");
   if (unrealizedLabel) {
     unrealizedLabel.textContent = !currentMarketStatus
@@ -3315,8 +3317,9 @@ function updateUiWithState(state) {
 
   // Net Total PnL
   const totEl = document.getElementById("metricTotalPnl");
-  totEl.textContent = formatInr(acc.total_pnl);
-  totEl.className = "acc-val " + (acc.total_pnl > 0 ? "val-green" : (acc.total_pnl < 0 ? "val-red" : ""));
+  const tVal = Number(acc.total_pnl) || 0;
+  totEl.textContent = (tVal > 0 ? "+" : "") + formatInr(tVal);
+  totEl.className = "acc-val " + (tVal > 0 ? "val-green" : (tVal < 0 ? "val-red" : ""));
 
   const retEl = document.getElementById("metricReturnPct");
   const retVal = acc.overall_return_pct || 0;
