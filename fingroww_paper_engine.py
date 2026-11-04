@@ -2689,9 +2689,11 @@ class MultiUserPaperSessionManager:
 
         return list(prof_map.values())
 
-    def get_leaderboard(self):
+    def get_leaderboard(self, only_active=False):
         """Returns sorted, universally consistent leaderboard ranking users by Net PnL and Return %."""
         profiles = self.list_profiles()
+        if only_active:
+            profiles = [p for p in profiles if p.get("status") in ("RUNNING", "STOPPED_NEW_TRADES")]
         # Sort by Net PnL (descending), Return % (descending), Win Rate (descending)
         profiles.sort(key=lambda x: (x.get("net_pnl", 0.0), x.get("return_pct", 0.0), x.get("win_rate", 0.0)), reverse=True)
         for idx, p in enumerate(profiles):

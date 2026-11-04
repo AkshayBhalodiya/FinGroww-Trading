@@ -519,6 +519,23 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(lead_data["leaderboard"][0]["rank"], 1)
         self.assertIn("badge", lead_data["leaderboard"][0])
 
+        # 5. Verify Active-Only Leaderboard filtering
+        r_active_lead = self.client.get("/api/paper/leaderboard?active_only=true")
+        self.assertEqual(r_active_lead.status_code, 200)
+        active_lead_data = r_active_lead.get_json()
+        self.assertTrue(active_lead_data["only_active"])
+        self.assertEqual(len(active_lead_data["leaderboard"]), 0)
+
+        # Start custom session and check active leaderboard
+        cust_sess, _ = fingroww_market_server.paper_manager.get_session("Custom_Quant_Bot")
+        cust_sess.start()
+        r_active_lead_after = self.client.get("/api/paper/leaderboard?active_only=true")
+        active_after_data = r_active_lead_after.get_json()
+        self.assertEqual(len(active_after_data["leaderboard"]), 1)
+        self.assertEqual(active_after_data["leaderboard"][0]["user_name"], "Custom_Quant_Bot")
+        self.assertEqual(active_after_data["leaderboard"][0]["status"], "RUNNING")
+        cust_sess.status = "IDLE"
+
     def test_12_user_data_persists_across_manager_restart(self):
         """Paper account state and complete trade history survive process restarts."""
         with tempfile.TemporaryDirectory() as temp_dir:

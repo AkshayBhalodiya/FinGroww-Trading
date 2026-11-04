@@ -2033,10 +2033,13 @@ def paper_create_profile():
 @app.get("/api/paper/leaderboard")
 def paper_get_leaderboard():
     """Returns the trader profiles leaderboard ranked by net profit, returns, and win rate."""
-    leaderboard = paper_manager.get_leaderboard()
+    active_param = request.args.get("active_only") or request.args.get("only_active")
+    only_active = str(active_param).strip().lower() in ("true", "1", "yes") if active_param is not None else False
+    leaderboard = paper_manager.get_leaderboard(only_active=only_active)
     return jsonify({
         "leaderboard": leaderboard,
         "total_traders": len(leaderboard),
+        "only_active": only_active,
         "generated_at": get_ist_str()
     })
 

@@ -2206,13 +2206,22 @@ button[disabled],
     </div>
   <!-- 6. Trader Profiles & Profit Leaderboard Section (Persisted in MongoDB Atlas) -->
   <section class="panel-card" id="leaderboardSection" style="margin-bottom:60px;">
-    <div class="panel-header">
-      <div class="panel-title">
+    <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div class="panel-title" style="display:flex;align-items:center;gap:10px;">
         <i class="fa-solid fa-trophy" style="color:var(--accent-gold);"></i>
-        <span>Trader Profiles & Profit Leaderboard</span>
+        <span>Trader Profiles &amp; Profit Leaderboard</span>
+        <span class="db-sync-badge"><i class="fa-solid fa-circle-dot" style="color:var(--accent-green);font-size:9px;"></i> Active Running Profiles</span>
         <span class="db-sync-badge"><i class="fa-solid fa-database"></i> MongoDB Atlas Persisted</span>
       </div>
-      <div style="display:flex;gap:10px;align-items:center;">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div style="display:inline-flex;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px;gap:2px;">
+          <button type="button" id="btnLbFilterActive" class="btn btn-sm" onclick="setLeaderboardFilter('active')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(16,185,129,0.2);color:var(--accent-green);font-weight:700;border:none;cursor:pointer;">
+            <i class="fa-solid fa-bolt" style="margin-right:4px;"></i>Active Only
+          </button>
+          <button type="button" id="btnLbFilterAll" class="btn btn-sm" onclick="setLeaderboardFilter('all')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.75;cursor:pointer;">
+            All Profiles
+          </button>
+        </div>
         <button type="button" id="btnRefreshLeaderboard" class="btn btn-sm btn-outline" onclick="refreshLeaderboard(this)" title="Refresh Rankings">
           <i class="fa-solid fa-rotate"></i> Refresh Rankings
         </button>
@@ -3127,13 +3136,47 @@ function syncConfigFormWithState(state) {
 // LEADERBOARD RENDERER & STATS
 // -------------------------------------------------------------------------
 
+let currentLbFilter = "active";
+
+function setLeaderboardFilter(mode) {
+  currentLbFilter = mode;
+  const btnActive = document.getElementById("btnLbFilterActive");
+  const btnAll = document.getElementById("btnLbFilterAll");
+  if (btnActive && btnAll) {
+    if (mode === "active") {
+      btnActive.style.background = "rgba(16, 185, 129, 0.2)";
+      btnActive.style.color = "var(--accent-green, #10b981)";
+      btnActive.style.fontWeight = "700";
+      btnActive.style.opacity = "1";
+      btnAll.style.background = "transparent";
+      btnAll.style.color = "var(--text-muted, #94a3b8)";
+      btnAll.style.fontWeight = "500";
+      btnAll.style.opacity = "0.75";
+    } else {
+      btnAll.style.background = "rgba(255, 255, 255, 0.12)";
+      btnAll.style.color = "var(--text-main, #f8fafc)";
+      btnAll.style.fontWeight = "700";
+      btnAll.style.opacity = "1";
+      btnActive.style.background = "transparent";
+      btnActive.style.color = "var(--text-muted, #94a3b8)";
+      btnActive.style.fontWeight = "500";
+      btnActive.style.opacity = "0.75";
+    }
+  }
+  refreshLeaderboard();
+}
+
 async function refreshLeaderboard(btnEl = null) {
   const btn = btnEl || document.getElementById("btnRefreshLeaderboard");
   return withActionLock("refresh_leaderboard", async () => {
-    const data = await fetchPaperApi("/api/paper/leaderboard");
+    const url = currentLbFilter === "active" ? "/api/paper/leaderboard?active_only=true" : "/api/paper/leaderboard";
+    const data = await fetchPaperApi(url);
     if (!data || !data.leaderboard) return;
 
-    const lb = data.leaderboard;
+    let lb = data.leaderboard;
+    if (currentLbFilter === "active") {
+      lb = lb.filter(p => p.status === "RUNNING" || p.status === "STOPPED_NEW_TRADES");
+    }
     const tbody = document.getElementById("leaderboardTableBody");
 
     // Summary KPIs
@@ -3142,7 +3185,7 @@ async function refreshLeaderboard(btnEl = null) {
       document.getElementById("leadTopPerformerName").textContent = top.user_name || "Akshay";
       const net = top.net_pnl || 0;
       const topProfitEl = document.getElementById("leadTopPerformerProfit");
-      topProfitEl.textContent = formatInr(net);
+      topProfitEl.textContent = (net >= 0 ? "+" : "") + formatInr(net);
       topProfitEl.className = "lead-kpi-val " + (net >= 0 ? "val-green" : "val-red");
       document.getElementById("leadTopPerformerReturn").textContent = `${(top.return_pct || 0) >= 0 ? '+' : ''}${(top.return_pct || 0).toFixed(2)}% Return`;
 
@@ -3156,17 +3199,39 @@ async function refreshLeaderboard(btnEl = null) {
       // Total Capital Managed
       const totalCap = lb.reduce((sum, p) => sum + (p.account_equity || p.initial_capital || 0), 0);
       document.getElementById("leadTotalCapital").textContent = formatInr(totalCap);
-      document.getElementById("leadActiveProfilesCount").textContent = `${lb.length} Registered Profiles`;
+      document.getElementById("leadActiveProfilesCount").textContent = `${lb.length} ${currentLbFilter === 'active' ? 'Active Running' : 'Registered'} Profiles`;
 
       // Active running engines
       const runningCount = lb.filter(p => p.status === "RUNNING").length;
       document.getElementById("leadRunningEnginesCount").textContent = runningCount;
+    } else {
+      document.getElementById("leadTopPerformerName").textContent = "None Running";
+      const topProfitEl = document.getElementById("leadTopPerformerProfit");
+      topProfitEl.textContent = "₹0.00";
+      topProfitEl.className = "lead-kpi-val";
+      document.getElementById("leadTopPerformerReturn").textContent = "+0.00% Return";
+
+      document.getElementById("leadTopWinRateName").textContent = "--";
+      document.getElementById("leadTopWinRateVal").textContent = "0.0%";
+      document.getElementById("leadTopWinRateTrades").textContent = "0 Completed Trades";
+
+      document.getElementById("leadTotalCapital").textContent = "₹0.00";
+      document.getElementById("leadActiveProfilesCount").textContent = "0 Active Running Profiles";
+      document.getElementById("leadRunningEnginesCount").textContent = "0";
     }
 
     // Render Table Rows
     if (!tbody) return;
     if (lb.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="14" class="empty-table-state">No trader profiles registered in datastore.</td></tr>`;
+      tbody.innerHTML = `<tr>
+        <td colspan="14" class="empty-table-state" style="padding:32px 16px;text-align:center;">
+          <i class="fa-solid fa-robot" style="font-size:28px;color:var(--text-dim);margin-bottom:8px;display:inline-block;"></i>
+          <div style="font-size:14.5px;font-weight:700;color:var(--text-main);">No Active Running Trader Profiles</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+            The leaderboard only displays actively running paper trading engines. Start Auto Paper Trading on your profile above to join live rankings.
+          </div>
+        </td>
+      </tr>`;
       return;
     }
 
