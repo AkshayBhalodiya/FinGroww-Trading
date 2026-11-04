@@ -2053,6 +2053,7 @@ button[disabled],
             <th>Entry Price</th>
             <th>Live Price</th>
             <th>Qty / Lots</th>
+            <th>Used Amount</th>
             <th>Target Price</th>
             <th>Stop-Loss</th>
             <th>Holding Time</th>
@@ -2063,7 +2064,7 @@ button[disabled],
         </thead>
         <tbody id="activeTradesBody">
           <tr>
-            <td colspan="13" class="empty-table-state">
+            <td colspan="14" class="empty-table-state">
               <i class="fa-solid fa-chart-simple"></i>
               <div>No active paper trades currently open.</div>
               <div style="font-size:12px;margin-top:4px;">Click "Start Auto Paper Trading" to let AI initiate trades based on confirmed setups.</div>
@@ -2183,6 +2184,7 @@ button[disabled],
             <th>Entry Price</th>
             <th>Exit Price</th>
             <th>Qty</th>
+            <th>Used Amount</th>
             <th>Gross P&L</th>
             <th>Charges</th>
             <th>Net P&L</th>
@@ -2194,7 +2196,7 @@ button[disabled],
         </thead>
         <tbody id="historyTradesBody">
           <tr>
-            <td colspan="14" class="empty-table-state">
+            <td colspan="15" class="empty-table-state">
               <i class="fa-solid fa-clock-rotate-left"></i>
               <div>No completed trades recorded yet.</div>
             </td>
@@ -3399,7 +3401,7 @@ function renderActivePositions(positions) {
   if (!positions || positions.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="13" class="empty-table-state">
+        <td colspan="14" class="empty-table-state">
           <i class="fa-solid fa-chart-simple"></i>
           <div>No active paper trades currently open.</div>
           <div style="font-size:12px;margin-top:4px;">Click "Start Auto Paper Trading" to let AI initiate trades based on confirmed setups.</div>
@@ -3443,6 +3445,9 @@ function renderActivePositions(positions) {
     const timeDisplay = formatRemainingTime(remaining);
     const totalDurationDisplay = pos.holding_duration_display || `${pos.holding_duration_mins}m`;
 
+    const usedAmt = Number(pos.allocated_margin ?? pos.used_amount) || (Number(pos.entry_price) * Number(pos.quantity)) || 0;
+    const usedSubtext = pos.product_type === 'CNC' ? 'Cash Deployed' : (pos.instrument_type === 'INDEX_OPTIONS' ? 'Premium Paid' : 'Margin Used');
+
     return `
       <tr>
         <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-muted);">${pos.trade_id}</td>
@@ -3462,6 +3467,10 @@ function renderActivePositions(positions) {
         <td style="font-family:var(--font-mono);">₹${(Number(pos.entry_price) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);font-weight:800;color:var(--text-main);">₹${(Number(pos.current_price) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);">${pos.quantity || 0} ${pos.lots ? `(${pos.lots}L)` : ''}</td>
+        <td style="font-family:var(--font-mono);">
+          <div style="font-weight:800;color:var(--accent-gold);">₹${usedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div style="font-size:10px;color:var(--text-dim);">${usedSubtext}</div>
+        </td>
         <td style="font-family:var(--font-mono);color:var(--accent-green);">₹${(Number(pos.target_price) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);color:var(--accent-red);">
           ₹${(Number(pos.stop_loss) || 0).toFixed(2)}
@@ -3580,7 +3589,7 @@ function renderHistoryTable(trades) {
   if (filtered.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="14" class="empty-table-state">
+        <td colspan="15" class="empty-table-state">
           <i class="fa-solid fa-clock-rotate-left"></i>
           <div>No trades match the selected filter.</div>
         </td>
@@ -3593,6 +3602,7 @@ function renderHistoryTable(trades) {
     const pnl = t.net_pnl || 0;
     const pnlClass = isWin ? "val-green" : "val-red";
     const sign = pnl > 0 ? "+" : "";
+    const histUsedAmt = Number(t.allocated_margin ?? t.used_amount) || (Number(t.entry_price) * Number(t.quantity)) || 0;
 
     return `
       <tr>
@@ -3603,6 +3613,7 @@ function renderHistoryTable(trades) {
         <td style="font-family:var(--font-mono);">₹${(Number(t.entry_price) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);font-weight:700;">₹${(Number(t.exit_price) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);">${t.quantity || 0}</td>
+        <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-gold);">₹${histUsedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         <td style="font-family:var(--font-mono);">₹${(Number(t.gross_pnl) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);color:var(--accent-gold);">₹${(Number(t.charges) || 0).toFixed(2)}</td>
         <td style="font-family:var(--font-mono);font-weight:800;" class="${pnlClass}">
@@ -3803,10 +3814,12 @@ function exportTradesCsv(btnEl = null) {
       showToast("No closed trade records available to export.", "info");
       return;
     }
-    const headers = ["Trade ID", "Symbol", "Instrument", "Side", "Entry Time", "Exit Time", "Entry Price", "Exit Price", "Qty", "Gross PnL", "Charges", "Net PnL", "Exit Reason", "Strategy", "Outcome"];
+    const headers = ["Trade ID", "Symbol", "Instrument", "Side", "Entry Time", "Exit Time", "Entry Price", "Exit Price", "Qty", "Used Amount", "Gross PnL", "Charges", "Net PnL", "Exit Reason", "Strategy", "Outcome"];
     const rows = sessionState.recent_closed_trades.map(t => [
       t.trade_id, t.symbol, t.instrument_type, t.side, t.entry_time, t.exit_time,
-      t.entry_price, t.exit_price, t.quantity, t.gross_pnl, t.charges, t.net_pnl,
+      t.entry_price, t.exit_price, t.quantity,
+      Number(t.allocated_margin ?? t.used_amount) || (Number(t.entry_price) * Number(t.quantity)) || 0,
+      t.gross_pnl, t.charges, t.net_pnl,
       t.exit_reason, t.strategy, t.is_win ? "WIN" : "LOSS"
     ]);
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
