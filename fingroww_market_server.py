@@ -1825,22 +1825,6 @@ def paper_update_config():
         except (ValueError, TypeError):
             pass
 
-    if "max_stop_loss_pct" in data:
-        try:
-            sl_pct = float(data["max_stop_loss_pct"])
-            if sl_pct <= 0 or sl_pct > 100:
-                return jsonify({"error": "Max Stop-Loss % must be greater than 0% and at most 100%."}), 400
-            data["max_stop_loss_pct"] = sl_pct
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid Max Stop-Loss % value."}), 400
-
-    if "max_profit_pct" in data:
-        try:
-            tp_pct = float(data["max_profit_pct"]) if data["max_profit_pct"] else 0.0
-            data["max_profit_pct"] = tp_pct
-        except (ValueError, TypeError):
-            data["max_profit_pct"] = 0.0
-
     u_sess.update_config(data)
     u_sess.save_to_db()
     return jsonify({"ok": True, "state": u_sess.get_state()})
@@ -1857,19 +1841,6 @@ def paper_start_session():
             "error": "Paper trading can only be started while NSE's regular market is confirmed open.",
             "market_status": market_status,
         }), 409
-
-    # Mandatory Stop-Loss % Validation
-    sl_pct_raw = data.get("max_stop_loss_pct") if (data and "max_stop_loss_pct" in data) else u_sess.config.get("max_stop_loss_pct")
-    try:
-        sl_pct_val = float(sl_pct_raw) if sl_pct_raw is not None else 0.0
-    except (ValueError, TypeError):
-        sl_pct_val = 0.0
-
-    if sl_pct_val <= 0 or sl_pct_val > 100:
-        return jsonify({
-            "error": "Max Stop-Loss % is mandatory! Please set a valid Stop-Loss percentage greater than 0% (e.g. 10%)."
-        }), 400
-
     if data:
         u_sess.update_config(data)
     
@@ -1877,11 +1848,7 @@ def paper_start_session():
     u_sess.save_to_db()
     # Trigger first tick immediately
     state = u_eng.tick()
-    return jsonify({
-        "ok": True,
-        "message": f"AI Auto Paper Trading started for {u_sess.user_name} with {u_sess.config.get('max_stop_loss_pct', 10.0)}% Max Stop-Loss.",
-        "state": state
-    })
+    return jsonify({"ok": True, "message": f"AI Auto Paper Trading started for {u_sess.user_name}.", "state": state})
 
 
 @app.post("/api/paper/session/control")

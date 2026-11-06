@@ -620,8 +620,6 @@ class PaperTradingSession:
             "max_open_positions": 4,
             "auto_square_off_time": "15:15",
             "auto_stop_on_exit": False, # If True, engine automatically stops after all positions exit
-            "max_stop_loss_pct": 10.0, # Mandatory Stop-Loss % per trade and global account circuit breaker
-            "max_profit_pct": 0.0,     # Optional Max Target/Profit % per trade (0.0 = algorithmic target)
         }
         if config:
             self.config.update(config)
@@ -671,15 +669,9 @@ class PaperTradingSession:
             return
         for k in ["instruments", "market_caps", "market", "trading_style", "holding_duration_mins", "risk_profile",
                   "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions",
-                  "auto_stop_on_exit", "max_stop_loss_pct", "max_profit_pct"]:
+                  "auto_stop_on_exit"]:
             if k in new_config:
                 self.config[k] = new_config[k]
-
-        # Automatically sync daily_loss_limit_inr with max_stop_loss_pct if max_stop_loss_pct is updated
-        if "max_stop_loss_pct" in new_config and "daily_loss_limit_inr" not in new_config:
-            sl_pct = float(new_config.get("max_stop_loss_pct") or 10.0)
-            account_cap = float(self.initial_capital or self.config.get("initial_capital", 100000.0))
-            self.config["daily_loss_limit_inr"] = round(account_cap * (sl_pct / 100.0), 2)
 
         # Risk profile adjustments
         rp = self.config.get("risk_profile", "MODERATE")
@@ -752,13 +744,6 @@ class PaperTradingSession:
         max_pos = int(self.config.get("max_open_positions", 4))
         if len(self.positions) >= max_pos:
             return False, f"Maximum concurrent positions reached ({len(self.positions)}/{max_pos})."
-
-        # Global account stop-loss limit check (% of initial capital)
-        sl_pct = float(self.config.get("max_stop_loss_pct", 10.0))
-        account_cap = float(self.initial_capital or self.config.get("initial_capital", 100000.0))
-        global_loss_limit = round(account_cap * (sl_pct / 100.0), 2)
-        if global_loss_limit > 0 and self.total_pnl <= -global_loss_limit:
-            return False, f"Max account stop-loss limit of {sl_pct:.1f}% (₹{global_loss_limit:,.2f}) breached. New trades halted."
 
         # Daily loss limit check
         daily_loss_limit = float(self.config.get("daily_loss_limit_inr", 4000.0))
@@ -917,27 +902,10 @@ class PaperTradingSession:
                         sl = round(exec_price + risk_distance, 2)
                         tp = round(exec_price - (risk_distance * reward_risk), 2)
 
-        # Enforce user-configured max stop-loss % (mandatory) and optional max profit %
-        sl_pct = float(self.config.get("max_stop_loss_pct", 10.0))
-        tp_pct = float(self.config.get("max_profit_pct", 0.0) or 0.0)
-
-        if side == "BUY":
-            max_sl_p = round(exec_price * (1.0 - sl_pct / 100.0), 2)
-            if inst_type == "INDEX_OPTIONS":
-                max_sl_p = max(0.05, max_sl_p)
-            sl = max(sl, max_sl_p) if (sl and sl > 0) else max_sl_p
-            if tp_pct > 0:
-                tp = round(exec_price * (1.0 + tp_pct / 100.0), 2)
-        else: # SELL
-            min_sl_p = round(exec_price * (1.0 + sl_pct / 100.0), 2)
-            sl = min(sl, min_sl_p) if (sl and sl > 0) else min_sl_p
-            if tp_pct > 0:
-                tp = round(exec_price * (1.0 - tp_pct / 100.0), 2)
-
         if side == "BUY" and not sl < exec_price < tp:
-            tp = round(exec_price + max(abs(exec_price - sl) * 1.5, exec_price * 0.02), 2)
+            return None, f"Invalid stop-loss or target relative to live entry for {sym}."
         if side == "SELL" and not tp < exec_price < sl:
-            tp = round(exec_price - max(abs(sl - exec_price) * 1.5, exec_price * 0.02), 2)
+            return None, f"Invalid stop-loss or target relative to live entry for {sym}."
 
         # Risk calculation
         risk_per_unit = abs(exec_price - sl)
@@ -1095,9 +1063,6 @@ class PaperTradingSession:
             "target_price": tp,
             "stop_loss": sl,
             "initial_stop_loss": sl,
-            "max_stop_loss_pct": sl_pct,
-            "max_profit_pct": tp_pct if tp_pct > 0 else None,
-            "max_loss_inr": round(allocated_capital * (sl_pct / 100.0), 2),
             "trailing_state": "INITIAL",
             "trailing_label": "Standard SL Active",
             "risk_reward": round(abs(tp - exec_price) / risk_per_unit, 2),
@@ -1138,8 +1103,6 @@ class PaperTradingSession:
         is_eod_square_off = (ist_now.hour > 15 or (ist_now.hour == 15 and ist_now.minute >= 20))
 
         positions_to_close = []
-        total_open_unrealized = 0.0
-        fresh_positions = []
 
         for pos in self.positions:
             sym = pos.get("base_symbol", pos["symbol"])
@@ -1183,65 +1146,6 @@ class PaperTradingSession:
             pos_margin = float(pos.get("allocated_margin") or (entry_p * qty) or 1.0)
             pos["pnl_pct"] = round((net_unrealized / max(pos_margin, 1.0)) * 100, 2)
             pos["last_updated"] = get_ist_str()
-            total_open_unrealized += net_unrealized
-            fresh_positions.append(pos)
-
-        # If no positions had fresh confirmed quotes, do not process any exits
-        if not fresh_positions:
-            return
-
-        # --- GLOBAL CIRCUIT BREAKER: Account-Wide Max Stop-Loss Check ---
-        sl_pct = float(self.config.get("max_stop_loss_pct", 10.0))
-        account_cap = float(self.initial_capital or self.config.get("initial_capital", 100000.0))
-        global_loss_limit = round(account_cap * (sl_pct / 100.0), 2)
-        total_session_loss = self.realized_pnl + total_open_unrealized
-
-        if global_loss_limit > 0 and (total_session_loss <= -global_loss_limit or total_open_unrealized <= -global_loss_limit) and len(fresh_positions) > 0:
-            self.log_event(
-                "GLOBAL_STOP_LOSS_TRIGGERED",
-                f"Emergency Circuit Breaker Triggered: Account total loss of ₹{abs(total_session_loss):,.2f} breached {sl_pct:.1f}% max portfolio loss limit (₹{global_loss_limit:,.2f} on ₹{account_cap:,.2f} capital). Auto squaring-off ALL {len(fresh_positions)} active trades immediately."
-            )
-            for pos in list(fresh_positions):
-                positions_to_close.append((pos, "GLOBAL_STOP_LOSS_HIT", pos.get("current_price") or pos.get("entry_price")))
-
-            for pos, reason, exit_price in positions_to_close:
-                self._close_position(pos, reason, exit_price)
-
-            self.status = "STOPPED_MAX_LOSS"
-            self._recalculate_equity()
-            self.save_to_db()
-            return
-
-        # --- GLOBAL PROFIT TARGET: Account-Wide Max Target / Profit Check ---
-        tp_pct = float(self.config.get("max_profit_pct", 0.0) or 0.0)
-        global_profit_target = round(account_cap * (tp_pct / 100.0), 2) if tp_pct > 0 else 0.0
-        total_session_gain = self.realized_pnl + total_open_unrealized
-
-        if tp_pct > 0 and (total_session_gain >= global_profit_target or total_open_unrealized >= global_profit_target) and len(fresh_positions) > 0:
-            self.log_event(
-                "GLOBAL_TARGET_PROFIT_REACHED",
-                f"Portfolio Profit Target Achieved: Account total profit of ₹{total_session_gain:,.2f} reached {tp_pct:.1f}% max portfolio target (₹{global_profit_target:,.2f} on ₹{account_cap:,.2f} capital). Auto squaring-off ALL {len(fresh_positions)} active trades to lock in gains!"
-            )
-            for pos in list(fresh_positions):
-                positions_to_close.append((pos, "GLOBAL_TARGET_HIT", pos.get("current_price") or pos.get("entry_price")))
-
-            for pos, reason, exit_price in positions_to_close:
-                self._close_position(pos, reason, exit_price)
-
-            self.status = "COMPLETED"
-            self._recalculate_equity()
-            self.save_to_db()
-            return
-
-        # --- INDIVIDUAL TRADE EVALUATION: Stop-Loss, Targets, and Trailing ---
-        for pos in fresh_positions:
-            sym = pos.get("base_symbol", pos["symbol"])
-            inst_type = pos["instrument_type"]
-            side = pos["side"]
-            entry_p = pos["entry_price"]
-            curr_price = pos.get("current_price", entry_p)
-            tp = pos["target_price"]
-            sl = pos["stop_loss"]
 
             # --- 80%+ Win-Rate Dynamic Breakeven & Profit Lock-In Trailing System ---
             target_distance = abs(tp - entry_p)
@@ -1277,9 +1181,9 @@ class PaperTradingSession:
             # Check Exit Conditions:
             exit_reason = None
             if side == "BUY":
-                if curr_price >= tp or (tp_pct > 0 and pos.get("pnl_pct", 0) >= tp_pct):
+                if curr_price >= tp:
                     exit_reason = "TARGET_HIT"
-                elif curr_price <= sl or (pos.get("pnl_pct", 0) <= -sl_pct):
+                elif curr_price <= sl:
                     if pos.get("trailing_state") == "PROFIT_LOCKED":
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
@@ -1287,9 +1191,9 @@ class PaperTradingSession:
                     else:
                         exit_reason = "STOP_LOSS_HIT"
             else: # SELL
-                if curr_price <= tp or (tp_pct > 0 and pos.get("pnl_pct", 0) >= tp_pct):
+                if curr_price <= tp:
                     exit_reason = "TARGET_HIT"
-                elif curr_price >= sl or (pos.get("pnl_pct", 0) <= -sl_pct):
+                elif curr_price >= sl:
                     if pos.get("trailing_state") == "PROFIT_LOCKED":
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
@@ -1357,7 +1261,7 @@ class PaperTradingSession:
         # Breakeven protected and trailing stop profit hits count as wins/scratches
         is_win = (
             (net_pnl > 0)
-            or (reason in ("BREAKEVEN_STOP_HIT", "TRAILING_STOP_PROFIT_HIT", "GLOBAL_TARGET_HIT", "TARGET_HIT"))
+            or (reason in ("BREAKEVEN_STOP_HIT", "TRAILING_STOP_PROFIT_HIT"))
             or (pos.get("trailing_state") in ("PROFIT_LOCKED", "BREAKEVEN") and gross_pnl >= 0)
         )
 
