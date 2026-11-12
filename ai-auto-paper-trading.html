@@ -94,7 +94,7 @@
 
 /* Paper Hero Section */
 .paper-hero {
-  padding: 30px 0 20px;
+  padding: clamp(26px, 3vw, 40px) 0 22px;
   border-bottom: 1px solid var(--border-subtle);
   position: relative;
 }
@@ -112,31 +112,34 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--accent-blue);
-  background: rgba(2, 132, 199, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  padding: 4px 12px;
+  background: var(--accent-blue-dim);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.28);
+  padding: 5px 13px;
   border-radius: var(--radius-pill);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .hero-main-title {
-  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  font-size: clamp(1.8rem, 3.2vw, 2.55rem);
   font-weight: 900;
   letter-spacing: -0.03em;
-  color: var(--text-main);
+  background: linear-gradient(135deg, var(--text-main) 30%, var(--accent-blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1.15;
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
 }
 .hero-subtitle {
   color: var(--text-muted);
-  font-size: 0.98rem;
-  line-height: 1.5;
+  font-size: 0.96rem;
+  line-height: 1.55;
   margin: 0;
-  max-width: 660px;
+  max-width: 650px;
 }
 
 /* Hero Status HUD Card (Right side) */
@@ -146,18 +149,19 @@
   gap: 12px;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
+  border-top: 2px solid var(--accent-blue);
   border-radius: var(--radius-lg);
-  padding: 16px 20px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  min-width: 310px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  min-width: min(340px, 38%);
   flex-shrink: 0;
   transition: var(--transition-normal);
 }
 .hero-status-card:hover {
-  border-color: var(--border-active);
-  box-shadow: var(--shadow-glow);
+  border-color: var(--border-card-hover);
+  box-shadow: var(--glow-blue);
 }
 .hero-status-card-top {
   display: flex;
@@ -181,7 +185,7 @@
   gap: 8px;
   padding: 6px 14px;
   border-radius: var(--radius-pill);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -210,7 +214,7 @@
   background: rgba(16, 185, 129, 0.15);
   border: 1px solid rgba(16, 185, 129, 0.45);
   color: var(--accent-green);
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.25);
 }
 .status-running .status-dot {
   background: var(--accent-green);
@@ -271,12 +275,13 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   font-family: var(--font-mono);
   font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
 }
 
@@ -302,12 +307,14 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 10px 18px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
+  padding: 12px 18px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
   border-radius: var(--radius-md);
-  margin-top: 18px;
+  margin-top: 20px;
   font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
 }
 .msb-group {
   display: flex;
@@ -315,47 +322,50 @@
   gap: 12px;
 }
 .badge-market-open {
-  background: rgba(16, 185, 129, 0.15);
+  background: var(--accent-green-dim);
   color: var(--accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 3px 10px;
+  border: 1px solid rgba(var(--accent-green-rgb), 0.35);
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 11px;
+  letter-spacing: 0.04em;
 }
 .badge-market-closed {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--accent-gold-dim);
   color: var(--accent-gold);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  padding: 3px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 11px;
+  letter-spacing: 0.04em;
 }
 .badge-market-pending {
   background: rgba(148, 163, 184, 0.12);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 11px;
 }
 .freshness-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 12px;
+  font-weight: 600;
   color: var(--text-muted);
 }
-.freshness-pill i { font-size: 10px; color: var(--accent-green); }
+.freshness-pill i { font-size: 11px; color: var(--accent-green); }
 
 /* Account Overview Grid (8 Cards) */
 .account-overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 16px;
-  margin: 25px 0 35px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin: 24px 0 32px;
 }
 .acc-card {
   background: var(--bg-card);
@@ -365,34 +375,86 @@
   box-shadow: var(--shadow-card);
   position: relative;
   overflow: hidden;
-  transition: var(--transition-normal);
+  min-width: 0;
+  backdrop-filter: blur(12px);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.acc-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.5), transparent);
+  opacity: 0.85;
+}
+.acc-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-blue), transparent); }
+.acc-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-gold), transparent); }
+.acc-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent-green), transparent); }
+.acc-card:nth-child(5)::before { background: linear-gradient(90deg, #06b6d4, transparent); }
+.acc-card:nth-child(6)::before { background: linear-gradient(90deg, var(--accent-green), var(--accent-blue)); }
+.acc-card:nth-child(7)::before { background: linear-gradient(90deg, var(--accent-gold), transparent); }
+.acc-card:nth-child(8)::before { background: linear-gradient(90deg, var(--accent-purple), transparent); }
+
+.acc-card:nth-child(2) {
+  border-color: rgba(var(--accent-blue-rgb), 0.35);
+  background: linear-gradient(145deg, var(--accent-blue-dim), var(--bg-card) 72%);
+}
+.acc-card:nth-child(6) {
+  border-color: rgba(var(--accent-green-rgb), 0.32);
+  background: linear-gradient(145deg, var(--accent-green-dim), var(--bg-card) 75%);
 }
 .acc-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   border-color: var(--border-card-hover);
+  box-shadow: var(--glow-blue);
 }
 .acc-card .acc-lbl {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  line-height: 1.35;
 }
+.acc-card .acc-lbl i {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-blue);
+}
+.acc-card:nth-child(3) .acc-lbl i { color: var(--accent-gold); }
+.acc-card:nth-child(4) .acc-lbl i { color: var(--accent-green); }
+.acc-card:nth-child(6) .acc-lbl i { color: var(--accent-green); }
+.acc-card:nth-child(7) .acc-lbl i { color: var(--accent-gold); }
+.acc-card:nth-child(8) .acc-lbl i { color: var(--accent-purple); }
+
 .acc-card .acc-val {
-  font-size: 1.65rem;
+  font-size: clamp(1.25rem, 1.7vw, 1.65rem);
   font-weight: 900;
   font-family: var(--font-mono);
-  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  margin-top: 10px;
   color: var(--text-main);
-  line-height: 1.1;
+  line-height: 1.15;
 }
 .acc-card .acc-sub {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  margin-top: 6px;
+  margin-top: 7px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -405,9 +467,12 @@
 /* Control & Config Workspace */
 .workspace-grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 24px;
-  margin-bottom: 35px;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+  gap: 22px;
+  margin-bottom: 32px;
+}
+.workspace-grid > .panel-card {
+  min-width: 0;
 }
 @media (max-width: 1024px) {
   .workspace-grid { grid-template-columns: 1fr; }
@@ -417,52 +482,128 @@
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-lg);
-  padding: 24px;
+  padding: clamp(18px, 2vw, 26px);
   box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
 }
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--border-subtle);
 }
 .panel-title {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 800;
   color: var(--text-main);
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  line-height: 1.35;
+}
+.panel-header > :last-child {
+  flex-shrink: 0;
 }
 
-/* Config Form Elements */
+/* Redesigned Trading Configuration Panel */
+.cfg-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-blue-dim);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.3);
+  color: var(--accent-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.cfg-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cfg-block:hover {
+  border-color: var(--border-card);
+}
+.cfg-block-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.cfg-block-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-main);
+}
+.cfg-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 900;
+}
+.cfg-block-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+.cfg-block .form-group:last-child {
+  margin-bottom: 0;
+}
+.config-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 .form-label {
   display: block;
-  font-size: 12.5px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-muted);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 .preset-chips {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   margin-top: 8px;
 }
 .chip-btn {
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: var(--radius-pill);
-  background: var(--bg-surface);
+  background: var(--bg-hud);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   transition: var(--transition-fast);
@@ -470,11 +611,13 @@
 .chip-btn:hover {
   color: var(--text-main);
   border-color: var(--border-card-hover);
+  transform: translateY(-1px);
 }
 .chip-btn.active {
   background: var(--accent-blue-dim);
   border-color: var(--accent-blue);
   color: var(--accent-blue);
+  box-shadow: 0 2px 10px rgba(var(--accent-blue-rgb), 0.18);
 }
 .input-with-symbol {
   position: relative;
@@ -483,28 +626,32 @@
 }
 .input-with-symbol .sym-icon {
   position: absolute;
-  left: 14px;
-  color: var(--text-dim);
+  left: 13px;
+  color: var(--accent-blue);
   font-weight: 800;
   font-size: 14px;
 }
 .input-with-symbol input, .custom-select {
   width: 100%;
-  padding: 10px 16px 10px 34px;
-  background: var(--bg-surface);
+  padding: 10px 12px 10px 32px;
+  background: var(--bg-input);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-sm);
   color: var(--text-main);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   outline: none;
   transition: var(--transition-fast);
 }
-.custom-select { padding-left: 14px; }
+.custom-select { padding-left: 12px; font-family: var(--font-sans); }
 .input-with-symbol input:focus, .custom-select:focus {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px var(--accent-blue-dim);
+  background: var(--bg-card-solid);
+  box-shadow: 0 0 0 3px var(--accent-blue-dim);
+}
+#selStyle {
+  border-color: rgba(var(--accent-green-rgb), 0.42);
 }
 
 .instruments-toggle-grid {
@@ -512,39 +659,131 @@
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
 }
+.mcap-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
 .instrument-check-card {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  padding: 10px 14px;
-  background: var(--bg-surface);
+  padding: 10px 12px;
+  background: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
   user-select: none;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-muted);
   transition: var(--transition-fast);
 }
-.instrument-check-card input {
-  accent-color: var(--accent-blue);
-}
-.instrument-check-card:has(input:checked) {
-  border-color: var(--accent-blue);
-  background: var(--accent-blue-dim);
+.instrument-check-card:hover {
+  border-color: var(--border-card-hover);
   color: var(--text-main);
 }
-.instrument-check-card small {
-  color: var(--text-dim);
+.inst-card-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.inst-card-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.inst-card-sub {
   font-size: 10px;
   font-weight: 600;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+.instrument-check-card input {
+  accent-color: var(--accent-blue);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.instrument-check-card:has(input:checked) {
+  border-color: rgba(var(--accent-blue-rgb), 0.65);
+  background: var(--accent-blue-dim);
+  color: var(--text-main);
+  box-shadow: 0 2px 10px rgba(var(--accent-blue-rgb), 0.12);
 }
 .form-help-text {
-  margin-top: 8px;
+  margin-top: 7px;
   color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Modern Switch Toggle for Auto-Stop */
+.toggle-switch-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 41px;
+  transition: var(--transition-fast);
+}
+.toggle-switch-card:hover {
+  border-color: var(--border-card-hover);
+}
+.toggle-switch-card:has(input:checked) {
+  border-color: rgba(var(--accent-blue-rgb), 0.55);
+  background: var(--accent-blue-dim);
+}
+.toggle-switch-label {
   font-size: 11.5px;
-  line-height: 1.5;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.toggle-pill {
+  position: relative;
+  width: 38px;
+  height: 21px;
+  flex-shrink: 0;
+}
+.toggle-pill input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+  transition: 0.2s ease;
+}
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.toggle-pill input:checked + .toggle-slider {
+  background: var(--accent-blue);
+}
+.toggle-pill input:checked + .toggle-slider::before {
+  transform: translateX(17px);
 }
 
 /* Radio Cards (Risk Profiles) */
@@ -554,13 +793,19 @@
   gap: 10px;
 }
 .risk-card {
-  padding: 12px;
+  padding: 12px 10px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: center;
+  position: relative;
+  overflow: hidden;
   transition: var(--transition-fast);
+}
+.risk-card:hover {
+  border-color: var(--border-card-hover);
+  transform: translateY(-1px);
 }
 .risk-card input { display: none; }
 .risk-card .rc-title {
@@ -576,41 +821,76 @@
 .risk-card:has(input:checked) {
   border-color: var(--accent-blue);
   background: var(--accent-blue-dim);
+  box-shadow: 0 4px 14px rgba(var(--accent-blue-rgb), 0.15);
 }
 
-/* Control Actions Bar */
+/* Control Actions Command Dock */
 .control-actions-bar {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 24px;
-  padding-top: 18px;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
 }
+.control-row-primary {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.control-row-primary .btn-start,
+.control-row-primary .btn-pause {
+  flex: 1.5;
+}
+.control-row-primary .btn-save-cfg {
+  flex: 1;
+}
+.control-row-secondary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
 .btn-control {
-  padding: 10px 20px;
+  padding: 10px 16px;
   border-radius: var(--radius-md);
   font-weight: 800;
-  font-size: 13px;
+  font-size: 12.5px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 43px;
   gap: 8px;
   cursor: pointer;
   border: none;
   transition: var(--transition-normal);
 }
+.control-row-secondary .btn-control {
+  min-height: 37px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+}
 .btn-start {
   background: linear-gradient(135deg, #10b981, #059669);
   color: #fff;
-  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.38);
 }
-.btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(16, 185, 129, 0.5); }
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(16, 185, 129, 0.5); }
+.btn-save-cfg {
+  background: var(--accent-blue-dim);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.45);
+  color: var(--accent-blue);
+}
+.btn-save-cfg:hover {
+  background: rgba(var(--accent-blue-rgb), 0.22);
+  transform: translateY(-1px);
+}
 .btn-pause {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
+  background: var(--accent-gold-dim);
+  border: 1px solid rgba(245, 158, 11, 0.45);
   color: var(--accent-gold);
 }
-.btn-pause:hover { background: rgba(245, 158, 11, 0.25); }
+.btn-pause:hover { background: rgba(245, 158, 11, 0.24); }
 .btn-stop-new {
   background: var(--bg-surface);
   border: 1px solid var(--border-card);
@@ -618,11 +898,11 @@
 }
 .btn-stop-new:hover { color: var(--text-main); border-color: var(--border-card-hover); }
 .btn-close-all {
-  background: rgba(244, 63, 94, 0.15);
-  border: 1px solid rgba(244, 63, 94, 0.4);
+  background: var(--accent-red-dim);
+  border: 1px solid rgba(244, 63, 94, 0.45);
   color: var(--accent-red);
 }
-.btn-close-all:hover { background: rgba(244, 63, 94, 0.25); }
+.btn-close-all:hover { background: rgba(244, 63, 94, 0.24); }
 .btn-reset {
   background: var(--bg-surface);
   border: 1px solid var(--border-card);
@@ -670,27 +950,28 @@ button[disabled],
   opacity: 0;
 }
 
-
 /* Live AI Decision Terminal */
 .terminal-window {
   background: #020617;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
   border-radius: var(--radius-md);
-  height: 380px;
+  height: 390px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   font-family: var(--font-mono);
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.55);
 }
 .terminal-bar {
-  background: #090d1f;
-  padding: 8px 14px;
+  background: #0b1124;
+  padding: 9px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 11.5px;
-  color: var(--text-dim);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
 }
 .term-dots { display: flex; gap: 6px; }
 .term-dot { width: 9px; height: 9px; border-radius: 50%; }
@@ -706,56 +987,66 @@ button[disabled],
   line-height: 1.6;
 }
 .terminal-stream::-webkit-scrollbar { width: 6px; }
-.terminal-stream::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+.terminal-stream::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 4px; }
 .stream-row {
   margin-bottom: 8px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
 }
-.stream-time { color: var(--text-dim); font-size: 11px; min-width: 65px; }
+.stream-time { color: #64748b; font-size: 11px; min-width: 65px; }
 .stream-type {
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 7px;
   border-radius: 4px;
   font-size: 10px;
 }
-.st-scan { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); }
-.st-order { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-.st-exit { background: rgba(168, 85, 247, 0.2); color: var(--accent-purple); }
-.st-warn { background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); }
-.st-sys { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); }
+.st-scan { background: rgba(56, 189, 248, 0.18); color: #38bdf8; }
+.st-order { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.st-exit { background: rgba(168, 85, 247, 0.22); color: #c084fc; }
+.st-warn { background: rgba(245, 158, 11, 0.22); color: #fbbf24; }
+.st-sys { background: rgba(148, 163, 184, 0.18); color: #cbd5e1; }
 .stream-msg { color: #e2e8f0; flex: 1; word-break: break-word; }
 
 /* Tables Common Styling */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  scrollbar-width: thin;
 }
+.table-responsive::-webkit-scrollbar { height: 7px; }
+.table-responsive::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 4px; }
 .paper-table {
   width: 100%;
+  min-width: 900px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 .paper-table th {
-  background: var(--bg-surface);
+  background: var(--bg-hud);
   color: var(--text-dim);
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.05em;
-  padding: 12px 16px;
+  letter-spacing: 0.06em;
+  padding: 12px 14px;
   text-align: left;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-card);
   white-space: nowrap;
 }
 .paper-table td {
-  padding: 14px 16px;
+  padding: 13px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-main);
   white-space: nowrap;
   vertical-align: middle;
+}
+.paper-table tbody tr:last-child td {
+  border-bottom: none;
 }
 .paper-table tbody tr {
   transition: var(--transition-fast);
@@ -766,20 +1057,20 @@ button[disabled],
 
 .trade-badge {
   display: inline-block;
-  padding: 3px 8px;
-  border-radius: 4px;
+  padding: 3px 9px;
+  border-radius: 5px;
   font-weight: 800;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
 }
-.badge-buy { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
-.badge-sell { background: rgba(244, 63, 94, 0.15); color: var(--accent-red); border: 1px solid rgba(244, 63, 94, 0.3); }
+.badge-buy { background: var(--accent-green-dim); color: var(--accent-green); border: 1px solid rgba(var(--accent-green-rgb), 0.35); }
+.badge-sell { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(244, 63, 94, 0.35); }
 
 /* Progress bar for TP / SL distance */
 .progress-tp-sl {
-  width: 90px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  width: 92px;
+  height: 7px;
+  background: rgba(148, 163, 184, 0.16);
   border-radius: 999px;
   overflow: hidden;
   position: relative;
@@ -788,18 +1079,19 @@ button[disabled],
   height: 100%;
   background: var(--accent-blue);
   border-radius: 999px;
+  transition: width 0.35s ease;
 }
 
 /* Empty State */
 .empty-table-state {
   text-align: center;
-  padding: 45px 20px;
+  padding: 42px 20px;
   color: var(--text-dim);
 }
 .empty-table-state i {
-  font-size: 2.4rem;
-  margin-bottom: 12px;
-  opacity: 0.4;
+  font-size: 2.3rem;
+  margin-bottom: 10px;
+  opacity: 0.45;
 }
 
 /* Modals */
@@ -807,7 +1099,7 @@ button[disabled],
   position: fixed;
   inset: 0;
   background: var(--bg-modal-overlay);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
   z-index: 9999;
   display: none;
   align-items: center;
@@ -832,7 +1124,9 @@ button[disabled],
 .modal-title {
   font-size: 1.25rem;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -840,14 +1134,15 @@ button[disabled],
 }
 .modal-desc {
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.6;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 10px;
 }
 
 /* Filter controls bar for Trade History */
@@ -857,7 +1152,7 @@ button[disabled],
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .filter-tabs-group {
   display: flex;
@@ -881,25 +1176,28 @@ button[disabled],
   border-color: var(--accent-blue);
   color: var(--accent-blue);
 }
+
 /* Profile Switcher HUD Bar */
 .profile-hud-bar {
-  background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: var(--radius-md);
-  padding: 16px 22px;
-  margin: 20px 0 26px;
+  background: linear-gradient(135deg, rgba(var(--accent-blue-rgb), 0.1) 0%, var(--bg-card) 60%);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.3);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin: 22px 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
 }
 .profile-hud-left {
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 .profile-badge-pill {
   display: flex;
@@ -909,23 +1207,23 @@ button[disabled],
 .profile-avatar-icon {
   width: 46px;
   height: 46px;
-  border-radius: 50%;
+  border-radius: 14px;
   background: linear-gradient(135deg, #0ea5e9, #6366f1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
   color: #fff;
-  box-shadow: 0 0 16px rgba(14, 165, 233, 0.45);
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.35);
   flex-shrink: 0;
 }
 .profile-meta-text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .profile-hud-title {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -941,16 +1239,18 @@ button[disabled],
   border: 1px solid var(--border-card-hover);
   color: var(--text-main);
   font-weight: 800;
-  font-size: 14.5px;
-  padding: 6px 14px;
+  font-size: 14px;
+  padding: 7px 14px;
   border-radius: var(--radius-sm);
   outline: none;
   cursor: pointer;
+  max-width: min(430px, 55vw);
+  text-overflow: ellipsis;
   transition: var(--transition-fast);
 }
 .profile-dropdown:focus, .profile-dropdown:hover {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 0 3px var(--accent-blue-dim);
 }
 .profile-tags-container {
   display: flex;
@@ -959,54 +1259,55 @@ button[disabled],
   flex-wrap: wrap;
 }
 .prof-tag {
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: var(--radius-pill);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 .prof-tag-inst {
-  background: rgba(168, 85, 247, 0.15);
-  color: var(--accent-purple, #c084fc);
+  background: var(--accent-purple-dim);
+  color: var(--accent-purple);
   border: 1px solid rgba(168, 85, 247, 0.3);
 }
 .prof-tag-style {
-  background: rgba(56, 189, 248, 0.15);
+  background: var(--accent-blue-dim);
   color: var(--accent-blue);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.3);
 }
 .prof-tag-risk {
-  background: rgba(245, 158, 11, 0.15);
+  background: var(--accent-gold-dim);
   color: var(--accent-gold);
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .profile-hud-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 .btn-outline-cyan {
-  background: rgba(56, 189, 248, 0.1);
+  background: var(--accent-blue-dim);
   color: var(--accent-blue);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  border: 1px solid rgba(var(--accent-blue-rgb), 0.42);
 }
 .btn-outline-cyan:hover {
-  background: rgba(56, 189, 248, 0.22);
+  background: var(--accent-blue);
   color: #fff;
   border-color: var(--accent-blue);
 }
 .btn-gradient-gold {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.9), rgba(217, 119, 6, 0.95));
+  background: linear-gradient(135deg, #fbbf24, #d97706);
   color: #0f172a !important;
   font-weight: 800;
   border: none;
-  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.32);
 }
 .btn-gradient-gold:hover {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: linear-gradient(135deg, #fcd34d, #f59e0b);
   transform: translateY(-1px);
 }
 .db-sync-indicator {
@@ -1015,11 +1316,12 @@ button[disabled],
   gap: 7px;
   font-size: 11.5px;
   color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 5px 12px;
+  background: var(--accent-green-dim);
+  border: 1px solid rgba(var(--accent-green-rgb), 0.32);
+  padding: 6px 12px;
   border-radius: var(--radius-pill);
   font-weight: 700;
+  white-space: nowrap;
 }
 .db-dot {
   width: 7px;
@@ -1032,20 +1334,43 @@ button[disabled],
 .db-sync-badge {
   font-size: 11px;
   color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  padding: 3px 9px;
+  background: var(--accent-green-dim);
+  border: 1px solid rgba(var(--accent-green-rgb), 0.28);
+  padding: 3px 10px;
   border-radius: var(--radius-pill);
   font-weight: 700;
-  margin-left: 10px;
+}
+
+/* Performance KPI Cards */
+.performance-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.perf-kpi-card {
+  background: var(--bg-surface);
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition-normal);
+}
+.perf-kpi-card:hover {
+  border-color: var(--border-card-hover);
+  transform: translateY(-2px);
+}
+.charts-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 /* Leaderboard Section Styles */
 .leaderboard-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-  margin: 18px 0 24px;
+  gap: 15px;
+  margin: 18px 0 22px;
 }
 .lead-kpi-card {
   background: var(--bg-surface);
@@ -1061,8 +1386,8 @@ button[disabled],
   transform: translateY(-2px);
 }
 .lead-kpi-card.top-performer {
-  border-color: rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, var(--accent-gold-dim) 0%, var(--bg-surface) 85%);
 }
 .lead-kpi-header {
   display: flex;
@@ -1071,7 +1396,7 @@ button[disabled],
   margin-bottom: 6px;
 }
 .lead-kpi-lbl {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   color: var(--text-dim);
   letter-spacing: 0.05em;
@@ -1106,12 +1431,12 @@ button[disabled],
   height: 32px;
   border-radius: 50%;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 13px;
 }
-.rank-badge-1 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
-.rank-badge-2 { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
-.rank-badge-3 { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.4); }
-.rank-badge-gen { background: rgba(255, 255, 255, 0.05); color: var(--text-dim); border: 1px solid var(--border-subtle); font-size: 12px; }
+.rank-badge-1 { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.5); }
+.rank-badge-2 { background: rgba(148, 163, 184, 0.2); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.4); }
+.rank-badge-3 { background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.4); }
+.rank-badge-gen { background: var(--bg-hud); color: var(--text-dim); border: 1px solid var(--border-subtle); font-size: 12px; }
 
 /* Toast Notifications */
 .toast-container {
@@ -1125,14 +1450,15 @@ button[disabled],
   pointer-events: none;
 }
 .toast-item {
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid var(--accent-blue);
+  background: var(--bg-card-solid);
+  border: 1px solid var(--border-card-hover);
+  border-left: 4px solid var(--accent-blue);
   color: var(--text-main);
   padding: 12px 18px;
   border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 600;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-floating);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1148,103 +1474,6 @@ button[disabled],
 .paper-dashboard {
   width: min(100% - 32px, 1360px);
   max-width: 1360px;
-}
-.paper-hero {
-  padding-top: clamp(24px, 3vw, 42px);
-}
-.hero-status-card {
-  min-width: min(340px, 38%);
-}
-.market-status-bar {
-  padding: 12px 16px;
-}
-.account-overview-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-.acc-card {
-  min-width: 0;
-  padding: 18px;
-}
-.acc-card .acc-lbl {
-  gap: 10px;
-  line-height: 1.4;
-}
-.acc-card .acc-lbl i {
-  flex: 0 0 auto;
-}
-.acc-card .acc-val {
-  font-size: clamp(1.25rem, 1.7vw, 1.65rem);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-.acc-card:nth-child(2) {
-  border-color: rgba(56, 189, 248, 0.38);
-  background: linear-gradient(145deg, rgba(14, 165, 233, 0.11), var(--bg-card) 72%);
-}
-.workspace-grid {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 20px;
-}
-.workspace-grid > .panel-card {
-  min-width: 0;
-}
-.config-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-.control-actions-bar {
-  gap: 10px;
-}
-.btn-control {
-  justify-content: center;
-  min-height: 42px;
-}
-.panel-card {
-  padding: clamp(18px, 2vw, 26px);
-}
-.panel-header {
-  gap: 12px;
-}
-.panel-title {
-  min-width: 0;
-  line-height: 1.35;
-}
-.panel-header > :last-child {
-  flex-shrink: 0;
-}
-.paper-table {
-  min-width: 900px;
-}
-.table-responsive {
-  border-radius: var(--radius-sm);
-  scrollbar-width: thin;
-}
-.profile-hud-bar {
-  padding: 16px 18px;
-}
-.profile-hud-left,
-.profile-hud-right {
-  min-width: 0;
-}
-.performance-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
-}
-.charts-breakdown-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
-}
-.profile-dropdown {
-  max-width: min(430px, 55vw);
-  text-overflow: ellipsis;
-}
-.db-sync-indicator {
-  white-space: nowrap;
 }
 
 @media (max-width: 1100px) {
@@ -1410,26 +1639,28 @@ button[disabled],
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
   }
-  .instruments-toggle-grid {
+  .instruments-toggle-grid,
+  .mcap-toggle-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mcap-toggle-grid .instrument-check-card:last-child {
+    grid-column: 1 / -1;
   }
   .instrument-check-card {
     padding: 9px;
     font-size: 11px;
   }
-  .control-actions-bar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+  .control-row-primary {
+    flex-direction: column;
+  }
+  .control-row-secondary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
   .control-actions-bar button {
-    padding: 10px 8px;
+    padding: 9px 8px;
     font-size: 11px;
     white-space: normal;
-  }
-  #btnStart,
-  #btnResume {
-    grid-column: 1 / -1;
   }
   .risk-profile-grid {
     gap: 6px;
@@ -1741,12 +1972,15 @@ button[disabled],
   <!-- 2. Workspace Grid: Config & Controls (Left) vs AI Decision Stream (Right) -->
   <section class="workspace-grid">
 
-    <!-- Configuration & Control Panel -->
+    <!-- Configuration & Control Panel (Redesigned Modular Command Center) -->
     <div class="panel-card">
       <div class="panel-header">
         <div class="panel-title">
-          <i class="fa-solid fa-sliders" style="color:var(--accent-blue);"></i>
-          <span>Trading Configuration</span>
+          <span class="cfg-header-icon"><i class="fa-solid fa-sliders"></i></span>
+          <div>
+            <div style="line-height:1.2;">Trading Configuration</div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-dim);margin-top:2px;">Capital, instruments, strategy &amp; risk guardrails</div>
+          </div>
         </div>
         <button type="button" class="btn btn-sm btn-outline" onclick="openBacktestModal()" style="font-size:12px;">
           <i class="fa-solid fa-clock-rotate-left"></i> Run Backtest
@@ -1754,222 +1988,312 @@ button[disabled],
       </div>
 
       <form id="configForm" onsubmit="event.preventDefault(); applyConfig();">
-        
-        <!-- Investment Capital -->
-        <div class="form-group">
-          <label class="form-label">Investment Virtual Capital (₹)</label>
-          <div class="input-with-symbol">
-            <span class="sym-icon">₹</span>
-            <input type="number" id="inpCapital" value="100000" min="5000" step="1000" required>
-          </div>
-          <div class="preset-chips">
-            <button type="button" class="chip-btn" onclick="setCapitalPreset(25000)">₹25k</button>
-            <button type="button" class="chip-btn" onclick="setCapitalPreset(50000)">₹50k</button>
-            <button type="button" class="chip-btn active" onclick="setCapitalPreset(100000)">₹1 Lakh</button>
-            <button type="button" class="chip-btn" onclick="setCapitalPreset(250000)">₹2.5 Lakh</button>
-            <button type="button" class="chip-btn" onclick="setCapitalPreset(500000)">₹5 Lakh</button>
-          </div>
-        </div>
 
-        <!-- Trading Instruments Multi-select -->
-        <div class="form-group">
-          <label class="form-label">Trading Instruments (Select one or more)</label>
-          <div class="instruments-toggle-grid">
-            <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="EQUITY" onchange="onInstrumentChanged()" checked>
-              <span>Stocks (Equity)</span>
-            </label>
-            <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="INDEX_FUTURES" onchange="onInstrumentChanged()" checked>
-              <span>Index Futures</span>
-            </label>
-            <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="INDEX_OPTIONS" onchange="onInstrumentChanged()" checked>
-              <span>Index Options</span>
-            </label>
-            <label class="instrument-check-card">
-              <input type="checkbox" name="instrument" value="STOCK_FUTURES" onchange="onInstrumentChanged()">
-              <span>Stock Futures</span>
-            </label>
+        <!-- Block 1: Capital & Universe -->
+        <div class="cfg-block">
+          <div class="cfg-block-head">
+            <div class="cfg-block-title">
+              <span class="cfg-step-num">01</span>
+              <span>Capital &amp; Market Universe</span>
+            </div>
+            <span class="cfg-block-hint">NSE Live Allocation</span>
           </div>
-          <div class="form-help-text">Real-time algorithmic execution across selected instruments (Stocks, Index Futures, Index Options, Stock Futures) using live NSE prices.</div>
-        </div>
 
-        <!-- Market Capitalization Multi-select -->
-        <div class="form-group">
-          <label class="form-label">Market Capitalization (Select one or more)</label>
-          <div class="instruments-toggle-grid">
-            <label class="instrument-check-card">
-              <input type="checkbox" name="market_cap" value="LARGE_CAP" onchange="onMarketCapChanged()" checked>
-              <span>Large Cap (Nifty 50, Bluechips)</span>
-            </label>
-            <label class="instrument-check-card">
-              <input type="checkbox" name="market_cap" value="MID_CAP" onchange="onMarketCapChanged()" checked>
-              <span>Mid Cap (High Growth, F&O)</span>
-            </label>
-            <label class="instrument-check-card">
-              <input type="checkbox" name="market_cap" value="SMALL_CAP" onchange="onMarketCapChanged()" checked>
-              <span>Small Cap (Multibagger Cash Stocks)</span>
-            </label>
-          </div>
-          <div class="form-help-text">Filter universe: Large Cap (Top 100 & Indices), Mid Cap (101-250), Small Cap (High-growth cash equities for swing & long-term).</div>
-        </div>
-
-        <!-- Row: Market & Trading Style -->
-        <div class="config-row">
+          <!-- Investment Capital -->
           <div class="form-group">
-            <label class="form-label">Execution Market</label>
-            <select id="selMarket" class="custom-select">
-              <option value="NSE" selected>NSE India (live cash-equity quotes)</option>
-              <option value="BSE" disabled>BSE (not supported for auto trading)</option>
-            </select>
+            <label class="form-label">Investment Virtual Capital (₹)</label>
+            <div class="input-with-symbol">
+              <span class="sym-icon">₹</span>
+              <input type="number" id="inpCapital" value="100000" min="5000" step="1000" required>
+            </div>
+            <div class="preset-chips">
+              <button type="button" class="chip-btn" onclick="setCapitalPreset(25000)">₹25k</button>
+              <button type="button" class="chip-btn" onclick="setCapitalPreset(50000)">₹50k</button>
+              <button type="button" class="chip-btn active" onclick="setCapitalPreset(100000)">₹1 Lakh</button>
+              <button type="button" class="chip-btn" onclick="setCapitalPreset(250000)">₹2.5 Lakh</button>
+              <button type="button" class="chip-btn" onclick="setCapitalPreset(500000)">₹5 Lakh</button>
+            </div>
           </div>
 
+          <!-- Trading Instruments Multi-select -->
           <div class="form-group">
-            <label class="form-label">Trading Style</label>
-            <select id="selStyle" class="custom-select">
-              <option value="HIGH_WINRATE" selected>🎯 80%+ Win-Rate Smart Money Pullback & Breakeven</option>
-              <option value="INTRADAY">Intraday Momentum & Breakout</option>
-              <option value="SCALPING">High-Frequency Scalping (1-5m)</option>
-              <option value="SWING">Swing Trading (Multi-Day Breakouts)</option>
-              <option value="POSITIONAL">Positional Trend Following (Weeks/Months)</option>
-              <option value="LONG_TERM">Long-Term Equity Investment (CNC Cash Holding)</option>
-              <option value="MEAN_REVERSION">VWAP / RSI Mean Reversion</option>
-            </select>
+            <label class="form-label">Trading Instruments (Multi-Select)</label>
+            <div class="instruments-toggle-grid">
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <i class="fa-solid fa-chart-line" style="color:var(--accent-blue);font-size:13px;"></i>
+                  <div class="inst-card-text">
+                    <span>Stocks (Equity)</span>
+                    <span class="inst-card-sub">NSE Cash &amp; CNC</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="instrument" value="EQUITY" onchange="onInstrumentChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <i class="fa-solid fa-layer-group" style="color:var(--accent-purple);font-size:13px;"></i>
+                  <div class="inst-card-text">
+                    <span>Index Futures</span>
+                    <span class="inst-card-sub">NIFTY &amp; BANKNIFTY</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="instrument" value="INDEX_FUTURES" onchange="onInstrumentChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <i class="fa-solid fa-bolt" style="color:var(--accent-gold);font-size:13px;"></i>
+                  <div class="inst-card-text">
+                    <span>Index Options</span>
+                    <span class="inst-card-sub">ATM / ITM CE &amp; PE</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="instrument" value="INDEX_OPTIONS" onchange="onInstrumentChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <i class="fa-solid fa-coins" style="color:var(--accent-purple);font-size:13px;"></i>
+                  <div class="inst-card-text">
+                    <span>Stock Options</span>
+                    <span class="inst-card-sub">Large, Mid &amp; Small F&amp;O</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="instrument" value="STOCK_OPTIONS" onchange="onInstrumentChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <i class="fa-solid fa-cubes" style="color:var(--accent-green);font-size:13px;"></i>
+                  <div class="inst-card-text">
+                    <span>Stock Futures</span>
+                    <span class="inst-card-sub">F&amp;O Liquid Lot</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="instrument" value="STOCK_FUTURES" onchange="onInstrumentChanged()">
+              </label>
+            </div>
+          </div>
+
+          <!-- Market Capitalization Multi-select -->
+          <div class="form-group">
+            <label class="form-label">Market Cap Filter</label>
+            <div class="mcap-toggle-grid">
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <div class="inst-card-text">
+                    <span>Large Cap</span>
+                    <span class="inst-card-sub">Nifty 50 &amp; F&amp;O Bluechips</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="market_cap" value="LARGE_CAP" onchange="onMarketCapChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <div class="inst-card-text">
+                    <span>Mid Cap</span>
+                    <span class="inst-card-sub">High Growth &amp; F&amp;O</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="market_cap" value="MID_CAP" onchange="onMarketCapChanged()" checked>
+              </label>
+              <label class="instrument-check-card">
+                <div class="inst-card-main">
+                  <div class="inst-card-text">
+                    <span>Small Cap</span>
+                    <span class="inst-card-sub">High Alpha &amp; F&amp;O Stocks</span>
+                  </div>
+                </div>
+                <input type="checkbox" name="market_cap" value="SMALL_CAP" onchange="onMarketCapChanged()" checked>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- Row: Holding Duration & Max Concurrent Positions -->
-        <div class="config-row">
-          <div class="form-group">
-            <label class="form-label">Holding Duration</label>
-            <select id="selDuration" class="custom-select" onchange="toggleCustomDuration(this.value)">
-              <optgroup label="⚡ Intraday & Scalping (Minutes / Hours)">
-                <option value="0.5">30 Seconds (⚡ Fast Demo - Auto Exit Test)</option>
-                <option value="1">1 Minute (Quick Test)</option>
-                <option value="5">5 Minutes</option>
-                <option value="15" selected>15 Minutes (Standard Intraday)</option>
-                <option value="30">30 Minutes</option>
-                <option value="60">1 Hour (Session Trend)</option>
-                <option value="240">4 Hours (Half Day)</option>
-              </optgroup>
-              <optgroup label="📅 Swing Trading (Days)">
-                <option value="1440">1 Day (EOD Carryforward)</option>
-                <option value="2880">2 Days (Short Swing)</option>
-                <option value="4320">3 Days</option>
-                <option value="7200">5 Days (1 Trading Week)</option>
-              </optgroup>
-              <optgroup label="📆 Positional Trading (Weeks)">
-                <option value="10080">1 Week (7 Days)</option>
-                <option value="20160">2 Weeks (14 Days)</option>
-                <option value="30240">3 Weeks (21 Days)</option>
-              </optgroup>
-              <optgroup label="🗓️ Medium & Long-Term (Months / Years)">
-                <option value="43200">1 Month (30 Days)</option>
-                <option value="86400">2 Months (60 Days)</option>
-                <option value="129600">3 Months (Quarterly Swing)</option>
-                <option value="259200">6 Months (Half-Yearly)</option>
-                <option value="518400">1 Year (365 Days Long-Term)</option>
-                <option value="-1">Till Target or SL Hit (No Time Limit / Open)</option>
-              </optgroup>
-              <optgroup label="⚙️ Custom Duration">
-                <option value="custom">Custom Duration (Seconds / Minutes / Hours / Days / Weeks / Months)...</option>
-              </optgroup>
-            </select>
-            <!-- Custom duration picker box -->
-            <div id="customDurationBox" style="display:none;margin-top:8px;gap:8px;">
-              <input type="number" id="inpCustomDurationVal" class="custom-select" style="flex:1;" placeholder="Amount (e.g. 5)" min="1" max="365" value="5">
-              <select id="selCustomDurationUnit" class="custom-select" style="flex:1.2;">
-                <option value="seconds">Seconds</option>
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
-                <option value="days" selected>Days</option>
-                <option value="weeks">Weeks</option>
-                <option value="months">Months</option>
+        <!-- Block 2: Strategy & Execution Timing -->
+        <div class="cfg-block">
+          <div class="cfg-block-head">
+            <div class="cfg-block-title">
+              <span class="cfg-step-num">02</span>
+              <span>Strategy &amp; Execution Timing</span>
+            </div>
+            <span class="cfg-block-hint">80%+ Edge Default</span>
+          </div>
+
+          <!-- Row: Market & Trading Style -->
+          <div class="config-row">
+            <div class="form-group">
+              <label class="form-label">Execution Market</label>
+              <select id="selMarket" class="custom-select">
+                <option value="NSE" selected>NSE India (live cash-equity quotes)</option>
+                <option value="BSE" disabled>BSE (not supported for auto trading)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Trading Style</label>
+              <select id="selStyle" class="custom-select" onchange="applyConfig()">
+                <option value="HIGH_WINRATE" selected>🎯 80%+ Win-Rate Smart Money Pullback & Breakeven</option>
+                <option value="INTRADAY">Intraday Momentum & Breakout</option>
+                <option value="SCALPING">High-Frequency Scalping (1-5m)</option>
+                <option value="SWING">Swing Trading (Multi-Day Breakouts)</option>
+                <option value="POSITIONAL">Positional Trend Following (Weeks/Months)</option>
+                <option value="LONG_TERM">Long-Term Equity Investment (CNC Cash Holding)</option>
+                <option value="MEAN_REVERSION">VWAP / RSI Mean Reversion</option>
               </select>
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Max Concurrent Positions</label>
-            <select id="selMaxPositions" class="custom-select">
-              <option value="1">1 Concurrent Trade (Sniper Focus)</option>
-              <option value="2">2 Concurrent Trades</option>
-              <option value="3">3 Concurrent Trades</option>
-              <option value="4" selected>4 Concurrent Trades (Balanced Default)</option>
-              <option value="5">5 Concurrent Trades</option>
-              <option value="6">6 Concurrent Trades</option>
-              <option value="8">8 Concurrent Trades</option>
-              <option value="10">10 Concurrent Trades</option>
-              <option value="12">12 Concurrent Trades</option>
-              <option value="15">15 Concurrent Trades</option>
-              <option value="20">20 Concurrent Trades</option>
-              <option value="25">25 Concurrent Trades</option>
-              <option value="30">30 Concurrent Trades (Maximum Diversification)</option>
-            </select>
+          <!-- Row: Holding Duration & Max Concurrent Positions -->
+          <div class="config-row">
+            <div class="form-group">
+              <label class="form-label">Holding Duration</label>
+              <select id="selDuration" class="custom-select" onchange="toggleCustomDuration(this.value)">
+                <optgroup label="⚡ Intraday & Scalping (Minutes / Hours)">
+                  <option value="0.5">30 Seconds (⚡ Fast Demo - Auto Exit Test)</option>
+                  <option value="1">1 Minute (Quick Test)</option>
+                  <option value="5">5 Minutes</option>
+                  <option value="15" selected>15 Minutes (Standard Intraday)</option>
+                  <option value="30">30 Minutes</option>
+                  <option value="60">1 Hour (Session Trend)</option>
+                  <option value="240">4 Hours (Half Day)</option>
+                </optgroup>
+                <optgroup label="📅 Swing Trading (Days)">
+                  <option value="1440">1 Day (EOD Carryforward)</option>
+                  <option value="2880">2 Days (Short Swing)</option>
+                  <option value="4320">3 Days</option>
+                  <option value="7200">5 Days (1 Trading Week)</option>
+                </optgroup>
+                <optgroup label="📆 Positional Trading (Weeks)">
+                  <option value="10080">1 Week (7 Days)</option>
+                  <option value="20160">2 Weeks (14 Days)</option>
+                  <option value="30240">3 Weeks (21 Days)</option>
+                </optgroup>
+                <optgroup label="🗓️ Medium & Long-Term (Months / Years)">
+                  <option value="43200">1 Month (30 Days)</option>
+                  <option value="86400">2 Months (60 Days)</option>
+                  <option value="129600">3 Months (Quarterly Swing)</option>
+                  <option value="259200">6 Months (Half-Yearly)</option>
+                  <option value="518400">1 Year (365 Days Long-Term)</option>
+                  <option value="-1">Till Target or SL Hit (No Time Limit / Open)</option>
+                </optgroup>
+                <optgroup label="⚙️ Custom Duration">
+                  <option value="custom">Custom Duration (Seconds / Minutes / Hours / Days / Weeks / Months)...</option>
+                </optgroup>
+              </select>
+              <!-- Custom duration picker box -->
+              <div id="customDurationBox" style="display:none;margin-top:8px;gap:8px;padding:8px;border-radius:var(--radius-sm);background:var(--bg-input);border:1px dashed var(--border-card-hover);">
+                <input type="number" id="inpCustomDurationVal" class="custom-select" style="flex:1;" placeholder="Amount (e.g. 5)" min="1" max="365" value="5">
+                <select id="selCustomDurationUnit" class="custom-select" style="flex:1.2;">
+                  <option value="seconds">Seconds</option>
+                  <option value="minutes">Minutes</option>
+                  <option value="hours">Hours</option>
+                  <option value="days" selected>Days</option>
+                  <option value="weeks">Weeks</option>
+                  <option value="months">Months</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Max Concurrent Positions</label>
+              <select id="selMaxPositions" class="custom-select">
+                <option value="1">1 Concurrent Trade (Sniper Focus)</option>
+                <option value="2">2 Concurrent Trades</option>
+                <option value="3">3 Concurrent Trades</option>
+                <option value="4" selected>4 Concurrent Trades (Balanced Default)</option>
+                <option value="5">5 Concurrent Trades</option>
+                <option value="6">6 Concurrent Trades</option>
+                <option value="8">8 Concurrent Trades</option>
+                <option value="10">10 Concurrent Trades</option>
+                <option value="12">12 Concurrent Trades</option>
+                <option value="15">15 Concurrent Trades</option>
+                <option value="20">20 Concurrent Trades</option>
+                <option value="25">25 Concurrent Trades</option>
+                <option value="30">30 Concurrent Trades (Maximum Diversification)</option>
+              </select>
+            </div>
           </div>
         </div>
 
-        <!-- Risk Profile -->
-        <div class="form-group">
-          <label class="form-label">Risk Profile & Sizing</label>
-          <div class="risk-profile-grid">
-            <label class="risk-card">
-              <input type="radio" name="riskProfile" value="CONSERVATIVE">
-              <div class="rc-title" style="color:var(--accent-green);">Conservative</div>
-              <div class="rc-sub">0.5% Risk | 1:2.0 RR</div>
-            </label>
-            <label class="risk-card">
-              <input type="radio" name="riskProfile" value="MODERATE" checked>
-              <div class="rc-title" style="color:var(--accent-blue);">Moderate</div>
-              <div class="rc-sub">1.0% Risk | 1:1.8 RR</div>
-            </label>
-            <label class="risk-card">
-              <input type="radio" name="riskProfile" value="AGGRESSIVE">
-              <div class="rc-title" style="color:var(--accent-red);">Aggressive</div>
-              <div class="rc-sub">2.0% Risk | 1:1.5 RR</div>
-            </label>
+        <!-- Block 3: Risk Guardrails & Automation -->
+        <div class="cfg-block" style="margin-bottom:0;">
+          <div class="cfg-block-head">
+            <div class="cfg-block-title">
+              <span class="cfg-step-num">03</span>
+              <span>Risk Guardrails &amp; Controls</span>
+            </div>
+            <span class="cfg-block-hint">Capital Protection</span>
+          </div>
+
+          <!-- Risk Profile -->
+          <div class="form-group">
+            <label class="form-label">Risk Profile &amp; Sizing</label>
+            <div class="risk-profile-grid">
+              <label class="risk-card">
+                <input type="radio" name="riskProfile" value="CONSERVATIVE" onchange="applyConfig()">
+                <div class="rc-title" style="color:var(--accent-green);">Conservative</div>
+                <div class="rc-sub">0.5% Risk | 1:2.0 RR</div>
+              </label>
+              <label class="risk-card">
+                <input type="radio" name="riskProfile" value="MODERATE" onchange="applyConfig()" checked>
+                <div class="rc-title" style="color:var(--accent-blue);">Moderate</div>
+                <div class="rc-sub">1.0% Risk | 1:1.8 RR</div>
+              </label>
+              <label class="risk-card">
+                <input type="radio" name="riskProfile" value="AGGRESSIVE" onchange="applyConfig()">
+                <div class="rc-title" style="color:var(--accent-red);">Aggressive</div>
+                <div class="rc-sub">2.0% Risk | 1:1.5 RR</div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Daily Max Loss Limit & Auto-Stop Switch -->
+          <div class="config-row">
+            <div class="form-group">
+              <label class="form-label">Daily Max Loss Stop (₹)</label>
+              <div class="input-with-symbol">
+                <span class="sym-icon" style="color:var(--accent-red);">₹</span>
+                <input type="number" id="inpDailyLoss" value="4000" min="500" step="500">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Auto-Stop After Exit</label>
+              <label class="toggle-switch-card" title="Stop taking trades once all current positions complete their holding duration">
+                <span class="toggle-switch-label">Auto-stop on duration exit</span>
+                <span class="toggle-pill">
+                  <input type="checkbox" id="chkAutoStopOnExit">
+                  <span class="toggle-slider"></span>
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <!-- Daily Max Loss Limit & Auto-Stop Controls -->
-        <div class="config-row">
-          <div class="form-group">
-            <label class="form-label">Daily Max Loss Stop (₹)</label>
-            <input type="number" id="inpDailyLoss" value="4000" min="500" step="500" class="custom-select">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Auto-Stop & Session Mode</label>
-            <label style="display:flex;align-items:center;gap:8px;padding-top:4px;font-size:12px;color:var(--text-muted);cursor:pointer;" title="Stop taking trades once all current positions complete their holding duration">
-              <input type="checkbox" id="chkAutoStopOnExit" style="accent-color:var(--accent-blue);">
-              <span>Auto-stop engine after duration exit</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Control Action Buttons -->
+        <!-- Control Action Command Dock -->
         <div class="control-actions-bar">
-          <button type="button" id="btnStart" class="btn-control btn-start" onclick="handleStartTrading()">
-            <i class="fa-solid fa-play"></i> Start Auto Paper Trading
-          </button>
-          <button type="button" id="btnSaveConfig" class="btn-control btn-start" style="background:rgba(59,130,246,0.18);border:1px solid rgba(59,130,246,0.4);color:#60a5fa;" onclick="applyConfig(this)">
-            <i class="fa-solid fa-floppy-disk"></i> Save Settings
-          </button>
-          <button type="button" id="btnPause" class="btn-control btn-pause" onclick="handlePauseTrading()" style="display:none;">
-            <i class="fa-solid fa-pause"></i> Pause
-          </button>
-          <button type="button" id="btnResume" class="btn-control btn-start" onclick="handleResumeTrading()" style="display:none;">
-            <i class="fa-solid fa-play"></i> Resume
-          </button>
-          <button type="button" id="btnStopNew" class="btn-control btn-stop-new" onclick="handleStopNewTrades()">
-            <i class="fa-solid fa-ban"></i> Stop New Trades
-          </button>
-          <button type="button" id="btnCloseAllQuick" class="btn-control btn-close-all" onclick="confirmCloseAll()">
-            <i class="fa-solid fa-xmark"></i> Close All
-          </button>
-          <button type="button" id="btnResetQuick" class="btn-control btn-reset" onclick="confirmResetSession()">
-            <i class="fa-solid fa-rotate-left"></i> Reset
-          </button>
+          <div class="control-row-primary">
+            <button type="button" id="btnStart" class="btn-control btn-start" onclick="handleStartTrading()">
+              <i class="fa-solid fa-play"></i> Start Auto Paper Trading
+            </button>
+            <button type="button" id="btnPause" class="btn-control btn-pause" onclick="handlePauseTrading()" style="display:none;">
+              <i class="fa-solid fa-pause"></i> Pause Engine
+            </button>
+            <button type="button" id="btnResume" class="btn-control btn-start" onclick="handleResumeTrading()" style="display:none;">
+              <i class="fa-solid fa-play"></i> Resume Engine
+            </button>
+            <button type="button" id="btnSaveConfig" class="btn-control btn-save-cfg" onclick="applyConfig(this)">
+              <i class="fa-solid fa-floppy-disk"></i> Save Settings
+            </button>
+          </div>
+          <div class="control-row-secondary">
+            <button type="button" id="btnStopNew" class="btn-control btn-stop-new" onclick="handleStopNewTrades()">
+              <i class="fa-solid fa-ban"></i> Stop New Trades
+            </button>
+            <button type="button" id="btnCloseAllQuick" class="btn-control btn-close-all" onclick="confirmCloseAll()">
+              <i class="fa-solid fa-xmark"></i> Close All
+            </button>
+            <button type="button" id="btnResetQuick" class="btn-control btn-reset" onclick="confirmResetSession()">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -2008,19 +2332,27 @@ button[disabled],
 
       <!-- Scanned Setups Radar -->
       <div style="margin-top:20px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-dim);letter-spacing:0.04em;">
-            Confirmed 15-Minute Setups
-          </span>
-          <span style="font-size:11px;color:var(--accent-blue);" id="lblScannedCount">0 detected</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-dim);letter-spacing:0.04em;">
+              Confirmed 15-Minute Setups
+            </span>
+            <span id="scannedRadarMode" style="font-size:10px;padding:2px 7px;border-radius:999px;background:rgba(56,189,248,0.12);color:var(--accent-blue);font-weight:700;">Live 15m Radar</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:var(--accent-blue);font-weight:700;" id="lblScannedCount">0 detected</span>
+            <button type="button" id="btnScanSetupsNow" class="btn btn-sm btn-outline" style="padding:3px 9px;font-size:11px;" onclick="scanConfirmedSetups(this, true)" title="Scan live 15-minute setups matching current Trading Configuration">
+              <i class="fa-solid fa-rotate"></i> Scan Now
+            </button>
+          </div>
         </div>
         <div style="font-size:11px;color:var(--text-dim);line-height:1.55;margin-bottom:8px;">
-          Live algorithmic trade setups confirmed across technical trend, VWAP, momentum, and ATR risk metrics using real-time NSE market data.
+          Live algorithmic trade setups confirmed across technical trend, VWAP, momentum, and ATR risk metrics using real-time NSE market data (ranked in exact execution priority order).
         </div>
-        <div id="scannedSetupsList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;">
+        <div id="scannedSetupsList" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
           <!-- Dynamically filled with setups -->
           <div style="padding:10px;text-align:center;color:var(--text-dim);font-size:12px;">
-            Start trading engine to begin real-time algorithmic scanning.
+            Scanning confirmed 15-minute setups...
           </div>
         </div>
       </div>
@@ -2088,31 +2420,31 @@ button[disabled],
     </div>
 
     <div class="performance-kpi-grid">
-      <div style="background:var(--bg-surface);padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+      <div class="perf-kpi-card">
         <div style="font-size:11px;color:var(--text-dim);font-weight:700;text-transform:uppercase;">Win Rate</div>
         <div id="statWinRate" style="font-size:1.7rem;font-weight:900;color:var(--accent-green);font-family:var(--font-mono);margin-top:4px;">0.0%</div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px;" id="statWinLossRatio">0 Wins / 0 Losses</div>
       </div>
 
-      <div style="background:var(--bg-surface);padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+      <div class="perf-kpi-card">
         <div style="font-size:11px;color:var(--text-dim);font-weight:700;text-transform:uppercase;">Profit Factor</div>
         <div id="statProfitFactor" style="font-size:1.7rem;font-weight:900;color:var(--accent-blue);font-family:var(--font-mono);margin-top:4px;">0.00</div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Gross Profit / Gross Loss</div>
       </div>
 
-      <div style="background:var(--bg-surface);padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+      <div class="perf-kpi-card">
         <div style="font-size:11px;color:var(--text-dim);font-weight:700;text-transform:uppercase;">Avg Profit / Loss</div>
         <div id="statAvgWinLoss" style="font-size:1.3rem;font-weight:900;color:var(--text-main);font-family:var(--font-mono);margin-top:8px;">₹0 / ₹0</div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Avg Win vs Avg Loss</div>
       </div>
 
-      <div style="background:var(--bg-surface);padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+      <div class="perf-kpi-card">
         <div style="font-size:11px;color:var(--text-dim);font-weight:700;text-transform:uppercase;">Max Drawdown</div>
         <div id="statMaxDrawdown" style="font-size:1.7rem;font-weight:900;color:var(--accent-red);font-family:var(--font-mono);margin-top:4px;">0.00%</div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px;" id="statMaxDrawdownInr">Peak-to-trough: ₹0.00</div>
       </div>
 
-      <div style="background:var(--bg-surface);padding:14px 18px;border-radius:var(--radius-sm);border:1px solid var(--border-subtle);">
+      <div class="perf-kpi-card">
         <div style="font-size:11px;color:var(--text-dim);font-weight:700;text-transform:uppercase;">Avg Holding Time</div>
         <div id="statAvgDuration" style="font-size:1.7rem;font-weight:900;color:var(--text-main);font-family:var(--font-mono);margin-top:4px;">0m 0s</div>
         <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Per completed trade</div>
@@ -2162,8 +2494,9 @@ button[disabled],
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('WIN', this)">Profitable (Wins)</button>
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('LOSS', this)">Losses</button>
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('EQUITY', this)">Equities</button>
-        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('INDEX_FUTURES', this)">Futures</button>
-        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('INDEX_OPTIONS', this)">Options</button>
+        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('FUTURES', this)">Futures</button>
+        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('OPTIONS', this)">Options (All)</button>
+        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('STOCK_OPTIONS', this)">Stock Options</button>
       </div>
 
       <div style="position:relative;width:240px;">
@@ -2204,17 +2537,19 @@ button[disabled],
         </tbody>
       </table>
     </div>
+  </section>
+
   <!-- 6. Trader Profiles & Profit Leaderboard Section (Persisted in MongoDB Atlas) -->
   <section class="panel-card" id="leaderboardSection" style="margin-bottom:60px;">
     <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-      <div class="panel-title" style="display:flex;align-items:center;gap:10px;">
+      <div class="panel-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <i class="fa-solid fa-trophy" style="color:var(--accent-gold);"></i>
         <span>Trader Profiles &amp; Profit Leaderboard</span>
         <span class="db-sync-badge"><i class="fa-solid fa-circle-dot" style="color:var(--accent-green);font-size:9px;"></i> Active Running Profiles</span>
         <span class="db-sync-badge"><i class="fa-solid fa-database"></i> MongoDB Atlas Persisted</span>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <div style="display:inline-flex;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:2px;gap:2px;">
+        <div style="display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;padding:3px;gap:3px;">
           <button type="button" id="btnLbFilterActive" class="btn btn-sm" onclick="setLeaderboardFilter('active')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(16,185,129,0.2);color:var(--accent-green);font-weight:700;border:none;cursor:pointer;">
             <i class="fa-solid fa-bolt" style="margin-right:4px;"></i>Active Only
           </button>
@@ -2352,6 +2687,10 @@ button[disabled],
             <span>Index Options</span>
           </label>
           <label class="instrument-check-card">
+            <input type="checkbox" name="newProfInst" value="STOCK_OPTIONS" checked>
+            <span>Stock Options</span>
+          </label>
+          <label class="instrument-check-card">
             <input type="checkbox" name="newProfInst" value="STOCK_FUTURES">
             <span>Stock Futures</span>
           </label>
@@ -2452,7 +2791,7 @@ button[disabled],
         <label class="form-label">Strategy</label>
         <select id="btStrategy" class="custom-select">
           <option value="🎯 80%+ Smart Money Pullback & Breakeven" selected>🎯 80%+ Smart Money Pullback & Breakeven</option>
-          <option value="15m ORB Breakout" selected>15m Opening Range Breakout</option>
+          <option value="15m ORB Breakout">15m Opening Range Breakout</option>
           <option value="20/50 EMA Golden Cross">20/50 EMA Golden Cross</option>
           <option value="VWAP Momentum Expansion">VWAP Momentum Expansion</option>
         </select>
@@ -2612,35 +2951,37 @@ function showToast(message, type = "info") {
 // Active API host cache to eliminate redundant/failed requests
 let activePaperApiHost = null;
 
-// API Helper adhering to FinGroww dual-host pattern
+// API Helper adhering to FinGroww dual-host pattern (pinned once connected to prevent split-brain DB switching)
 async function fetchPaperApi(path, options = {}) {
   const isLocalHost = window.location.hostname === "127.0.0.1" || 
                       window.location.hostname === "localhost" || 
                       window.location.protocol === "file:" || 
                       !window.location.hostname;
+  const isLocalBackendServed = (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") && window.location.port === "8787";
 
-  // Build candidate list based on environment
   let candidateHosts = [];
-  
-  // 1. If we already found a working host, use it immediately (0ms waste, 0 failed requests)
-  if (activePaperApiHost) {
+  if (activePaperApiHost !== null) {
     candidateHosts.push(activePaperApiHost);
-  }
-
-  if (isLocalHost) {
+  } else if (isLocalHost) {
+    if (isLocalBackendServed) {
+      candidateHosts.push("");
+    }
     if (!candidateHosts.includes("http://127.0.0.1:8787")) candidateHosts.push("http://127.0.0.1:8787");
     if (!candidateHosts.includes("http://localhost:8787")) candidateHosts.push("http://localhost:8787");
     if (!candidateHosts.includes("")) candidateHosts.push("");
-    if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
+    if (!isLocalBackendServed && !candidateHosts.includes("https://fingroww-trading.onrender.com")) {
+      candidateHosts.push("https://fingroww-trading.onrender.com");
+    }
   } else {
-    // When hosted online (e.g. Vercel, Netlify, Custom domain), try current origin first (Vercel serverless / proxy) then Render
-    if (!candidateHosts.includes("")) candidateHosts.push("");
-    if (!candidateHosts.includes("https://fingroww-trading.onrender.com")) candidateHosts.push("https://fingroww-trading.onrender.com");
+    candidateHosts.push("");
+    candidateHosts.push("https://fingroww-trading.onrender.com");
   }
+
+  const timeoutMs = (path.includes("/tick") || path.includes("/start")) ? 22000 : 15000;
 
   for (const host of candidateHosts) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const url = host ? (host + path) : path;
       const r = await fetch(url, { 
@@ -2655,12 +2996,15 @@ async function fetchPaperApi(path, options = {}) {
           activePaperApiHost = host;
           return json;
         } catch (parseErr) {
-          // Response was not JSON, fallback to next host
+          // Response was not JSON
         }
       }
     } catch (e) {
       clearTimeout(timer);
-      // Fallback to next candidate
+      // Only clear pinned host if connection was refused/unreachable (not on timeout abort during heavy scan)
+      if (activePaperApiHost !== null && e && e.name !== "AbortError") {
+        // Keep pinned host unless booting; transient network drop shouldn't switch DBs mid-session
+      }
     }
   }
 
@@ -2695,7 +3039,7 @@ function toggleCustomDuration(val) {
 function getFormConfig() {
   const cap = parseFloat(document.getElementById("inpCapital").value) || 100000;
   let instruments = Array.from(document.querySelectorAll("input[name='instrument']:checked")).map(c => c.value);
-  if (!instruments.length) instruments = ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"];
+  if (!instruments.length) instruments = ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"];
   let marketCaps = Array.from(document.querySelectorAll("input[name='market_cap']:checked")).map(c => c.value);
   if (!marketCaps.length) marketCaps = ["LARGE_CAP", "MID_CAP", "SMALL_CAP"];
   const market = document.getElementById("selMarket").value;
@@ -2764,6 +3108,46 @@ async function onMarketCapChanged() {
   await applyConfig();
 }
 
+let isScanningSetups = false;
+async function scanConfirmedSetups(btnEl = null, showFeedback = false) {
+  if (isScanningSetups) return null;
+  isScanningSetups = true;
+  const btn = btnEl || document.getElementById("btnScanSetupsNow");
+  if (btn) setButtonLoading(btn, true, "Scanning...");
+  try {
+    const cfg = getFormConfig();
+    const res = await fetchPaperApi("/api/paper/session/scan", {
+      method: "POST",
+      body: JSON.stringify({
+        user_name: currentUserName,
+        instruments: cfg.instruments,
+        market_caps: cfg.market_caps,
+        trading_style: cfg.trading_style,
+        risk_profile: cfg.risk_profile,
+      })
+    });
+    if (res && Array.isArray(res.scanned_signals)) {
+      if (res.state) {
+        sessionState = res.state;
+      } else if (sessionState) {
+        sessionState.scanned_signals = res.scanned_signals;
+      }
+      renderScannedSetups(res.scanned_signals);
+      if (showFeedback) {
+        const n = res.count ?? res.scanned_signals.length;
+        showToast(n > 0 ? `Detected ${n} confirmed 15-minute setups.` : "No confirmed 15-minute setup right now.", n > 0 ? "success" : "info");
+      }
+      return res;
+    }
+  } catch (err) {
+    console.warn("Setup scan error:", err);
+  } finally {
+    isScanningSetups = false;
+    if (btn) setButtonLoading(btn, false);
+  }
+  return null;
+}
+
 async function applyConfig(btnEl = null) {
   return withActionLock("apply_config", async () => {
     const config = getFormConfig();
@@ -2774,6 +3158,7 @@ async function applyConfig(btnEl = null) {
     if (res && res.state) {
       updateUiWithState(res.state);
       showToast(`Configuration saved for profile [${currentUserName}].`, "success");
+      scanConfirmedSetups(null, false);
       await refreshLeaderboard();
     }
   }, btnEl, "Saving...");
@@ -2994,7 +3379,8 @@ async function submitCreateProfile() {
 function formatInstrumentLabel(code) {
   if (code === "INDEX_FUTURES") return "Index Fut";
   if (code === "STOCK_FUTURES") return "Stock Fut";
-  if (code === "INDEX_OPTIONS") return "Options";
+  if (code === "INDEX_OPTIONS") return "Index Opt";
+  if (code === "STOCK_OPTIONS") return "Stock Opt";
   if (code === "EQUITY") return "Stocks";
   return code.replace("INDEX_", "").replace("STOCK_", "");
 }
@@ -3005,12 +3391,17 @@ async function loadProfilesList() {
   if (!data || !data.profiles || !sel) return;
 
   const current = currentUserName;
-  sel.innerHTML = data.profiles.map(p => {
+  const profiles = Array.isArray(data.profiles) ? [...data.profiles] : [];
+  if (current && !profiles.some(p => p.user_name === current)) {
+    profiles.unshift({ user_name: current, trading_style: "HIGH_WINRATE", instruments: [] });
+  }
+  sel.innerHTML = profiles.map(p => {
     const isSel = p.user_name === current ? "selected" : "";
     const styleLabel = p.trading_style || "PORTFOLIO";
     const instShort = (p.instruments || []).map(formatInstrumentLabel).join(", ");
     return `<option value="${p.user_name}" ${isSel}>${p.user_name} (${styleLabel} • ${instShort || 'All'})</option>`;
   }).join("");
+  if (current) sel.value = current;
 }
 
 async function onProfileDropdownChange(newVal) {
@@ -3039,6 +3430,9 @@ async function switchUserProfile(newUserName, btnEl = null) {
       if (state) {
         updateUiWithState(state);
         syncConfigFormWithState(state);
+        if (!state.scanned_signals || state.scanned_signals.length === 0) {
+          scanConfirmedSetups(null, false);
+        }
       }
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
@@ -3114,12 +3508,7 @@ function syncConfigFormWithState(state) {
   // Update HUD Characteristic Badges
   const tagInst = document.getElementById("tagProfileInstruments");
   if (tagInst) {
-    const names = insts.map(i => {
-      if (i === "EQUITY") return "Stocks";
-      if (i === "INDEX_OPTIONS") return "Options";
-      if (i === "INDEX_FUTURES") return "Futures";
-      return i.replace("INDEX_", "").replace("STOCK_", "");
-    }).join(" & ");
+    const names = insts.map(i => formatInstrumentLabel(i)).join(" & ");
     tagInst.innerHTML = `<i class="fa-solid fa-layer-group"></i> ${names || 'Stocks'}`;
   }
   const tagStyle = document.getElementById("tagProfileStyle");
@@ -3228,8 +3617,13 @@ async function refreshLeaderboard(btnEl = null) {
           <i class="fa-solid fa-robot" style="font-size:28px;color:var(--text-dim);margin-bottom:8px;display:inline-block;"></i>
           <div style="font-size:14.5px;font-weight:700;color:var(--text-main);">No Active Running Trader Profiles</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
-            The leaderboard only displays actively running paper trading engines. Start Auto Paper Trading on your profile above to join live rankings.
+            ${currentLbFilter === "active"
+              ? 'Showing only active running profiles. Start Auto Paper Trading above or switch to <strong>All Profiles</strong> to view paused/completed users.'
+              : 'No trader profiles found yet. Create or start a profile above.'}
           </div>
+          ${currentLbFilter === "active"
+            ? '<button type="button" class="btn btn-sm btn-outline" onclick="setLeaderboardFilter(\'all\')" style="margin-top:12px;">View All Profiles</button>'
+            : ''}
         </td>
       </tr>`;
       return;
@@ -3461,6 +3855,22 @@ function updateLiveCountdowns() {
   }
 }
 
+function formatExpiryBadgeText(item) {
+  if (!item) return "";
+  if (item.expiry_label) return item.expiry_label;
+  if (item.expiry_date) return `${item.expiry_kind || "Expiry"} (${item.expiry_date})`;
+  return "";
+}
+
+function renderExpiryBadgeHtml(item, marginLeft = "5px") {
+  const txt = formatExpiryBadgeText(item);
+  if (!txt) return "";
+  const isMonthly = (item.expiry_kind || "").toLowerCase() === "monthly" || txt.toLowerCase().startsWith("monthly");
+  const bg = isMonthly ? "rgba(168,85,247,0.18)" : "rgba(245,158,11,0.18)";
+  const fg = isMonthly ? "var(--accent-purple)" : "var(--accent-gold)";
+  return `<span style="margin-left:${marginLeft};font-size:10px;padding:2px 7px;border-radius:999px;background:${bg};color:${fg};font-weight:700;">${txt}</span>`;
+}
+
 function renderActivePositions(positions) {
   const badge = document.getElementById("activePositionsBadge");
   badge.textContent = `${positions.length} Open`;
@@ -3514,13 +3924,16 @@ function renderActivePositions(positions) {
     const totalDurationDisplay = pos.holding_duration_display || `${pos.holding_duration_mins}m`;
 
     const usedAmt = Number(pos.allocated_margin ?? pos.used_amount) || (Number(pos.entry_price) * Number(pos.quantity)) || 0;
-    const usedSubtext = pos.product_type === 'CNC' ? 'Cash Deployed' : (pos.instrument_type === 'INDEX_OPTIONS' ? 'Premium Paid' : 'Margin Used');
+    const usedSubtext = pos.product_type === 'CNC' ? 'Cash Deployed' : ((pos.instrument_type || '').includes('OPTION') ? 'Premium Paid' : 'Margin Used');
 
     return `
       <tr>
         <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-muted);">${pos.trade_id}</td>
         <td>
-          <div style="font-weight:800;color:var(--text-main);">${pos.symbol}</div>
+          <div style="font-weight:800;color:var(--text-main);">
+            ${pos.symbol}
+            ${renderExpiryBadgeHtml(pos)}
+          </div>
           <div style="font-size:11px;color:var(--text-dim);">${pos.name}</div>
           <div title="${pos.signal_rationale || ''}" style="font-size:10px;color:var(--accent-blue);">${pos.strategy || 'Paper trade'}</div>
         </td>
@@ -3600,14 +4013,23 @@ function renderTerminalLogs(logs) {
 function renderScannedSetups(setups) {
   const list = document.getElementById("scannedSetupsList");
   const countEl = document.getElementById("lblScannedCount");
-  countEl.textContent = `${setups.length} detected`;
+  const modeEl = document.getElementById("scannedRadarMode");
+  const items = setups || [];
+  countEl.textContent = `${items.length} detected`;
 
-  if (!setups || setups.length === 0) {
+  if (modeEl) {
+    const isLive = Boolean(currentMarketStatus && currentMarketStatus.is_trading_hours);
+    modeEl.textContent = isLive ? "Live 15m Radar" : "Last Session Radar (Auto-Entry Paused)";
+    modeEl.style.background = isLive ? "rgba(16,185,129,0.15)" : "rgba(245,158,11,0.15)";
+    modeEl.style.color = isLive ? "var(--accent-green)" : "var(--accent-gold)";
+  }
+
+  if (items.length === 0) {
     list.innerHTML = `<div style="padding:10px;text-align:center;color:var(--text-dim);font-size:12px;">No setup meets every live-price, candle, trend, VWAP and volume rule right now. No trade is opened without confirmation.</div>`;
     return;
   }
 
-  list.innerHTML = setups.slice(0, 4).map(s => {
+  list.innerHTML = items.slice(0, 10).map((s, idx) => {
     const isBuy = s.side === "BUY";
     const m = s.timewise_metrics || {};
     const mcapName = (s.market_cap || 'LARGE_CAP').replace('_', ' ');
@@ -3616,13 +4038,16 @@ function renderScannedSetups(setups) {
     const roiBadge = m.margin_roi_pct ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(59,130,246,0.18);color:#60a5fa;font-weight:700;">+${m.profit_potential_pct}% (ROI +${m.margin_roi_pct}%)</span>` : '';
     const rrBadge = m.remaining_rr ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.12);color:var(--accent-green);font-weight:600;">R:R ${m.remaining_rr}:1</span>` : '';
     const statusBadge = m.is_exhausted ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(239,68,68,0.15);color:var(--accent-red);font-weight:700;">Exhausted</span>` : `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(16,185,129,0.15);color:var(--accent-green);font-weight:700;">🔥 Max Profit</span>`;
+    const priorityBadge = idx === 0 ? `<span style="font-size:10px;padding:2px 6px;border-radius:999px;background:rgba(56,189,248,0.18);color:var(--accent-blue);font-weight:800;">#1 Next Entry</span>` : `<span style="font-size:10px;color:var(--text-dim);font-weight:700;">#${idx + 1}</span>`;
 
     return `
-      <div style="padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);font-size:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="padding:9px 12px;background:var(--bg-surface);border:1px solid ${idx === 0 ? 'rgba(56,189,248,0.35)' : 'var(--border-subtle)'};border-radius:var(--radius-sm);font-size:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${priorityBadge}
             <span class="trade-badge ${isBuy ? 'badge-buy' : 'badge-sell'}">${s.side}</span>
             <span style="font-weight:800;color:var(--text-main);">${s.symbol}</span>
+            ${renderExpiryBadgeHtml(s, "0px")}
             <span style="color:var(--text-dim);font-size:11px;">(${s.strategy})</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -3647,6 +4072,8 @@ function renderHistoryTable(trades) {
 
   if (currentHistoryFilter === "WIN") filtered = filtered.filter(t => t.is_win);
   else if (currentHistoryFilter === "LOSS") filtered = filtered.filter(t => !t.is_win);
+  else if (currentHistoryFilter === "OPTIONS") filtered = filtered.filter(t => (t.instrument_type || "").includes("OPTION"));
+  else if (currentHistoryFilter === "FUTURES") filtered = filtered.filter(t => (t.instrument_type || "").includes("FUTURE"));
   else if (currentHistoryFilter !== "ALL") filtered = filtered.filter(t => t.instrument_type === currentHistoryFilter);
 
   const query = (document.getElementById("inpTradeSearch").value || "").trim().toUpperCase();
@@ -3675,7 +4102,10 @@ function renderHistoryTable(trades) {
     return `
       <tr>
         <td style="font-size:11.5px;color:var(--text-dim);">${t.exit_time || t.closed_at}</td>
-        <td style="font-weight:800;color:var(--text-main);">${t.symbol}</td>
+        <td style="font-weight:800;color:var(--text-main);">
+          ${t.symbol}
+          ${formatExpiryBadgeText(t) ? `<div style="margin-top:2px;">${renderExpiryBadgeHtml(t, "0px")}</div>` : ''}
+        </td>
         <td><span style="font-size:11px;padding:2px 6px;border-radius:3px;background:var(--bg-surface);border:1px solid var(--border-subtle);">${t.instrument_type}</span></td>
         <td><span class="trade-badge ${t.side === 'BUY' ? 'badge-buy' : 'badge-sell'}">${t.side}</span></td>
         <td style="font-family:var(--font-mono);">₹${(Number(t.entry_price) || 0).toFixed(2)}</td>
@@ -3781,10 +4211,10 @@ function renderCharts(analytics) {
     instChart = new Chart(instCtx, {
       type: "doughnut",
       data: {
-        labels: labels.length ? labels : ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"],
+        labels: labels.length ? labels : ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"],
         datasets: [{
-          data: labels.length ? labels.map(k => instData[k].trades) : [10, 4, 6],
-          backgroundColor: ["#38bdf8", "#10b981", "#a855f7", "#f59e0b"]
+          data: labels.length ? labels.map(k => instData[k].trades) : [8, 4, 5, 5],
+          backgroundColor: ["#38bdf8", "#10b981", "#a855f7", "#f59e0b", "#f43f5e"]
         }]
       },
       options: {
@@ -3950,6 +4380,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     updateUiWithState(initial);
     syncConfigFormWithState(initial);
   }
+  // Auto-scan confirmed 15-minute setups immediately on load (read-only radar)
+  scanConfirmedSetups(null, false);
   
   // 3. Analytics & Leaderboard
   await fetchAndRenderAnalytics();
@@ -3958,8 +4390,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Periodic polling loops
   setInterval(fetchMarketStatus, 10000);
   setInterval(pollSessionTick, 6000);
+  setInterval(() => {
+    if (!currentMarketStatus?.is_trading_hours || sessionState?.status !== "RUNNING" || !(sessionState?.scanned_signals?.length)) {
+      scanConfirmedSetups(null, false);
+    }
+  }, 20000);
   setInterval(fetchAndRenderAnalytics, 15000);
   setInterval(refreshLeaderboard, 12000);
+  setInterval(loadProfilesList, 30000);
   setInterval(updateLiveCountdowns, 1000);
 });
 </script>

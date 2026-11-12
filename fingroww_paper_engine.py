@@ -141,7 +141,23 @@ LOT_SIZES = {
     "ZOMATO": 2000,
     "JIOFIN": 2500,
     "MOTHERSON": 6100,
+    "CDSL": 425,
+    "BSE": 375,
+    "ANGELONE": 250,
+    "SUZLON": 7500,
+    "KALYANKJIL": 900,
+    "MAZDOCK": 175,
+    "RVNL": 1250,
+    "HUDCO": 2500,
+    "IREDA": 2500,
+    "IRFC": 3500,
+    "COCHINSHIP": 350,
+    "NBCC": 4000,
+    "SJVN": 4500,
 }
+
+# Cash-only stocks in UNIVERSE without active NSE F&O option chains
+NON_FO_STOCK_SYMBOLS = {"HUDCO", "SJVN", "ZOMATO"}
 
 # Supported Watchlist Universe across Market Capitalizations (Expanded Multi-Profile Catalog)
 UNIVERSE = [
@@ -239,7 +255,7 @@ def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
 
     if current_live_quote and current_live_quote.get("lastPrice"):
         raw_spot = float(current_live_quote["lastPrice"])
-        if inst_type == "INDEX_OPTIONS":
+        if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
             current_price = PaperTradingSession._calculate_option_current_price(setup, raw_spot)
         else:
             current_price = raw_spot
@@ -265,7 +281,7 @@ def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
     effective_rr = round(remaining_profit_points / current_risk_points, 2) if current_risk_points > 0 else 0.0
     price_gain_pct = round((remaining_profit_points / max(current_price, 0.01)) * 100, 2)
 
-    if inst_type == "INDEX_OPTIONS":
+    if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
         margin_roi_pct = price_gain_pct
     elif "FUTURE" in inst_type:
         margin_roi_pct = round(price_gain_pct * 10.0, 2)
@@ -487,15 +503,26 @@ def load_datastore_from_disk():
         pass
     return {"sessions": {}, "profiles": {}, "positions": {}, "trades": {}}
 
+_DATASTORE_LOCK = threading.RLock()
+
+
 def save_datastore_to_disk(datastore):
-    """Safely writes datastore to disk using an atomic rename operation."""
-    try:
-        tmp_file = DATASTORE_FILE + ".tmp"
-        with open(tmp_file, "w", encoding="utf-8") as f:
-            json.dump(datastore, f, indent=2)
-        os.replace(tmp_file, DATASTORE_FILE)
-    except Exception:
-        pass
+    """Safely writes datastore to disk using a thread-safe atomic rename operation."""
+    with _DATASTORE_LOCK:
+        tmp_file = f"{DATASTORE_FILE}.{os.getpid()}.{threading.get_ident()}.tmp"
+        try:
+            snapshot = json.dumps(datastore, indent=2)
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                f.write(snapshot)
+            os.replace(tmp_file, DATASTORE_FILE)
+        except Exception as exc:
+            logger.warning("Could not write paper datastore to %s: %s", DATASTORE_FILE, exc)
+            try:
+                if os.path.exists(tmp_file):
+                    os.remove(tmp_file)
+            except OSError:
+                pass
+
 
 LOCAL_USER_DATASTORE = load_datastore_from_disk()
 if "sessions" not in LOCAL_USER_DATASTORE:
@@ -609,7 +636,7 @@ class PaperTradingSession:
         # Configuration defaults
         self.config = {
             "initial_capital": 100000.0,
-            "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"],
+            "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"],
             "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
             "market": "NSE",
              "trading_style": "HIGH_WINRATE", # HIGH_WINRATE, INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
@@ -644,9 +671,11 @@ class PaperTradingSession:
         self.closed_trades = []   # Completed trade records
         self.logs = []            # Decision and audit logs
         self.scanned_signals = [] # Recent AI trade setups evaluated
+        self._db_load_error = False
+        self._synced_closed_trade_ids = set()
 
         # Try to restore from database if exists
-        self.load_from_db()
+        self._restored_from_db = self.load_from_db()
 
         if not self.logs:
             self.log_event("SESSION_INIT", f"Trader profile [{self.user_name}] initialized with Rs.{cap:,.2f} virtual capital.")
@@ -727,6 +756,7 @@ class PaperTradingSession:
         self.max_drawdown_pct = 0.0
         self.positions = []
         self.closed_trades = []
+        self._synced_closed_trade_ids.clear()
         self.status = "IDLE"
         self.log_event("SESSION_RESET", f"Paper trading session reset. Capital restored to ₹{cap:,.2f}.")
 
@@ -802,7 +832,7 @@ class PaperTradingSession:
             return float(pos.get("current_price") or pos.get("entry_price") or 100.0)
 
     @_session_locked
-    def execute_trade(self, setup, quote_resolver=None, market_is_open=False):
+    def execute_trade(self, setup, quote_resolver=None, market_is_open=False, option_quote_resolver=None):
         """Executes a paper order with realistic slippage, margin allocation, and charges."""
         if not market_is_open:
             return None, "NSE market is closed or its status is unavailable; no trade was opened."
@@ -818,7 +848,7 @@ class PaperTradingSession:
         tp = float(setup["target_price"])
         holding_duration_mins = float(self.config.get("holding_duration_mins", 15))
 
-        supported_types = ("EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_FUTURES")
+        supported_types = ("EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_FUTURES", "STOCK_OPTIONS")
         if side not in ("BUY", "SELL") or inst_type not in supported_types:
             return None, f"Instrument type [{inst_type}] is not supported for auto trading."
         if quote_resolver:
@@ -830,12 +860,26 @@ class PaperTradingSession:
                 return None, f"Could not get a fresh quote for {base_sym}."
             if not _is_fresh_nse_quote(live_quote):
                 return None, f"Could not get a fresh quote for {base_sym}; no trade was opened."
-            if inst_type == "INDEX_OPTIONS":
-                # For options, entry price is the option premium
+            if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
+                # Prefer live NSE option chain contract LTP over synthesized spot percentage
                 raw_entry = float(setup["entry_price"])
-                risk_distance = float(setup.get("risk_distance", raw_entry * 0.25))
+                if option_quote_resolver and setup.get("strike"):
+                    try:
+                        opt_q = option_quote_resolver(
+                            base_sym,
+                            setup.get("strike"),
+                            setup.get("option_type") or ("PE" if "PE" in sym.upper() else "CE"),
+                            setup.get("expiry_date"),
+                        )
+                        if opt_q and float(opt_q.get("lastPrice") or 0) > 0:
+                            raw_entry = float(opt_q["lastPrice"])
+                    except Exception as exc:
+                        logger.warning("Live option entry quote failed for %s: %s", sym, exc)
+                risk_distance = float(setup.get("risk_distance") or round(raw_entry * 0.25, 2))
+                if risk_distance >= raw_entry:
+                    risk_distance = round(raw_entry * 0.25, 2)
                 reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
-                sl = max(1.0, round(raw_entry - risk_distance, 2))
+                sl = max(0.05, round(raw_entry - risk_distance, 2))
                 tp = round(raw_entry + (risk_distance * reward_risk), 2)
             else:
                 raw_entry = float(live_quote["lastPrice"])
@@ -878,8 +922,8 @@ class PaperTradingSession:
         slippage_amt = round(abs(exec_price - raw_entry), 2)
 
         if quote_resolver:
-            if inst_type == "INDEX_OPTIONS":
-                sl = max(1.0, round(exec_price - risk_distance, 2))
+            if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
+                sl = max(0.05, round(exec_price - risk_distance, 2))
                 tp = round(exec_price + (risk_distance * reward_risk), 2)
             else:
                 structural_tp = float(setup.get("target_price") or 0.0)
@@ -1007,15 +1051,21 @@ class PaperTradingSession:
             target_exit_ts = 0.0
             dur_display = "Until Target/SL"
 
-        if inst_type == "INDEX_OPTIONS":
+        if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
             underlying_entry = float(live_quote["lastPrice"]) if (quote_resolver and live_quote) else float(setup.get("underlying_price") or 0.0)
             opt_type = setup.get("option_type")
-            strike = int(setup.get("strike") or 0)
+            raw_s = setup.get("strike") or 0
+            try:
+                fs = float(raw_s)
+                strike = int(fs) if fs == int(fs) else round(fs, 2)
+            except (TypeError, ValueError):
+                strike = 0
             if not opt_type or not strike:
-                m = re.search(r'(\d+)\s*(CE|PE)', sym.upper())
+                m = re.search(r'(\d+(?:\.\d+)?)\s*(CE|PE)', sym.upper())
                 if m:
                     if not strike:
-                        strike = int(m.group(1))
+                        ms = float(m.group(1))
+                        strike = int(ms) if ms == int(ms) else round(ms, 2)
                     if not opt_type:
                         opt_type = m.group(2)
             if not opt_type:
@@ -1054,6 +1104,9 @@ class PaperTradingSession:
             "underlying_entry_price": underlying_entry,
             "option_type": opt_type,
             "strike": strike,
+            "expiry_date": setup.get("expiry_date"),
+            "expiry_kind": setup.get("expiry_kind"),
+            "expiry_label": setup.get("expiry_label"),
             "delta": delta,
             "quantity": actual_qty,
             "lots": lots if ("FUTURE" in inst_type or "OPTION" in inst_type) else 1,
@@ -1090,7 +1143,7 @@ class PaperTradingSession:
         return position, "Success"
 
     @_session_locked
-    def update_positions(self, quote_resolver, market_is_open=False):
+    def update_positions(self, quote_resolver, market_is_open=False, option_quote_resolver=None):
         """
         Refreshes live market prices for all open positions.
         Checks for Target Hit, Stop-Loss Hit, Holding Duration Expiry, or 15:15 IST Square-Off.
@@ -1113,14 +1166,27 @@ class PaperTradingSession:
             tp = pos["target_price"]
             sl = pos["stop_loss"]
 
-            # Fetch fresh market price
+            # Fetch fresh market price (for options, prefer exact live NSE option chain contract LTP)
             curr_price = None
-            if quote_resolver:
+            if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS") and option_quote_resolver and pos.get("strike"):
+                try:
+                    opt_q = option_quote_resolver(
+                        sym,
+                        pos.get("strike"),
+                        pos.get("option_type") or ("PE" if "PE" in pos["symbol"].upper() else "CE"),
+                        pos.get("expiry_date"),
+                    )
+                    if opt_q and _is_fresh_nse_quote(opt_q) and float(opt_q.get("lastPrice") or 0) > 0:
+                        curr_price = float(opt_q["lastPrice"])
+                except Exception as exc:
+                    logger.warning("Live option quote failed for %s: %s", pos["symbol"], exc)
+
+            if curr_price is None and quote_resolver:
                 try:
                     q = quote_resolver(sym)
                     if _is_fresh_nse_quote(q):
                         raw_spot = float(q["lastPrice"])
-                        if inst_type == "INDEX_OPTIONS":
+                        if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
                             curr_price = self._calculate_option_current_price(pos, raw_spot)
                         else:
                             curr_price = raw_spot
@@ -1167,7 +1233,7 @@ class PaperTradingSession:
 
                 # Tier 1: >= 45% target achieved (+0.8R) -> Move SL to Breakeven (Cost-to-Cost)
                 elif progress_ratio >= 0.45 and pos.get("trailing_state") != "PROFIT_LOCKED":
-                    buffer_pct = 0.0008 if inst_type != "INDEX_OPTIONS" else 0.005
+                    buffer_pct = 0.0008 if inst_type not in ("INDEX_OPTIONS", "STOCK_OPTIONS") else 0.005
                     be_sl = round(entry_p * (1.0 + buffer_pct) if side == "BUY" else entry_p * (1.0 - buffer_pct), 2)
                     if (side == "BUY" and be_sl > sl) or (side == "SELL" and be_sl < sl):
                         pos["stop_loss"] = be_sl
@@ -1307,6 +1373,9 @@ class PaperTradingSession:
             "market_data_timestamp": pos.get("market_data_timestamp"),
             "risk_distance": pos.get("risk_distance"),
             "is_win": is_win,
+            "expiry_date": pos.get("expiry_date"),
+            "expiry_kind": pos.get("expiry_kind"),
+            "expiry_label": pos.get("expiry_label"),
             "holding_duration_str": holding_str,
             "holding_seconds": holding_secs,
             "return_pct": round((net_pnl / max(pos["allocated_margin"], 1.0)) * 100, 2),
@@ -1325,7 +1394,7 @@ class PaperTradingSession:
         return True
 
     @_session_locked
-    def test_expire_position(self, trade_id, quote_resolver=None, market_is_open=False):
+    def test_expire_position(self, trade_id, quote_resolver=None, market_is_open=False, option_quote_resolver=None):
         """Immediately simulates holding duration expiry for an open trade to test auto-closure in real-time."""
         if not market_is_open:
             return False, "NSE market is closed or its status is unavailable."
@@ -1339,12 +1408,12 @@ class PaperTradingSession:
 
         # Set target exit timestamp to 5 seconds in the past
         target_pos["target_exit_timestamp"] = time.time() - 5
-        self.update_positions(quote_resolver, market_is_open=market_is_open)
+        self.update_positions(quote_resolver, market_is_open=market_is_open, option_quote_resolver=option_quote_resolver)
         self.save_to_db()
         return True, f"Simulated duration expiry for {target_pos['symbol']} ({trade_id}). Auto-closed with TIME_EXPIRED."
 
     @_session_locked
-    def manual_close_position(self, trade_id, quote_resolver=None, market_is_open=False):
+    def manual_close_position(self, trade_id, quote_resolver=None, market_is_open=False, option_quote_resolver=None):
         """Manually exits a position only with an open market and a fresh NSE quote."""
         if not market_is_open:
             return False, "NSE market is closed or its status is unavailable."
@@ -1356,8 +1425,26 @@ class PaperTradingSession:
         if not target_pos:
             return False, "Position not found."
 
+        base_sym = target_pos.get("base_symbol", target_pos["symbol"])
+        if target_pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS") and option_quote_resolver and target_pos.get("strike"):
+            try:
+                opt_q = option_quote_resolver(
+                    base_sym,
+                    target_pos.get("strike"),
+                    target_pos.get("option_type") or ("PE" if "PE" in target_pos["symbol"].upper() else "CE"),
+                    target_pos.get("expiry_date"),
+                )
+                if opt_q and _is_fresh_nse_quote(opt_q) and float(opt_q.get("lastPrice") or 0) > 0:
+                    target_pos["current_price"] = float(opt_q["lastPrice"])
+                    self._close_position(target_pos, "MANUAL_EXIT")
+                    self._recalculate_equity()
+                    self.save_to_db()
+                    return True, "Position closed manually."
+            except Exception as exc:
+                logger.warning("Manual close live option quote failed for %s: %s", target_pos["symbol"], exc)
+
         try:
-            quote = quote_resolver(target_pos.get("base_symbol", target_pos["symbol"])) if quote_resolver else None
+            quote = quote_resolver(base_sym) if quote_resolver else None
         except Exception as exc:
             logger.warning("Manual close quote failed for %s: %s", target_pos["symbol"], exc)
             quote = None
@@ -1365,7 +1452,7 @@ class PaperTradingSession:
             return False, f"Could not get a fresh NSE quote for {target_pos['symbol']}; position remains open."
 
         raw_spot = float(quote["lastPrice"])
-        if target_pos.get("instrument_type") == "INDEX_OPTIONS":
+        if target_pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
             target_pos["current_price"] = self._calculate_option_current_price(target_pos, raw_spot)
         else:
             target_pos["current_price"] = raw_spot
@@ -1375,21 +1462,38 @@ class PaperTradingSession:
         return True, "Position closed manually."
 
     @_session_locked
-    def close_all_positions(self, reason="MANUAL_CLOSE_ALL", quote_resolver=None, market_is_open=False):
+    def close_all_positions(self, reason="MANUAL_CLOSE_ALL", quote_resolver=None, market_is_open=False, option_quote_resolver=None):
         """Closes positions using fresh NSE quotes; leaves unquoted positions untouched."""
         if not market_is_open:
             return 0
         count = 0
         for pos in list(self.positions):
+            base_sym = pos.get("base_symbol", pos["symbol"])
+            if pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS") and option_quote_resolver and pos.get("strike"):
+                try:
+                    opt_q = option_quote_resolver(
+                        base_sym,
+                        pos.get("strike"),
+                        pos.get("option_type") or ("PE" if "PE" in pos["symbol"].upper() else "CE"),
+                        pos.get("expiry_date"),
+                    )
+                    if opt_q and _is_fresh_nse_quote(opt_q) and float(opt_q.get("lastPrice") or 0) > 0:
+                        pos["current_price"] = float(opt_q["lastPrice"])
+                        self._close_position(pos, reason)
+                        count += 1
+                        continue
+                except Exception as exc:
+                    logger.warning("Close-all live option quote failed for %s: %s", pos["symbol"], exc)
+
             try:
-                quote = quote_resolver(pos.get("base_symbol", pos["symbol"])) if quote_resolver else None
+                quote = quote_resolver(base_sym) if quote_resolver else None
             except Exception as exc:
                 logger.warning("Close-all quote failed for %s: %s", pos["symbol"], exc)
                 quote = None
             if not _is_fresh_nse_quote(quote):
                 continue
             raw_spot = float(quote["lastPrice"])
-            if pos.get("instrument_type") == "INDEX_OPTIONS":
+            if pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
                 pos["current_price"] = self._calculate_option_current_price(pos, raw_spot)
             else:
                 pos["current_price"] = raw_spot
@@ -1650,12 +1754,13 @@ class PaperTradingSession:
         except (OSError, sqlite3.Error, TypeError, ValueError):
             logger.exception("Could not persist paper trading data locally for %s", self.user_name)
 
-        # 1. Update in-memory & disk datastore
-        LOCAL_USER_DATASTORE["sessions"][self.user_name] = session_doc
-        LOCAL_USER_DATASTORE["profiles"][self.user_name] = profile_doc
-        LOCAL_USER_DATASTORE["positions"][self.user_name] = self.positions
-        LOCAL_USER_DATASTORE["trades"][self.user_name] = self.closed_trades
-        save_datastore_to_disk(LOCAL_USER_DATASTORE)
+        # 1. Update in-memory & disk datastore safely under lock
+        with _DATASTORE_LOCK:
+            LOCAL_USER_DATASTORE["sessions"][self.user_name] = session_doc
+            LOCAL_USER_DATASTORE["profiles"][self.user_name] = profile_doc
+            LOCAL_USER_DATASTORE["positions"][self.user_name] = list(self.positions)
+            LOCAL_USER_DATASTORE["trades"][self.user_name] = list(self.closed_trades)
+            save_datastore_to_disk(LOCAL_USER_DATASTORE)
 
         # 2. Persist to MongoDB Atlas if connected
         if self.db is not None:
@@ -1698,17 +1803,20 @@ class PaperTradingSession:
                         {"user_name": self.user_name, "status": "OPEN"},
                         {"$set": {"status": "CLOSED", "closed_at_sync": get_ist_str()}}
                     )
-                # Completed trades collection
+                # Completed trades collection (incremental sync to avoid O(N) writes per tick)
                 for tr in self.closed_trades:
+                    trade_id = tr.get("trade_id")
+                    if trade_id and trade_id in self._synced_closed_trade_ids:
+                        continue
                     t_doc = dict(tr)
                     t_doc["user_name"] = self.user_name
-                    trade_id = tr.get("trade_id")
                     if trade_id:
                         self.db["paper_trades"].update_one(
                             {"trade_id": trade_id},
                             {"$set": t_doc},
                             upsert=True
                         )
+                        self._synced_closed_trade_ids.add(trade_id)
                 mongo_saved = True
             except Exception as e:
                 logger.warning("Could not persist paper trading data to MongoDB for %s: %s", self.user_name, e)
@@ -1719,17 +1827,23 @@ class PaperTradingSession:
     @_session_locked
     def load_from_db(self):
         """Restores user session state, balances, and history from MongoDB or durable SQLite."""
+        self._db_load_error = False
+        mongo_failed = False
+        local_failed = False
+
         mongo_doc = None
         if self.db is not None:
             try:
                 mongo_doc = self.db["paper_sessions"].find_one({"user_name": self.user_name})
             except Exception as e:
+                mongo_failed = True
                 logger.warning("Could not load paper trading data from MongoDB for %s: %s", self.user_name, e)
 
         local_record = None
         try:
             local_record = _load_local_paper_record(self.user_name)
         except (OSError, sqlite3.Error, TypeError, ValueError):
+            local_failed = True
             logger.exception("Could not load local paper trading data for %s", self.user_name)
 
         local_doc = local_record["session"] if local_record else None
@@ -1741,9 +1855,12 @@ class PaperTradingSession:
             doc = local_doc
 
         if not doc:
-            doc = LOCAL_USER_DATASTORE["sessions"].get(self.user_name)
+            with _DATASTORE_LOCK:
+                cached_doc = LOCAL_USER_DATASTORE["sessions"].get(self.user_name)
+                doc = dict(cached_doc) if isinstance(cached_doc, dict) else None
 
         if not doc:
+            self._db_load_error = bool(mongo_failed or local_failed)
             return False
 
         try:
@@ -1769,6 +1886,10 @@ class PaperTradingSession:
             self.positions = doc.get("positions", [])
             self.closed_trades = doc.get("closed_trades", [])
             self.logs = doc.get("logs", [])
+            if mongo_doc and isinstance(mongo_doc.get("closed_trades"), list):
+                self._synced_closed_trade_ids = {
+                    t.get("trade_id") for t in mongo_doc["closed_trades"] if isinstance(t, dict) and t.get("trade_id")
+                }
             return True
         except (AttributeError, KeyError, TypeError, ValueError) as e:
             logger.exception("Could not restore paper trading data for %s", self.user_name)
@@ -1787,12 +1908,15 @@ class PaperTradingEngine:
         quote_resolver=None,
         chart_resolver=None,
         market_status_resolver=None,
+        option_quote_resolver=None,
     ):
         self.session = session
         self.quote_resolver = quote_resolver
         self.chart_resolver = chart_resolver
         self.market_status_resolver = market_status_resolver
+        self.option_quote_resolver = option_quote_resolver
         self.last_scan_at = 0.0
+        self._tick_lock = threading.Lock()
 
     def _eval_single_item(self, item, targets_for_item, allowed_market_caps, is_long_term_style, min_rr):
         sym = item["symbol"]
@@ -1961,7 +2085,6 @@ class PaperTradingEngine:
                     strat = "Supertrend ATR Continuation"
             else:
                 return []
-                return []
 
         item_setups = []
         for target_inst_type in targets_for_item:
@@ -1975,20 +2098,104 @@ class PaperTradingEngine:
             strike = None
             delta = None
 
-            # Synthesize option contract if INDEX_OPTIONS
-            if target_inst_type == "INDEX_OPTIONS":
-                step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
-                strike = int(round(live_price / step) * step)
+            # Resolve real live NSE option contract LTP for INDEX_OPTIONS & STOCK_OPTIONS
+            expiry_date = None
+            expiry_kind = None
+            expiry_label = None
+            if target_inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
+                if target_inst_type == "INDEX_OPTIONS":
+                    step = 50 if "NIFTY" in sym and "BANK" not in sym else 100
+                    strike = int(round(live_price / step) * step)
+                else:
+                    if live_price < 50:
+                        step = 1.0
+                    elif live_price < 100:
+                        step = 2.5
+                    elif live_price < 250:
+                        step = 5.0
+                    elif live_price < 500:
+                        step = 10.0
+                    elif live_price < 1500:
+                        step = 20.0
+                    elif live_price < 3000:
+                        step = 50.0
+                    else:
+                        step = 100.0
+                    raw_s = round(live_price / step) * step
+                    strike = int(raw_s) if raw_s == int(raw_s) else round(raw_s, 2)
+
                 opt_type = "CE" if curr_side == "BUY" else "PE"
                 display_sym = f"{sym} {strike} {opt_type}"
-                opt_premium = round(live_price * 0.010, 2)
+                opt_premium = None
+                if self.option_quote_resolver:
+                    try:
+                        opt_q = self.option_quote_resolver(sym, strike, opt_type)
+                        if opt_q and float(opt_q.get("lastPrice") or 0) > 0:
+                            opt_premium = round(float(opt_q["lastPrice"]), 2)
+                            if opt_q.get("strike"):
+                                ms = float(opt_q["strike"])
+                                strike = int(ms) if ms == int(ms) else round(ms, 2)
+                                display_sym = f"{sym} {strike} {opt_type}"
+                            expiry_date = opt_q.get("expiry")
+                            expiry_kind = opt_q.get("expiry_kind")
+                            expiry_label = opt_q.get("expiry_label")
+                    except Exception as exc:
+                        logger.warning("Could not fetch live option quote for %s: %s", display_sym, exc)
+
+                if target_inst_type == "STOCK_OPTIONS" and self.option_quote_resolver is not None and (not opt_premium or opt_premium <= 0):
+                    # Skip non-F&O or illiquid stock options when live option resolver is active
+                    continue
+
+                if not expiry_date:
+                    # Compute realistic upcoming weekly (NIFTY) or monthly expiry fallback
+                    ist_today = get_ist_now().date()
+                    if target_inst_type == "STOCK_OPTIONS" or "BANK" in sym or "FINNIFTY" in sym or "MIDCP" in sym:
+                        # Last Tuesday/Thursday of current/next month
+                        import calendar
+                        y, m = ist_today.year, ist_today.month
+                        last_day = calendar.monthrange(y, m)[1]
+                        d_cand = datetime(y, m, last_day).date()
+                        while d_cand.weekday() != 1:
+                            d_cand -= timedelta(days=1)
+                        if d_cand < ist_today:
+                            m = 1 if m == 12 else m + 1
+                            y = y + 1 if m == 1 else y
+                            last_day = calendar.monthrange(y, m)[1]
+                            d_cand = datetime(y, m, last_day).date()
+                            while d_cand.weekday() != 1:
+                                d_cand -= timedelta(days=1)
+                        expiry_date = d_cand.strftime("%d-%b-%Y")
+                        expiry_kind = "Monthly"
+                    else:
+                        # Upcoming Tuesday/Thursday weekly expiry
+                        days_ahead = (1 - ist_today.weekday()) % 7
+                        if days_ahead == 0:
+                            days_ahead = 7
+                        d_cand = ist_today + timedelta(days=days_ahead)
+                        expiry_date = d_cand.strftime("%d-%b-%Y")
+                        expiry_kind = "Weekly"
+                    expiry_label = f"{expiry_kind} ({expiry_date})"
+                elif not expiry_label:
+                    expiry_kind = expiry_kind or ("Monthly" if target_inst_type == "STOCK_OPTIONS" else "Weekly")
+                    expiry_label = f"{expiry_kind} ({expiry_date})"
+
+                if not opt_premium or opt_premium <= 0:
+                    opt_premium = round(live_price * (0.020 if target_inst_type == "STOCK_OPTIONS" else 0.010), 2)
                 opt_risk = round(opt_premium * 0.25, 2)
                 entry_price = opt_premium
-                stop_loss = max(1.0, round(entry_price - opt_risk, 2))
+                stop_loss = max(0.05, round(entry_price - opt_risk, 2))
                 target_price = round(entry_price + (opt_risk * min_rr), 2)
                 setup_risk = opt_risk
                 curr_side = "BUY"  # Retail option buyer buys contract
                 delta = 0.50
+
+            lot_sz = LOT_SIZES.get(sym.upper(), 1)
+            if target_inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
+                min_lot_margin = round(lot_sz * entry_price, 2)
+            elif "FUTURE" in target_inst_type:
+                min_lot_margin = round(lot_sz * entry_price * 0.10, 2)
+            else:
+                min_lot_margin = round(entry_price, 2)
 
             setup_item = {
                 "symbol": display_sym,
@@ -2023,14 +2230,18 @@ class PaperTradingEngine:
                 "underlying_price": live_price,
                 "option_type": opt_type,
                 "strike": strike,
+                "expiry_date": expiry_date,
+                "expiry_kind": expiry_kind,
+                "expiry_label": expiry_label,
+                "min_lot_margin": min_lot_margin,
                 "delta": delta,
                 "rationale": (
                     f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: ₹{target_price:.2f} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
                 ) if (is_long_term_style and target_inst_type == "EQUITY") else (
                     f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
                     f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
-                ) if target_inst_type != "INDEX_OPTIONS" else (
-                    f"BUY {display_sym}: ATM option tracking {sym} trend. "
+                ) if target_inst_type not in ("INDEX_OPTIONS", "STOCK_OPTIONS") else (
+                    f"BUY {display_sym} [{expiry_label}]: ATM option tracking {sym} trend. "
                     f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
                 ),
             }
@@ -2048,13 +2259,41 @@ class PaperTradingEngine:
 
         return item_setups
 
+    @staticmethod
+    def _rank_setup_key(setup, trading_style="HIGH_WINRATE", available_balance=None):
+        m = setup.get("timewise_metrics") or {}
+        strat_str = (setup.get("strategy") or "")
+        style_upper = str(trading_style or "HIGH_WINRATE").upper()
+        if style_upper == "HIGH_WINRATE":
+            style_fit = 1 if "80%+" in strat_str else 0
+        elif style_upper in ("INTRADAY", "SWING", "SCALPING"):
+            style_fit = 1 if ("Breakout" in strat_str or "Breakdown" in strat_str or "Expansion" in strat_str) else 0
+        elif style_upper == "MEAN_REVERSION":
+            style_fit = 1 if "Pullback" in strat_str else 0
+        else:
+            style_fit = 1 if "Long-Term" in strat_str else 0
+        affordable = 1
+        if available_balance is not None:
+            min_margin = float(setup.get("min_lot_margin") or 0.0)
+            if min_margin > float(available_balance):
+                affordable = 0
+        return (
+            0 if m.get("is_exhausted") else 1,
+            affordable,
+            style_fit,
+            m.get("timewise_profit_score", setup.get("confidence_score", 0)),
+            m.get("margin_roi_pct", 0),
+            m.get("profit_potential_pct", 0),
+            setup.get("symbol", ""),
+        )
+
     def scan_and_evaluate_setups(self):
         """
         Scans instrument universe using real-time quotes, multi-strategy quantitative confluence,
-        and institutional risk-reward models for Equities, Index Futures, Index Options, and Stock Futures.
+        and institutional risk-reward models for Equities, Index Futures, Index Options, Stock Futures, and Stock Options.
         """
         cfg_types = list(self.session.config.get("instruments") or [])
-        allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"]
+        allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"]
 
         cfg_market_caps = list(self.session.config.get("market_caps") or [])
         allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
@@ -2064,6 +2303,7 @@ class PaperTradingEngine:
 
         # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
         has_index_options = "INDEX_OPTIONS" in allowed_types
+        has_stock_options = ("STOCK_OPTIONS" in allowed_types) or ("OPTIONS" in allowed_types)
         has_index_futures = "INDEX_FUTURES" in allowed_types
         has_equity = "EQUITY" in allowed_types
         has_stock_futures = "STOCK_FUTURES" in allowed_types
@@ -2072,6 +2312,7 @@ class PaperTradingEngine:
         eligible = []
         for item in UNIVERSE:
             item_type = item["type"]
+            item_sym = item["symbol"]
             item_mcap = item.get("market_cap", "LARGE_CAP")
             if item_mcap not in allowed_market_caps:
                 continue
@@ -2083,59 +2324,91 @@ class PaperTradingEngine:
                 if has_index_futures:
                     targets_for_item.append("INDEX_FUTURES")
             elif item_type == "STOCK":
+                is_fo_stock = (item_sym in LOT_SIZES) and (item_sym not in NON_FO_STOCK_SYMBOLS)
+                if has_stock_options and is_fo_stock:
+                    targets_for_item.append("STOCK_OPTIONS")
                 if has_equity:
                     targets_for_item.append("EQUITY")
-                if has_stock_futures and item_mcap in ("LARGE_CAP", "MID_CAP"):
+                if has_stock_futures and is_fo_stock:
                     targets_for_item.append("STOCK_FUTURES")
 
             if targets_for_item:
                 eligible.append((item, targets_for_item))
 
-        # Prioritize Benchmark Indices first, then Large Caps, Mid Caps, Small Caps
-        eligible.sort(key=lambda x: (
-            0 if x[0]["type"] == "INDEX" else 1,
-            0 if x[0].get("market_cap") == "LARGE_CAP" else (1 if x[0].get("market_cap") == "MID_CAP" else 2)
-        ))
-
-        # Balance candidate selection across each selected market cap so Mid and Small caps get representation
-        by_mcap = {}
+        # Separate benchmark indices and market-cap stocks so indices do not crowd out Large Cap equities
+        indices = [entry for entry in eligible if entry[0]["type"] == "INDEX"]
+        stocks_by_mcap = {}
         for it, tg in eligible:
-            mc = it.get("market_cap", "LARGE_CAP")
-            by_mcap.setdefault(mc, []).append((it, tg))
+            if it["type"] == "STOCK":
+                mc = it.get("market_cap", "LARGE_CAP")
+                stocks_by_mcap.setdefault(mc, []).append((it, tg))
 
         batch = []
-        per_cap = max(4, 18 // max(len(by_mcap), 1))
-        for mc in allowed_market_caps:
-            if mc in by_mcap:
-                batch.extend(by_mcap[mc][:per_cap])
-        if not batch:
-            batch = eligible[:16]
+        if indices:
+            batch.extend(indices[:4])
 
-        setups = []
-        from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        # Allocate slots equally across all selected market caps (Large, Mid, and Small)
+        per_cap = max(6, 24 // max(len(allowed_market_caps), 1))
+        for mc in allowed_market_caps:
+            if mc in stocks_by_mcap:
+                batch.extend(stocks_by_mcap[mc][:per_cap])
+
+        if not batch:
+            batch = eligible[:24]
+
+        raw_setups = []
+        from concurrent.futures import ThreadPoolExecutor, wait
+        with ThreadPoolExecutor(max_workers=12) as executor:
             future_to_item = {
                 executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
                 for it, tg in batch
             }
-            try:
-                for fut in as_completed(future_to_item, timeout=7.0):
-                    try:
-                        res = fut.result()
-                        if res:
-                            setups.extend(res)
-                    except Exception:
-                        pass
-            except TimeoutError:
-                for fut in future_to_item:
-                    if fut.done() and not fut.cancelled():
-                        try:
-                            res = fut.result()
-                            if res:
-                                setups.extend(res)
-                        except Exception:
-                            pass
+            done_futs, _ = wait(future_to_item.keys(), timeout=16.0)
+            for fut in done_futs:
+                try:
+                    res = fut.result()
+                    if res:
+                        raw_setups.extend(res)
+                except Exception:
+                    pass
 
+        seen_keys = set()
+        setups = []
+        for s in raw_setups:
+            key = (s.get("symbol"), s.get("instrument_type"))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            setups.append(s)
+
+        setups.sort(
+            key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
+            reverse=True,
+        )
+
+        # When multiple market caps are enabled, ensure fair representation across Large, Mid, and Small caps
+        if len(allowed_market_caps) > 1 and len(setups) > 5:
+            balanced_setups = []
+            seen_setups = set()
+            by_cap = {mc: [s for s in setups if s.get("market_cap") == mc] for mc in allowed_market_caps}
+            # Add top 2-3 from each enabled cap first
+            for i in range(3):
+                for mc in allowed_market_caps:
+                    cap_list = by_cap.get(mc) or []
+                    if i < len(cap_list):
+                        s = cap_list[i]
+                        s_key = (s.get("symbol"), s.get("instrument_type"))
+                        if s_key not in seen_setups:
+                            seen_setups.add(s_key)
+                            balanced_setups.append(s)
+            # Fill the remainder with overall top ranked setups
+            for s in setups:
+                s_key = (s.get("symbol"), s.get("instrument_type"))
+                if s_key not in seen_setups:
+                    seen_setups.add(s_key)
+                    balanced_setups.append(s)
+            setups = balanced_setups
+        self.last_scan_at = time.time()
         self.session.scanned_signals = setups
         return setups
 
@@ -2143,57 +2416,63 @@ class PaperTradingEngine:
         """
         Main execution step:
         1. Updates open positions against current market quotes (checks Target/SL/Time exits).
-        2. If running and capacity allows, scans for top setups and executes new paper trades.
+        2. While NSE is open, refreshes confirmed 15-minute setups periodically and executes
+           autonomous paper entries when running and risk capacity allows.
         """
-        self.session.last_tick_at = time.time()
+        if not self._tick_lock.acquire(blocking=False):
+            return self.session.get_state()
 
-        market_is_open = False
-        if self.market_status_resolver:
-            try:
-                status = self.market_status_resolver()
-                market_is_open = bool(status and status.get("is_trading_hours"))
-            except Exception as exc:
-                logger.warning("Could not confirm NSE market status: %s", exc)
+        try:
+            self.session.last_tick_at = time.time()
 
-        # Without confirmed exchange status or fresh quotes, do not simulate fills or exits.
-        self.session.update_positions(self.quote_resolver, market_is_open=market_is_open)
+            market_is_open = False
+            if self.market_status_resolver:
+                try:
+                    status = self.market_status_resolver()
+                    market_is_open = bool(status and status.get("is_trading_hours"))
+                except Exception as exc:
+                    logger.warning("Could not confirm NSE market status: %s", exc)
 
-        # Step 2: Autonomous entry evaluation
-        if self.session.status == "RUNNING" and market_is_open:
-            can_trade, reason = self.session.can_open_new_trade()
-            if can_trade and (time.time() - self.last_scan_at >= 12):
-                self.last_scan_at = time.time()
-                setups = self.scan_and_evaluate_setups()
-                open_symbols = {p["symbol"] for p in self.session.positions}
-                viable_setups = [s for s in setups if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols]
-                
-                # Dynamic Timewise Opportunity Ranking:
-                # Prioritize setups with MAXIMUM remaining profit potential, highest margin ROI %,
-                # and best effective Risk/Reward at this exact moment. Reject or deprioritize exhausted trades.
-                def _timewise_rank_key(s):
-                    m = s.get("timewise_metrics") or {}
-                    # Prioritize 80%+ Smart Money Pullback setups for optimal win rate
-                    is_pullback = 1 if "80%+" in s.get("strategy", "") else 0
-                    return (
-                        0 if m.get("is_exhausted") else 1,
-                        is_pullback,
-                        m.get("timewise_profit_score", s.get("confidence_score", 0)),
-                        m.get("margin_roi_pct", 0),
-                        m.get("profit_potential_pct", 0),
-                    )
+            # Without confirmed exchange status or fresh quotes, do not simulate fills or exits.
+            self.session.update_positions(
+                self.quote_resolver,
+                market_is_open=market_is_open,
+                option_quote_resolver=self.option_quote_resolver,
+            )
 
-                viable_setups.sort(key=_timewise_rank_key, reverse=True)
+            # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
+            if market_is_open:
+                setups = self.session.scanned_signals
+                if time.time() - self.last_scan_at >= 12:
+                    setups = self.scan_and_evaluate_setups()
 
-                for candidate in viable_setups:
-                    pos, err = self.session.execute_trade(
-                        candidate,
-                        self.quote_resolver,
-                        market_is_open=market_is_open,
-                    )
-                    if pos:
-                        break # Executed candidate trade
+                if self.session.status == "RUNNING":
+                    can_trade, _reason = self.session.can_open_new_trade()
+                    if can_trade and setups:
+                        trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
+                        open_symbols = {p["symbol"] for p in self.session.positions}
+                        viable_setups = [
+                            s for s in setups
+                            if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols
+                        ]
+                        viable_setups.sort(
+                            key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
+                            reverse=True,
+                        )
 
-        return self.session.get_state()
+                        for candidate in viable_setups:
+                            pos, err = self.session.execute_trade(
+                                candidate,
+                                self.quote_resolver,
+                                market_is_open=market_is_open,
+                                option_quote_resolver=self.option_quote_resolver,
+                            )
+                            if pos:
+                                break # Executed top-ranked candidate trade
+
+            return self.session.get_state()
+        finally:
+            self._tick_lock.release()
 
     @classmethod
     def run_backtest(cls, symbol="NIFTY 50", strategy="🎯 80%+ Smart Money Pullback & Breakeven", initial_capital=100000.0, candles=None, risk_profile="MODERATE", years=5):
@@ -2506,122 +2785,209 @@ class MultiUserPaperSessionManager:
     Each user/profile has independent capital, preferences, active positions, and trade history.
     Persists to MongoDB Atlas and durable local SQLite & disk datastore.
     """
-    def __init__(self, db=None, quote_resolver=None, chart_resolver=None, market_status_resolver=None):
+    def __init__(self, db=None, quote_resolver=None, chart_resolver=None, market_status_resolver=None, option_quote_resolver=None):
+        self._manager_lock = threading.RLock()
         self.db = db
         self.quote_resolver = quote_resolver
         self.chart_resolver = chart_resolver
         self.market_status_resolver = market_status_resolver
+        self.option_quote_resolver = option_quote_resolver
         self.sessions = {} # { user_name: PaperTradingSession }
         self.engines = {}  # { user_name: PaperTradingEngine }
         self._init_defaults()
 
-    def _init_defaults(self):
-        """Discovers and restores all user profiles from MongoDB Atlas & persistent disk store."""
-        known_profiles = {}
+    def _hydrate_existing_profile(self, uname):
+        """Loads an already-persisted profile into memory without overwriting DB."""
+        uname = (uname or "").strip()
+        if not uname:
+            return None, None
+        with self._manager_lock:
+            if uname in self.sessions:
+                return self.sessions[uname], self.engines[uname]
+            sess = PaperTradingSession(user_name=uname, db=self.db)
+            eng = PaperTradingEngine(
+                session=sess,
+                quote_resolver=self.quote_resolver,
+                chart_resolver=self.chart_resolver,
+                market_status_resolver=self.market_status_resolver,
+                option_quote_resolver=self.option_quote_resolver,
+            )
+            self.sessions[uname] = sess
+            self.engines[uname] = eng
+            return sess, eng
 
-        # 1. Load from persistent disk store
-        for uname, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
-            if uname and isinstance(pdata, dict):
-                known_profiles[uname] = dict(pdata)
-
-        # 2. Load all profiles from MongoDB Atlas if connected
-        if self.db is not None:
+    def set_db(self, db):
+        """Attaches or refreshes MongoDB handle after startup and syncs profiles."""
+        if db is None:
+            return
+        with self._manager_lock:
+            self.db = db
+            for sess in list(self.sessions.values()):
+                sess.db = db
+                # If a profile was created/updated locally while MongoDB was offline, push it once
+                try:
+                    if not db["paper_profiles"].find_one({"user_name": sess.user_name}):
+                        sess.save_to_db()
+                except Exception as exc:
+                    logger.warning("Could not sync local profile %s to MongoDB: %s", sess.user_name, exc)
+            # Discover any profiles present in MongoDB that aren't in memory yet
             try:
-                for doc in self.db["paper_profiles"].find({}, {"_id": 0}):
-                    uname = doc.get("user_name")
-                    if uname:
-                        known_profiles[uname] = doc
-            except Exception:
-                pass
+                for doc in db["paper_profiles"].find({}, {"_id": 0, "user_name": 1}):
+                    uname = (doc.get("user_name") or "").strip()
+                    if uname and uname not in self.sessions:
+                        self._hydrate_existing_profile(uname)
+            except Exception as exc:
+                logger.warning("Could not discover MongoDB profiles during reconnect: %s", exc)
 
-        # 3. Ensure standard benchmark profiles exist if not already present
-        default_benchmarks = [
-            {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS"], "capital": 100000.0, "style": "HIGH_WINRATE", "risk": "MODERATE"},
-            {"user_name": "Vijay_Options_Pro", "instruments": ["INDEX_OPTIONS"], "capital": 50000.0, "style": "SCALPING", "risk": "AGGRESSIVE"},
-            {"user_name": "Rahul_Futures_Swing", "instruments": ["INDEX_FUTURES", "STOCK_FUTURES"], "capital": 200000.0, "style": "SWING", "risk": "CONSERVATIVE"},
-            {"user_name": "Pooja_Equity_Value", "instruments": ["EQUITY"], "capital": 75000.0, "style": "POSITIONAL", "risk": "MODERATE"},
-        ]
-        for p in default_benchmarks:
-            uname = p["user_name"]
-            existing = None
+    def _init_defaults(self):
+        """Discovers and restores all user profiles from MongoDB Atlas, SQLite, & disk store."""
+        with self._manager_lock:
+            known_profiles = {}
+
+            # 1. Load from persistent disk/in-memory store
+            with _DATASTORE_LOCK:
+                for uname, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
+                    if uname and isinstance(pdata, dict):
+                        known_profiles[uname] = dict(pdata)
+                for uname, sdata in LOCAL_USER_DATASTORE.get("sessions", {}).items():
+                    if uname and uname not in known_profiles and isinstance(sdata, dict):
+                        known_profiles[uname] = {"user_name": uname}
+
+            # 2. Load all profiles from durable local SQLite store
+            try:
+                for pdata in _load_local_paper_profiles():
+                    uname = (pdata.get("user_name") or "").strip()
+                    if uname and uname not in known_profiles:
+                        known_profiles[uname] = pdata
+            except Exception as exc:
+                logger.warning("Could not load SQLite profiles on startup: %s", exc)
+
+            # 3. Load all profiles from MongoDB Atlas if connected
+            mongo_check_failed = False
             if self.db is not None:
                 try:
-                    existing = self.db["paper_profiles"].find_one({"user_name": uname})
-                except Exception as e:
-                    logger.warning("Could not check MongoDB profile %s: %s", uname, e)
-            if not existing:
+                    for doc in self.db["paper_profiles"].find({}, {"_id": 0}):
+                        uname = (doc.get("user_name") or "").strip()
+                        if uname:
+                            known_profiles[uname] = doc
+                    for sdoc in self.db["paper_sessions"].find({}, {"_id": 0, "user_name": 1}):
+                        uname = (sdoc.get("user_name") or "").strip()
+                        if uname and uname not in known_profiles:
+                            known_profiles[uname] = {"user_name": uname}
+                except Exception as exc:
+                    mongo_check_failed = True
+                    logger.warning("Could not discover MongoDB profiles on startup: %s", exc)
+
+            # 4. Hydrate ALL discovered existing profiles so active/custom users never vanish on worker restart
+            for uname in list(known_profiles.keys()):
                 try:
-                    existing = _load_local_paper_record(uname)
-                except (OSError, sqlite3.Error, TypeError, ValueError) as e:
-                    logger.exception("Could not check local profile %s", uname)
-            if not existing and uname not in LOCAL_USER_DATASTORE["profiles"]:
-                sess = PaperTradingSession(
-                    user_name=uname,
-                    config={
-                        "initial_capital": p["capital"],
-                        "instruments": p["instruments"],
-                        "trading_style": p["style"],
-                        "risk_profile": p["risk"],
-                        "holding_duration_mins": 15 if p["style"] in ("INTRADAY", "HIGH_WINRATE") else (1440 if p["style"] == "SWING" else 10080),
-                    },
-                    db=self.db
-                )
-                sess.save_to_db()
-                self.sessions[uname] = sess
-                self.engines[uname] = PaperTradingEngine(
-                    session=sess,
-                    quote_resolver=self.quote_resolver,
-                    chart_resolver=self.chart_resolver,
-                    market_status_resolver=self.market_status_resolver,
-                )
+                    self._hydrate_existing_profile(uname)
+                except Exception:
+                    logger.exception("Failed restoring profile %s on startup", uname)
+
+            # 5. Ensure standard benchmark profiles exist if not already present anywhere
+            default_benchmarks = [
+                {"user_name": "Akshay", "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"], "capital": 100000.0, "style": "HIGH_WINRATE", "risk": "MODERATE"},
+                {"user_name": "Vijay_Options_Pro", "instruments": ["INDEX_OPTIONS", "STOCK_OPTIONS"], "capital": 50000.0, "style": "SCALPING", "risk": "AGGRESSIVE"},
+                {"user_name": "Rahul_Futures_Swing", "instruments": ["INDEX_FUTURES", "STOCK_FUTURES"], "capital": 200000.0, "style": "SWING", "risk": "CONSERVATIVE"},
+                {"user_name": "Pooja_Equity_Value", "instruments": ["EQUITY"], "capital": 75000.0, "style": "POSITIONAL", "risk": "MODERATE"},
+            ]
+            for p in default_benchmarks:
+                uname = p["user_name"]
+                if uname in self.sessions:
+                    continue
+                existing = None
+                if self.db is not None and not mongo_check_failed:
+                    try:
+                        existing = self.db["paper_profiles"].find_one({"user_name": uname})
+                    except Exception as e:
+                        mongo_check_failed = True
+                        logger.warning("Could not check MongoDB profile %s: %s", uname, e)
+                if not existing:
+                    try:
+                        existing = _load_local_paper_record(uname)
+                    except (OSError, sqlite3.Error, TypeError, ValueError):
+                        logger.exception("Could not check local profile %s", uname)
+                with _DATASTORE_LOCK:
+                    in_local = uname in LOCAL_USER_DATASTORE["profiles"]
+                if not existing and not in_local:
+                    sess = PaperTradingSession(
+                        user_name=uname,
+                        config={
+                            "initial_capital": p["capital"],
+                            "instruments": p["instruments"],
+                            "trading_style": p["style"],
+                            "risk_profile": p["risk"],
+                            "holding_duration_mins": 15 if p["style"] in ("INTRADAY", "HIGH_WINRATE") else (1440 if p["style"] == "SWING" else 10080),
+                        },
+                        db=self.db
+                    )
+                    if not mongo_check_failed and not sess._db_load_error:
+                        sess.save_to_db()
+                    self.sessions[uname] = sess
+                    self.engines[uname] = PaperTradingEngine(
+                        session=sess,
+                        quote_resolver=self.quote_resolver,
+                        chart_resolver=self.chart_resolver,
+                        market_status_resolver=self.market_status_resolver,
+                        option_quote_resolver=self.option_quote_resolver,
+                    )
 
     def get_session(self, user_name="Akshay"):
         uname = (user_name or "Akshay").strip()
-        if uname in self.sessions:
-            return self.sessions[uname], self.engines[uname]
+        with self._manager_lock:
+            if uname in self.sessions:
+                return self.sessions[uname], self.engines[uname]
 
-        sess = PaperTradingSession(user_name=uname, db=self.db)
-        eng = PaperTradingEngine(
-            session=sess,
-            quote_resolver=self.quote_resolver,
-            chart_resolver=self.chart_resolver,
-            market_status_resolver=self.market_status_resolver,
-        )
-        self.sessions[uname] = sess
-        self.engines[uname] = eng
-        sess.save_to_db()
-        return sess, eng
+            sess = PaperTradingSession(user_name=uname, db=self.db)
+            eng = PaperTradingEngine(
+                session=sess,
+                quote_resolver=self.quote_resolver,
+                chart_resolver=self.chart_resolver,
+                market_status_resolver=self.market_status_resolver,
+                option_quote_resolver=self.option_quote_resolver,
+            )
+            self.sessions[uname] = sess
+            self.engines[uname] = eng
+            # Only persist a newly created default/requested profile if nothing existed AND no DB read failed
+            if not sess._restored_from_db and not sess._db_load_error:
+                sess.save_to_db()
+            return sess, eng
 
     def create_profile(self, user_name, config=None):
         uname = (user_name or "").strip()
         if not uname:
             return None, "Profile name cannot be empty."
-        if uname in self.sessions or uname in LOCAL_USER_DATASTORE["profiles"]:
-            return None, f"Profile [{uname}] already exists."
-        try:
-            if _load_local_paper_record(uname):
+        with self._manager_lock:
+            with _DATASTORE_LOCK:
+                in_local = uname in LOCAL_USER_DATASTORE["profiles"]
+            if uname in self.sessions or in_local:
                 return None, f"Profile [{uname}] already exists."
-        except (OSError, sqlite3.Error, TypeError, ValueError) as e:
-            logger.exception("Could not check local profile %s", uname)
-            raise RuntimeError(f"Unable to verify whether profile [{uname}] already exists.") from e
-        if self.db is not None:
             try:
-                if self.db["paper_profiles"].find_one({"user_name": uname}):
+                if _load_local_paper_record(uname):
                     return None, f"Profile [{uname}] already exists."
-            except Exception as e:
-                logger.warning("Could not check MongoDB profile %s: %s", uname, e)
+            except (OSError, sqlite3.Error, TypeError, ValueError) as e:
+                logger.exception("Could not check local profile %s", uname)
+                raise RuntimeError(f"Unable to verify whether profile [{uname}] already exists.") from e
+            if self.db is not None:
+                try:
+                    if self.db["paper_profiles"].find_one({"user_name": uname}):
+                        return None, f"Profile [{uname}] already exists."
+                except Exception as e:
+                    logger.warning("Could not check MongoDB profile %s: %s", uname, e)
 
-        sess = PaperTradingSession(user_name=uname, config=config, db=self.db)
-        eng = PaperTradingEngine(
-            session=sess,
-            quote_resolver=self.quote_resolver,
-            chart_resolver=self.chart_resolver,
-            market_status_resolver=self.market_status_resolver,
-        )
-        self.sessions[uname] = sess
-        self.engines[uname] = eng
-        sess.save_to_db()
-        return sess, f"Profile [{uname}] created and persisted in MongoDB Atlas!"
+            sess = PaperTradingSession(user_name=uname, config=config, db=self.db)
+            eng = PaperTradingEngine(
+                session=sess,
+                quote_resolver=self.quote_resolver,
+                chart_resolver=self.chart_resolver,
+                market_status_resolver=self.market_status_resolver,
+                option_quote_resolver=self.option_quote_resolver,
+            )
+            self.sessions[uname] = sess
+            self.engines[uname] = eng
+            sess.save_to_db()
+            return sess, f"Profile [{uname}] created and persisted!"
 
     def list_profiles(self):
         """Returns list of all registered profile names and up-to-date metrics across all users."""
@@ -2632,7 +2998,7 @@ class MultiUserPaperSessionManager:
             try:
                 cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
                 for doc in cursor:
-                    u = doc.get("user_name")
+                    u = (doc.get("user_name") or "").strip()
                     if u:
                         prof_map[u] = doc
             except Exception as e:
@@ -2642,19 +3008,30 @@ class MultiUserPaperSessionManager:
         try:
             persisted_profiles = _load_local_paper_profiles()
             for profile in persisted_profiles:
-                u = profile.get("user_name")
+                u = (profile.get("user_name") or "").strip()
                 if u and (u not in prof_map or _document_updated_at(profile) >= _document_updated_at(prof_map[u])):
                     prof_map[u] = profile
         except Exception:
             pass
 
-        # 3. Merge with disk/in-memory store
-        for u, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
-            if u and (u not in prof_map or _document_updated_at(pdata) >= _document_updated_at(prof_map[u])):
-                prof_map[u] = dict(pdata)
+        # 3. Merge with disk/in-memory store safely under lock
+        with _DATASTORE_LOCK:
+            for u, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
+                if u and isinstance(pdata, dict) and (u not in prof_map or _document_updated_at(pdata) >= _document_updated_at(prof_map[u])):
+                    prof_map[u] = dict(pdata)
 
-        # 3. Synchronize with active in-memory sessions for real-time live equity, PnL, active stocks, and status
-        for uname, sess in self.sessions.items():
+        # 4. Synchronize with active in-memory sessions and self-heal any running profiles not yet hydrated
+        with self._manager_lock:
+            for uname, pdata in list(prof_map.items()):
+                if uname not in self.sessions and pdata.get("status") in ("RUNNING", "STOPPED_NEW_TRADES"):
+                    try:
+                        self._hydrate_existing_profile(uname)
+                    except Exception:
+                        logger.exception("Failed self-healing running profile %s", uname)
+
+            session_snapshot = list(self.sessions.items())
+
+        for uname, sess in session_snapshot:
             ret_pct = round((sess.total_pnl / sess.initial_capital) * 100, 2) if sess.initial_capital > 0 else 0.0
             analytics = sess.get_performance_analytics()
             open_syms = [p.get("symbol") for p in sess.positions]
@@ -2682,10 +3059,11 @@ class MultiUserPaperSessionManager:
                 "last_active": get_ist_str(),
             }
 
-        # 4. Fallback if still empty
+        # 5. Fallback if still empty
         if not prof_map:
-            sess, _ = self.get_session("Akshay")
-            prof_map["Akshay"] = LOCAL_USER_DATASTORE["profiles"].get("Akshay", {})
+            self.get_session("Akshay")
+            with _DATASTORE_LOCK:
+                prof_map["Akshay"] = dict(LOCAL_USER_DATASTORE["profiles"].get("Akshay", {}))
 
         return list(prof_map.values())
 
@@ -2716,12 +3094,12 @@ class MultiUserPaperSessionManager:
     def tick_all_running(self):
         """Evaluates every active user session running concurrently."""
         results = {}
-        for uname, sess in list(self.sessions.items()):
+        with self._manager_lock:
+            items = [(uname, sess, self.engines.get(uname)) for uname, sess in self.sessions.items()]
+        for uname, sess, eng in items:
             try:
-                if sess.status in ("RUNNING", "STOPPED_NEW_TRADES"):
-                    eng = self.engines.get(uname)
-                    if eng:
-                        results[uname] = eng.tick()
+                if sess.status in ("RUNNING", "STOPPED_NEW_TRADES") and eng:
+                    results[uname] = eng.tick()
             except Exception:
                 logger.exception("Paper trading tick failed for profile %s", uname)
         return results

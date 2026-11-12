@@ -22,6 +22,9 @@ paper_market_cache = {"at": 0, "status": None}
 paper_live_quote_cache = {}
 paper_chart_cache = {}
 paper_quote_cache_lock = threading.Lock()
+option_chain_cache = {}
+option_contract_info_cache = {}
+option_chain_lock = threading.Lock()
 
 # -------------------------------------------------------------------------
 # MONGODB ATLAS & RESILIENT DATASTORE CONFIGURATION (PHASE 2)
@@ -29,53 +32,73 @@ paper_quote_cache_lock = threading.Lock()
 mongo_client = None
 mongo_db = None
 mongo_status = "Disconnected"
+_mongo_connect_lock = threading.Lock()
+_last_mongo_retry_at = 0.0
 
 raw_mongo_url = os.getenv("mongo_url") or os.getenv("MONGODB_URI", "")
-if raw_mongo_url and "<db_username>" not in raw_mongo_url and raw_mongo_url.strip():
-    from pymongo import MongoClient
-    ca_file = None
-    try:
-        import certifi
-        ca_file = certifi.where()
-    except Exception:
-        pass
 
-    # Resilient multi-tier TLS handshake for MongoDB Atlas on cloud containers (e.g. Render/Linux)
-    client_candidates = []
-    if ca_file:
-        client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, "serverSelectionTimeoutMS": 4500}))
-    client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, "serverSelectionTimeoutMS": 4500}))
-    client_candidates.append(("standard-tls", {"serverSelectionTimeoutMS": 4500}))
 
-    last_mongo_err = None
-    for mode_name, client_kwargs in client_candidates:
+def _init_mongo_connection():
+    """Attempts multi-tier TLS connection to MongoDB Atlas and ensures required indexes."""
+    global mongo_client, mongo_db, mongo_status
+    if not raw_mongo_url or "<db_username>" in raw_mongo_url or not raw_mongo_url.strip():
+        mongo_status = "Standby (Awaiting MongoDB Atlas credentials in .env)"
+        return None
+
+    with _mongo_connect_lock:
+        if mongo_db is not None:
+            return mongo_db
+
+        from pymongo import MongoClient
+        ca_file = None
         try:
-            cand_client = MongoClient(raw_mongo_url.strip(), **client_kwargs)
-            cand_client.admin.command("ping")
-            mongo_client = cand_client
-            mongo_db = mongo_client["fingroww_db"]
-            mongo_status = f"Connected to MongoDB Atlas ({mode_name})"
-            break
-        except Exception as conn_err:
-            last_mongo_err = conn_err
-
-    if mongo_db is not None:
-        try:
-            # Ensure collections & indexes
-            mongo_db["users"].create_index("email", unique=True)
-            mongo_db["signals"].create_index([("symbol", 1), ("timestamp", -1)])
-            mongo_db["trade_outcomes"].create_index([("symbol", 1), ("closed_at", -1)])
-            mongo_db["strategy_runs"].create_index("created_at")
-            mongo_db["paper_profiles"].create_index("user_name", unique=True)
-            mongo_db["paper_sessions"].create_index("user_name", unique=True)
-            mongo_db["paper_positions"].create_index([("user_name", 1), ("status", 1)])
-            mongo_db["paper_trades"].create_index([("user_name", 1), ("closed_at", -1)])
+            import certifi
+            ca_file = certifi.where()
         except Exception:
             pass
-    else:
-        mongo_status = f"MongoDB Offline: {str(last_mongo_err)}"
-else:
-    mongo_status = "Standby (Awaiting MongoDB Atlas credentials in .env)"
+
+        client_candidates = []
+        if ca_file:
+            client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, "serverSelectionTimeoutMS": 4500}))
+        client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, "serverSelectionTimeoutMS": 4500}))
+        client_candidates.append(("standard-tls", {"serverSelectionTimeoutMS": 4500}))
+
+        last_mongo_err = None
+        for mode_name, client_kwargs in client_candidates:
+            cand_client = None
+            try:
+                cand_client = MongoClient(raw_mongo_url.strip(), **client_kwargs)
+                cand_client.admin.command("ping")
+                mongo_client = cand_client
+                mongo_db = mongo_client["fingroww_db"]
+                mongo_status = f"Connected to MongoDB Atlas ({mode_name})"
+                break
+            except Exception as conn_err:
+                last_mongo_err = conn_err
+                if cand_client is not None:
+                    try:
+                        cand_client.close()
+                    except Exception:
+                        pass
+
+        if mongo_db is not None:
+            try:
+                mongo_db["users"].create_index("email", unique=True)
+                mongo_db["signals"].create_index([("symbol", 1), ("timestamp", -1)])
+                mongo_db["trade_outcomes"].create_index([("symbol", 1), ("closed_at", -1)])
+                mongo_db["strategy_runs"].create_index("created_at")
+                mongo_db["paper_profiles"].create_index("user_name", unique=True)
+                mongo_db["paper_sessions"].create_index("user_name", unique=True)
+                mongo_db["paper_positions"].create_index([("user_name", 1), ("status", 1)])
+                mongo_db["paper_trades"].create_index([("user_name", 1), ("closed_at", -1)])
+            except Exception:
+                pass
+        else:
+            mongo_status = f"MongoDB Offline: {str(last_mongo_err)}"
+        return mongo_db
+
+
+_init_mongo_connection()
 
 # In-memory resilient datastore fallback
 local_datastore = {
@@ -150,27 +173,27 @@ def add_cors(resp):
     return resp
 
 
-def init_nse():
+def init_nse(force=False):
     global last_init
     with lock:
-        if time.time() - last_init < 60:
+        if not force and time.time() - last_init < 60:
             return
         last_init = time.time()
         try:
             session.get(
-                NSE + "/market-data/live-equity-market",
+                NSE + "/option-chain",
                 headers={
                     **HEADERS,
                     "Accept": "text/html,application/xhtml+xml",
                     "Referer": NSE + "/",
                 },
-                timeout=2.0,
+                timeout=3.0,
             )
         except Exception:
             pass
 
 
-def nse_get(path, params=None):
+def nse_get(path, params=None, referer=None, timeout=2.5):
     try:
         init_nse()
         r = session.get(
@@ -178,11 +201,23 @@ def nse_get(path, params=None):
             headers={
                 **HEADERS,
                 "Accept": "application/json, text/javascript, */*; q=0.01",
-                "Referer": NSE + "/market-data/live-market-indices",
+                "Referer": referer or (NSE + "/market-data/live-market-indices"),
             },
             params=params,
-            timeout=2.0,
+            timeout=timeout,
         )
+        if r.status_code in (401, 403):
+            init_nse(force=True)
+            r = session.get(
+                NSE + path,
+                headers={
+                    **HEADERS,
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                    "Referer": referer or (NSE + "/market-data/live-market-indices"),
+                },
+                params=params,
+                timeout=timeout,
+            )
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -704,27 +739,45 @@ def generate_fallback_option_chain(symbol, spot):
         })
 
     is_index = symbol in ("NIFTY 50", "NIFTY", "BANK NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX")
+    now_dt = datetime.now()
+    # Build upcoming Thursday-like expiry labels dynamically relative to current date
+    days_ahead = (3 - now_dt.weekday()) % 7
+    if days_ahead == 0:
+        days_ahead = 7
+    base_exp = now_dt + timedelta(days=days_ahead)
     if is_index:
         expiries = [
-            "15-OCT-2026 (Current Weekly - 6 DTE)",
-            "22-OCT-2026 (Next Weekly - 13 DTE)",
-            "29-OCT-2026 (Current Monthly - 20 DTE)",
-            "26-NOV-2026 (Next Monthly - 48 DTE)"
+            f"{(base_exp + timedelta(days=0)).strftime('%d-%b-%Y').upper()} (Current Weekly - {days_ahead} DTE)",
+            f"{(base_exp + timedelta(days=7)).strftime('%d-%b-%Y').upper()} (Next Weekly - {days_ahead + 7} DTE)",
+            f"{(base_exp + timedelta(days=14)).strftime('%d-%b-%Y').upper()} (Current Monthly - {days_ahead + 14} DTE)",
+            f"{(base_exp + timedelta(days=42)).strftime('%d-%b-%Y').upper()} (Next Monthly - {days_ahead + 42} DTE)",
         ]
     else:
         expiries = [
-            "29-OCT-2026 (Current Monthly - 20 DTE)",
-            "26-NOV-2026 (Next Monthly - 48 DTE)",
-            "31-DEC-2026 (Far Monthly - 83 DTE)"
+            f"{(base_exp + timedelta(days=14)).strftime('%d-%b-%Y').upper()} (Current Monthly - {days_ahead + 14} DTE)",
+            f"{(base_exp + timedelta(days=42)).strftime('%d-%b-%Y').upper()} (Next Monthly - {days_ahead + 42} DTE)",
+            f"{(base_exp + timedelta(days=70)).strftime('%d-%b-%Y').upper()} (Far Monthly - {days_ahead + 70} DTE)",
         ]
 
     pcr = round(pe_tot_oi / ce_tot_oi, 2) if ce_tot_oi > 0 else 1.0
+    first_dt_m = re.search(r"(\d{1,2}-[A-Za-z]{3}-\d{4})", expiries[0])
+    first_dt = first_dt_m.group(1) if first_dt_m else expiries[0]
+    first_kind = "Weekly" if "Weekly" in expiries[0] else "Monthly"
+    exp_meta = []
+    for e_str in expiries:
+        dm = re.search(r"(\d{1,2}-[A-Za-z]{3}-\d{4})", e_str)
+        d_tok = dm.group(1) if dm else e_str
+        k_tok = "Weekly" if "Weekly" in e_str else "Monthly"
+        exp_meta.append({"date": d_tok, "kind": k_tok, "label": f"{d_tok} ({k_tok} Expiry)"})
     return {
         "source": "FinGroww Option Intelligence",
         "symbol": symbol,
         "spotPrice": spot,
         "expiries": expiries,
+        "expiriesMeta": exp_meta,
         "selectedExpiry": expiries[0],
+        "selectedExpiryKind": first_kind,
+        "selectedExpiryLabel": f"{first_kind} ({first_dt})",
         "atmStrike": atm_strike,
         "pcr": pcr,
         "totalCeOi": ce_tot_oi,
@@ -733,92 +786,297 @@ def generate_fallback_option_chain(symbol, spot):
     }
 
 
-def fetch_option_chain(symbol):
+def _parse_nse_expiry_date(exp_str):
+    """Parses '17-Nov-2026' or '17-NOV-2026 (...)' into a datetime.date or None."""
+    if not exp_str:
+        return None
+    m = re.search(r"(\d{1,2}-[A-Za-z]{3}-\d{4})", str(exp_str))
+    if not m:
+        return None
+    try:
+        return datetime.strptime(m.group(1).title(), "%d-%b-%Y").date()
+    except ValueError:
+        return None
+
+
+def _classify_expiry_kind(exp_str, all_expiries):
+    """Determines whether exp_str is a Weekly or Monthly expiry using the full NSE expiry schedule."""
+    target_dt = _parse_nse_expiry_date(exp_str)
+    if target_dt is None:
+        return "Monthly" if "monthly" in str(exp_str).lower() else "Weekly"
+    same_month_dates = []
+    for raw in (all_expiries or []):
+        dt = _parse_nse_expiry_date(raw)
+        if dt and dt.year == target_dt.year and dt.month == target_dt.month:
+            same_month_dates.append(dt)
+    if not same_month_dates:
+        return "Monthly"
+    return "Monthly" if target_dt == max(same_month_dates) else "Weekly"
+
+
+def _build_expiries_meta(full_expiries, limit=6):
+    """Builds structured expiry metadata with Weekly/Monthly classification from full schedule."""
+    meta = []
+    for exp_str in (full_expiries or [])[:limit]:
+        kind = _classify_expiry_kind(exp_str, full_expiries)
+        meta.append({
+            "date": exp_str,
+            "kind": kind,
+            "label": f"{exp_str} ({kind} Expiry)",
+        })
+    return meta
+
+
+def _match_requested_expiry(expiries, requested_expiry):
+    """Matches a client expiry string (e.g. '17-Nov-2026' or '17-NOV-2026 (...)') to NSE expiryDates."""
+    if not expiries:
+        return None
+    if not requested_expiry:
+        return expiries[0]
+    req_clean = str(requested_expiry).strip()
+    m = re.search(r"(\d{1,2}-[A-Za-z]{3}-\d{4})", req_clean)
+    token = (m.group(1) if m else req_clean).casefold()
+    for exp in expiries:
+        if exp.casefold() == token or exp.casefold() == req_clean.casefold():
+            return exp
+    return expiries[0]
+
+
+def _extract_leg_ltp(leg):
+    """Returns exact NSE option lastPrice (falling back to mid-quote only when lastPrice is 0)."""
+    if not isinstance(leg, dict):
+        return 0.0
+    ltp = leg.get("lastPrice")
+    if isinstance(ltp, (int, float)) and ltp > 0:
+        return round(float(ltp), 2)
+    bid = leg.get("buyPrice1") or 0
+    ask = leg.get("sellPrice1") or 0
+    if isinstance(bid, (int, float)) and isinstance(ask, (int, float)) and bid > 0 and ask > 0:
+        return round((float(bid) + float(ask)) / 2.0, 2)
+    return float(ltp or 0.0)
+
+
+def fetch_option_chain(symbol, expiry=None):
     sym = normalize_symbol(symbol)
+    is_index = sym in ("NIFTY 50", "NIFTY", "BANK NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTY NEXT 50", "NIFTYNXT50")
+    if sym == "SENSEX":
+        quote_data = resolve_quote(sym) or {}
+        spot = quote_data.get("lastPrice") or 75000.0
+        return generate_fallback_option_chain(sym, spot)
+
+    nse_sym = "NIFTY" if sym == "NIFTY 50" else ("BANKNIFTY" if sym in ("BANK NIFTY", "NIFTY BANK") else ("NIFTYNXT50" if sym == "NIFTY NEXT 50" else sym))
+    now = time.time()
+
+    # 1. Fetch live expiryDates from NSE contract-info API (cached 60s)
+    expiries = []
+    with option_chain_lock:
+        c_entry = option_contract_info_cache.get(nse_sym)
+        if c_entry and (now - c_entry["at"] < 60):
+            expiries = list(c_entry["expiries"])
+
+    if not expiries:
+        c_info = nse_get(
+            "/api/option-chain-contract-info",
+            params={"symbol": nse_sym},
+            referer=NSE + "/option-chain",
+            timeout=4.0,
+        )
+        if isinstance(c_info, dict):
+            expiries = [str(e) for e in (c_info.get("expiryDates") or []) if e]
+            with option_chain_lock:
+                if len(option_contract_info_cache) > 50:
+                    option_contract_info_cache.clear()
+                option_contract_info_cache[nse_sym] = {"at": now, "expiries": list(expiries)}
+
+    if not expiries and not is_index:
+        quote_data = resolve_quote(sym) or {}
+        spot = quote_data.get("lastPrice") or 2500.0
+        return generate_fallback_option_chain(sym, spot)
+
+    sel_expiry = _match_requested_expiry(expiries, expiry)
+    cache_key = f"{nse_sym}::{sel_expiry or 'DEFAULT'}"
+
+    # 2. Check short-TTL live option chain cache (10 seconds)
+    with option_chain_lock:
+        cached_oc = option_chain_cache.get(cache_key)
+        if cached_oc and (now - cached_oc["at"] < 10.0):
+            return cached_oc["data"]
+
+    # 3. Call NSE official v3 option-chain endpoint
+    data = None
+    if sel_expiry:
+        v3_type = "Indices" if is_index else "Equities"
+        data = nse_get(
+            "/api/option-chain-v3",
+            params={"type": v3_type, "symbol": nse_sym, "expiry": sel_expiry},
+            referer=NSE + "/option-chain",
+            timeout=4.5,
+        )
+
+    # Fallback to legacy NSE endpoints only if v3 returned nothing
+    if not data or not isinstance(data, dict) or "records" not in data:
+        legacy_ep = f"/api/option-chain-indices?symbol={nse_sym}" if is_index else f"/api/option-chain-equities?symbol={nse_sym}"
+        data = nse_get(legacy_ep, referer=NSE + "/option-chain", timeout=3.5)
+
     quote_data = resolve_quote(sym) or {}
     spot = quote_data.get("lastPrice")
     if spot is None or spot <= 0:
         spot = 24000.0 if "NIFTY" in sym else 2500.0
 
-    is_index = sym in ("NIFTY 50", "NIFTY", "BANK NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX")
-    nse_sym = "NIFTY" if sym == "NIFTY 50" else ("BANKNIFTY" if sym == "BANK NIFTY" else sym)
-    endpoint = f"/api/option-chain-indices?symbol={nse_sym}" if is_index else f"/api/option-chain-equities?symbol={nse_sym}"
-    
-    data = nse_get(endpoint)
     if data and isinstance(data, dict) and "records" in data:
         records = data.get("records") or {}
-        expiries = records.get("expiryDates") or []
-        underlying = records.get("underlyingValue") or spot
+        rec_expiries = records.get("expiryDates") or expiries
+        underlying = float(records.get("underlyingValue") or spot or 0.0) or spot
         raw_items = records.get("data") or []
-        
-        sel_expiry = expiries[0] if expiries else "CURRENT"
+        if not sel_expiry and rec_expiries:
+            sel_expiry = rec_expiries[0]
+
         rows = []
         ce_tot_oi = 0
         pe_tot_oi = 0
-        
+
         for item in raw_items:
-            strike = item.get("strikePrice")
-            if not strike:
-                continue
-            if abs(strike - underlying) / underlying > 0.18:
+            if not isinstance(item, dict):
                 continue
             ce = item.get("CE") or {}
             pe = item.get("PE") or {}
+            strike = item.get("strikePrice") or ce.get("strikePrice") or pe.get("strikePrice")
+            if not strike:
+                continue
+            strike = float(strike)
+            if underlying > 0 and abs(strike - underlying) / underlying > 0.18:
+                continue
             ce_oi = ce.get("openInterest") or 0
             pe_oi = pe.get("openInterest") or 0
             ce_tot_oi += ce_oi
             pe_tot_oi += pe_oi
-            
+
             rows.append({
-                "strikePrice": strike,
+                "strikePrice": int(strike) if strike == int(strike) else strike,
                 "CE": {
-                    "ltp": ce.get("lastPrice") or 0,
-                    "change": ce.get("change") or 0,
-                    "pChange": ce.get("pChange") or 0,
+                    "ltp": _extract_leg_ltp(ce),
+                    "change": round(float(ce.get("change") or 0), 2),
+                    "pChange": round(float(ce.get("pChange") or 0), 2),
                     "oi": ce_oi,
                     "changeOi": ce.get("changeinOpenInterest") or 0,
                     "vol": ce.get("totalTradedVolume") or 0,
                     "iv": ce.get("impliedVolatility") or 0,
                 },
                 "PE": {
-                    "ltp": pe.get("lastPrice") or 0,
-                    "change": pe.get("change") or 0,
-                    "pChange": pe.get("pChange") or 0,
+                    "ltp": _extract_leg_ltp(pe),
+                    "change": round(float(pe.get("change") or 0), 2),
+                    "pChange": round(float(pe.get("pChange") or 0), 2),
                     "oi": pe_oi,
                     "changeOi": pe.get("changeinOpenInterest") or 0,
                     "vol": pe.get("totalTradedVolume") or 0,
                     "iv": pe.get("impliedVolatility") or 0,
                 }
             })
-            
+
         rows.sort(key=lambda x: x["strikePrice"])
         if rows:
             atm_strike = min(rows, key=lambda x: abs(x["strikePrice"] - underlying))["strikePrice"]
             pcr = round(pe_tot_oi / ce_tot_oi, 2) if ce_tot_oi > 0 else 1.0
-            return {
+            full_exp_list = expiries if expiries else (rec_expiries or [])
+            chosen_exp = sel_expiry or (full_exp_list[0] if full_exp_list else "CURRENT")
+            chosen_kind = _classify_expiry_kind(chosen_exp, full_exp_list)
+            expiries_meta = _build_expiries_meta(full_exp_list, limit=6)
+            result = {
                 "source": "NSE Official Live",
                 "symbol": sym,
                 "spotPrice": underlying,
-                "expiries": expiries[:5],
-                "selectedExpiry": sel_expiry,
+                "expiries": (full_exp_list or [])[:6],
+                "expiriesMeta": expiries_meta,
+                "selectedExpiry": chosen_exp,
+                "selectedExpiryKind": chosen_kind,
+                "selectedExpiryLabel": f"{chosen_kind} ({chosen_exp})",
                 "atmStrike": atm_strike,
                 "pcr": pcr,
                 "totalCeOi": ce_tot_oi,
                 "totalPeOi": pe_tot_oi,
-                "chain": rows
+                "chain": rows,
+                "fetched_at": time.time(),
             }
+            with option_chain_lock:
+                if len(option_chain_cache) > 30:
+                    oldest = sorted(option_chain_cache.keys(), key=lambda k: option_chain_cache[k]["at"])[:15]
+                    for k in oldest:
+                        option_chain_cache.pop(k, None)
+                option_chain_cache[cache_key] = {"at": now, "data": result}
+            return result
 
     return generate_fallback_option_chain(sym, spot)
+
+
+def resolve_option_quote(base_symbol, strike, opt_type="CE", expiry=None):
+    """Fetches exact live NSE option LTP for a specific strike and CE/PE type."""
+    try:
+        strike_num = float(strike)
+    except (TypeError, ValueError):
+        return None
+    leg_key = "PE" if str(opt_type).upper().strip() == "PE" else "CE"
+    oc = fetch_option_chain(base_symbol, expiry=expiry)
+    if not oc:
+        return None
+    chain = oc.get("chain") or []
+    if not chain:
+        return None
+
+    matched = min(chain, key=lambda r: abs(float(r.get("strikePrice") or 0) - strike_num))
+    if abs(float(matched.get("strikePrice") or 0) - strike_num) > max(strike_num * 0.03, 25.0):
+        return None
+    leg = matched.get(leg_key) or {}
+    ltp = float(leg.get("ltp") or 0.0)
+    if ltp <= 0:
+        return None
+
+    matched_strike = matched["strikePrice"]
+    sel_exp = oc.get("selectedExpiry")
+    exp_kind = oc.get("selectedExpiryKind") or "Weekly"
+    exp_label = oc.get("selectedExpiryLabel") or (f"{exp_kind} ({sel_exp})" if sel_exp else exp_kind)
+    oc_source = oc.get("source") or "NSE Official Live"
+    return {
+        "source": oc_source,
+        "option_ltp_source": oc_source,
+        "symbol": f"{oc.get('symbol', base_symbol)} {matched_strike} {leg_key}",
+        "base_symbol": oc.get("symbol", base_symbol),
+        "strike": matched_strike,
+        "option_type": leg_key,
+        "expiry": sel_exp,
+        "expiry_kind": exp_kind,
+        "expiry_label": exp_label,
+        "lastPrice": ltp,
+        "change": leg.get("change", 0.0),
+        "pChange": leg.get("pChange", 0.0),
+        "spotPrice": oc.get("spotPrice"),
+        "iv": leg.get("iv", 0.0),
+        "oi": leg.get("oi", 0),
+        "fetched_at": oc.get("fetched_at", time.time()),
+        "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST"),
+    }
 
 
 @app.get("/api/option-chain")
 def option_chain_api():
     symbol = normalize_symbol(request.args.get("symbol", "NIFTY 50"))
+    expiry = request.args.get("expiry")
     try:
-        res = fetch_option_chain(symbol)
+        res = fetch_option_chain(symbol, expiry=expiry)
         return jsonify(res)
     except Exception as exc:
         return jsonify({"error": str(exc), "symbol": symbol}), 502
+
+
+@app.get("/api/option-quote")
+def option_quote_api():
+    symbol = normalize_symbol(request.args.get("symbol", "NIFTY 50"))
+    strike = request.args.get("strike")
+    opt_type = request.args.get("type", "CE")
+    expiry = request.args.get("expiry")
+    q = resolve_option_quote(symbol, strike, opt_type, expiry=expiry)
+    if not q:
+        return jsonify({"error": "Live NSE option quote unavailable", "symbol": symbol, "strike": strike, "type": opt_type}), 502
+    return jsonify(q)
 
 
 @app.get("/api/health")
@@ -1693,6 +1951,7 @@ paper_manager = MultiUserPaperSessionManager(
     quote_resolver=resolve_paper_quote,
     chart_resolver=paper_chart_resolver,
     market_status_resolver=get_nse_market_status,
+    option_quote_resolver=resolve_option_quote,
 )
 
 # Retain default session & engine for backward compatibility
@@ -1700,8 +1959,14 @@ paper_session, paper_engine = paper_manager.get_session("Akshay")
 
 def paper_background_worker():
     """Autonomous background supervisor to evaluate all active user sessions concurrently."""
+    global _last_mongo_retry_at
     while True:
         try:
+            if mongo_db is None and raw_mongo_url and "<db_username>" not in raw_mongo_url and (time.time() - _last_mongo_retry_at >= 60.0):
+                _last_mongo_retry_at = time.time()
+                reconnected_db = _init_mongo_connection()
+                if reconnected_db is not None:
+                    paper_manager.set_db(reconnected_db)
             paper_manager.tick_all_running()
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
@@ -1758,7 +2023,7 @@ def paper_session_state():
 def paper_update_config():
     """Validates and updates paper trading session configuration for a user."""
     data = request.get_json(silent=True) or {}
-    u_sess, _ = get_user_session_and_engine(request)
+    u_sess, u_eng = get_user_session_and_engine(request)
     
     # Input validation
     if "initial_capital" in data:
@@ -1826,6 +2091,7 @@ def paper_update_config():
             pass
 
     u_sess.update_config(data)
+    u_eng.last_scan_at = 0.0
     u_sess.save_to_db()
     return jsonify({"ok": True, "state": u_sess.get_state()})
 
@@ -1878,6 +2144,7 @@ def paper_session_control():
             reason="MANUAL_CLOSE_ALL",
             quote_resolver=paper_manager.quote_resolver,
             market_is_open=market_open,
+            option_quote_resolver=paper_manager.option_quote_resolver,
         )
     elif action == "reset":
         cap = data.get("initial_capital")
@@ -1895,6 +2162,30 @@ def paper_session_tick():
     u_sess, u_eng = get_user_session_and_engine(request)
     state = u_eng.tick()
     return jsonify({"ok": True, "state": state})
+
+
+@app.post("/api/paper/session/scan")
+def paper_session_scan():
+    """Read-only 15-minute setup radar scan matching user's active configuration (never auto-executes)."""
+    data = request.get_json(silent=True) or {}
+    u_sess, u_eng = get_user_session_and_engine(request)
+
+    scan_patch = {}
+    for k in ("instruments", "market_caps", "trading_style", "risk_profile"):
+        if k in data and data[k]:
+            scan_patch[k] = data[k]
+    if scan_patch:
+        u_sess.update_config(scan_patch)
+
+    setups = u_eng.scan_and_evaluate_setups()
+    market_status = get_nse_market_status()
+    return jsonify({
+        "ok": True,
+        "market_open": bool(market_status.get("is_trading_hours")),
+        "count": len(setups),
+        "scanned_signals": u_sess.scanned_signals[:10],
+        "state": u_sess.get_state(),
+    })
 
 
 @app.get("/api/paper/positions")
@@ -1967,6 +2258,7 @@ def paper_manual_close():
         trade_id,
         quote_resolver=paper_manager.quote_resolver,
         market_is_open=market_open,
+        option_quote_resolver=paper_manager.option_quote_resolver,
     )
     if not ok:
         return jsonify({"error": msg}), 404 if msg == "Position not found." else 409
@@ -1988,6 +2280,7 @@ def paper_test_expire_position():
         trade_id,
         u_eng.quote_resolver,
         market_is_open=True,
+        option_quote_resolver=u_eng.option_quote_resolver,
     )
     if not ok:
         return jsonify({"error": msg}), 404

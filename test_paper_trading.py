@@ -1454,6 +1454,290 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(pos["trailing_state"], "BREAKEVEN")
         self.assertGreaterEqual(pos["stop_loss"], entry)
 
+    def test_29_running_profile_survives_worker_restart_and_transient_db_errors(self):
+        """Custom RUNNING profiles must hydrate into sessions on manager restart and never get overwritten on transient DB errors."""
+        from fingroww_paper_engine import MultiUserPaperSessionManager
+
+        mgr = MultiUserPaperSessionManager(db=None)
+        sess, msg = mgr.create_profile("LiveRunner_Pro", config={
+            "initial_capital": 300000.0,
+            "instruments": ["EQUITY"],
+            "trading_style": "HIGH_WINRATE",
+        })
+        self.assertIsNotNone(sess, msg)
+        sess.start()
+        sess.save_to_db()
+
+        # Simulate Gunicorn worker restart where in-memory cache is cleared
+        LOCAL_USER_DATASTORE["sessions"].pop("LiveRunner_Pro", None)
+        LOCAL_USER_DATASTORE["profiles"].pop("LiveRunner_Pro", None)
+
+        restarted_mgr = MultiUserPaperSessionManager(db=None)
+        self.assertIn("LiveRunner_Pro", restarted_mgr.sessions)
+        restored_sess, _ = restarted_mgr.get_session("LiveRunner_Pro")
+        self.assertEqual(restored_sess.status, "RUNNING")
+        self.assertEqual(restored_sess.initial_capital, 300000.0)
+        active_lb_names = [p["user_name"] for p in restarted_mgr.get_leaderboard(only_active=True)]
+        self.assertIn("LiveRunner_Pro", active_lb_names)
+
+        # Simulate transient MongoDB read failure when local stores are empty
+        class FlakyCollection:
+            def __init__(self, fail_find=True):
+                self.fail_find = fail_find
+                self.upserts = []
+            def find(self, *args, **kwargs):
+                return []
+            def find_one(self, *args, **kwargs):
+                if self.fail_find:
+                    raise RuntimeError("Transient Atlas timeout")
+                return None
+            def update_one(self, *args, **kwargs):
+                self.upserts.append(args)
+            def update_many(self, *args, **kwargs):
+                pass
+
+        flaky_col = FlakyCollection(fail_find=True)
+        class FlakyDB:
+            def __getitem__(self, name):
+                return flaky_col
+
+        fresh_mgr = MultiUserPaperSessionManager(db=FlakyDB())
+        fresh_mgr.get_session("MissingDuringOutage")
+        # Must NOT upsert a blank IDLE profile over MongoDB when DB read errored
+        self.assertEqual(len(flaky_col.upserts), 0)
+
+    def test_30_concurrent_saves_never_drop_or_corrupt_profiles(self):
+        """Concurrent background/request saves across multiple profiles must remain thread-safe and preserve all profiles."""
+        import threading
+        from fingroww_paper_engine import MultiUserPaperSessionManager, DATASTORE_FILE
+
+        mgr = MultiUserPaperSessionManager(db=None)
+        names = [f"ConcurrentUser_{i}" for i in range(6)]
+        for nm in names:
+            s, _ = mgr.create_profile(nm, config={"initial_capital": 150000.0, "instruments": ["EQUITY"]})
+            s.start()
+
+        errors = []
+        def worker(uname):
+            try:
+                sess, _ = mgr.get_session(uname)
+                for _ in range(5):
+                    sess.save_to_db()
+                    mgr.list_profiles()
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=worker, args=(nm,)) for nm in names]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(errors, [])
+        all_names = {p["user_name"] for p in mgr.list_profiles()}
+        for nm in names:
+            self.assertIn(nm, all_names)
+        with open(DATASTORE_FILE, "r", encoding="utf-8") as f:
+            parsed = json.load(f)
+        for nm in names:
+            self.assertIn(nm, parsed.get("profiles", {}))
+
+    def test_31_live_option_quote_resolver_used_over_synthetic_1pct(self):
+        """When option_quote_resolver returns live NSE CE/PE LTP, entry, MTM, and exit must use exact live option LTP."""
+        self.session.reset(200000.0)
+        self.session.config["instruments"] = ["INDEX_OPTIONS"]
+        self.session.start()
+
+        live_opt_ltp = {"val": 179.10}
+        def mock_opt_resolver(base_sym, strike, opt_type, expiry=None):
+            return {
+                "source": "NSE",
+                "symbol": f"{base_sym} {strike} {opt_type}",
+                "strike": strike,
+                "option_type": opt_type,
+                "expiry": "17-Nov-2026",
+                "lastPrice": live_opt_ltp["val"],
+                "fetched_at": time.time(),
+            }
+
+        def mock_spot_resolver(sym):
+            return {"source": "NSE", "lastPrice": 25300.0, "pChange": 0.4, "fetched_at": time.time()}
+
+        candles = []
+        p = 25150.0
+        now_ms = int(time.time() * 1000)
+        for i in range(60):
+            p += 2.5 if i < 56 else (-1.2 if i < 59 else 4.0)
+            candles.append({"t": now_ms - (60 - i) * 900000, "o": p - 2, "h": p + 4, "l": p - 5, "c": p, "v": 150000})
+
+        eng = PaperTradingEngine(
+            session=self.session,
+            quote_resolver=mock_spot_resolver,
+            chart_resolver=lambda *a: candles,
+            option_quote_resolver=mock_opt_resolver,
+        )
+        eng.session.config["trading_style"] = "INTRADAY"
+
+        # Entry via setup directly using live option quote resolver
+        setup = {
+            "symbol": "NIFTY 50 25300 CE",
+            "base_symbol": "NIFTY 50",
+            "name": "Nifty 50 Index",
+            "instrument_type": "INDEX_OPTIONS",
+            "side": "BUY",
+            "entry_price": 179.10,
+            "risk_distance": 44.78,
+            "reward_risk": 1.8,
+            "stop_loss": 134.32,
+            "target_price": 259.70,
+            "strike": 25300,
+            "option_type": "CE",
+            "expiry_date": "17-Nov-2026",
+            "strategy": "80%+ Live Option Test",
+        }
+        pos, err = self.session.execute_trade(
+            setup,
+            quote_resolver=mock_spot_resolver,
+            market_is_open=True,
+            option_quote_resolver=mock_opt_resolver,
+        )
+        self.assertIsNotNone(pos, err)
+        # Must be close to 179.10 (+slippage), NOT 253.00 (1% of spot)
+        self.assertLess(pos["entry_price"], 190.0)
+        self.assertEqual(pos["expiry_date"], "17-Nov-2026")
+
+        # Simulate live CE option premium rising to 215.50 even while spot stays at 25300
+        live_opt_ltp["val"] = 215.50
+        self.session.update_positions(mock_spot_resolver, market_is_open=True, option_quote_resolver=mock_opt_resolver)
+        self.assertAlmostEqual(self.session.positions[0]["current_price"], 215.50, places=2)
+
+    def test_32_confirmed_15m_setups_dedup_priority_and_scan_endpoint(self):
+        """Confirmed 15m scan must never duplicate symbols, ranks consistent with execution, and scans read-only while IDLE/full."""
+        self.session.reset(200000.0)
+        self.session.config["instruments"] = ["INDEX_OPTIONS"]
+        self.session.config["trading_style"] = "HIGH_WINRATE"
+
+        candles = []
+        p = 25000.0
+        now_ms = int(time.time() * 1000)
+        for i in range(60):
+            p += 3.0
+            candles.append({"t": now_ms - (60 - i) * 900000, "o": p - 2.0, "h": p + 4.0, "l": p - 4.0, "c": p, "v": 200000})
+        live_spot = p + 5.0
+
+        def mock_spot(sym):
+            return {"source": "NSE", "lastPrice": live_spot, "pChange": 0.6, "fetched_at": time.time()}
+
+        def mock_opt(base_sym, strike, opt_type, expiry=None):
+            kind = "Monthly" if "BANK" in base_sym or "FIN" in base_sym else "Weekly"
+            dt = "23-Nov-2026" if kind == "Monthly" else "17-Nov-2026"
+            return {
+                "source": "NSE",
+                "symbol": f"{base_sym} {strike} {opt_type}",
+                "strike": strike,
+                "option_type": opt_type,
+                "expiry": dt,
+                "expiry_kind": kind,
+                "expiry_label": f"{kind} ({dt})",
+                "lastPrice": 210.0,
+                "fetched_at": time.time(),
+            }
+
+        eng = PaperTradingEngine(
+            session=self.session,
+            quote_resolver=mock_spot,
+            chart_resolver=lambda *a: candles,
+            market_status_resolver=lambda: {"is_trading_hours": True},
+            option_quote_resolver=mock_opt,
+        )
+
+        # 1. While IDLE and market open, tick() refreshes scanned_signals without opening trades
+        state_idle = eng.tick()
+        self.assertEqual(state_idle["active_positions_count"], 0)
+        setups = state_idle["scanned_signals"]
+        self.assertGreater(len(setups), 0)
+        keys = [(s["symbol"], s["instrument_type"]) for s in setups]
+        self.assertEqual(len(keys), len(set(keys)), "Duplicate setups must not appear")
+        self.assertTrue(all(s.get("expiry_label") for s in setups))
+
+        # 2. When started, top #1 setup from Confirmed 15-Minute Setups executes cleanly with expiry_label preserved
+        self.session.start()
+        eng.last_scan_at = 0.0
+        top_sym = setups[0]["symbol"]
+        state_run = eng.tick()
+        self.assertEqual(state_run["active_positions_count"], 1)
+        self.assertEqual(state_run["active_positions"][0]["symbol"], top_sym)
+        self.assertTrue(state_run["active_positions"][0].get("expiry_label"))
+
+    def test_33_stock_options_ce_pe_scan_sizing_mtm_and_expiry(self):
+        """STOCK_OPTIONS generates F&O stock CE/PE setups, uses exact stock lot sizing, MTM via live option resolver, and preserves Monthly expiry."""
+        self.session.reset(200000.0)
+        self.session.config["instruments"] = ["STOCK_OPTIONS"]
+        self.session.config["market_caps"] = ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
+        self.session.config["trading_style"] = "HIGH_WINRATE"
+
+        candles = []
+        p = 1300.0
+        now_ms = int(time.time() * 1000)
+        for i in range(60):
+            p += 0.65
+            candles.append({"t": now_ms - (60 - i) * 900000, "o": p - 0.5, "h": p + 1.0, "l": p - 1.0, "c": p, "v": 250000})
+        live_spot = p + 1.2
+
+        def mock_spot(sym):
+            return {"source": "NSE", "lastPrice": live_spot, "pChange": 0.9, "fetched_at": time.time()}
+
+        opt_ltp = {"val": 21.50}
+        def mock_opt(base_sym, strike, opt_type, expiry=None):
+            if base_sym in ("HUDCO", "SJVN", "ZOMATO"):
+                return None
+            return {
+                "source": "NSE",
+                "symbol": f"{base_sym} {strike} {opt_type}",
+                "base_symbol": base_sym,
+                "strike": strike,
+                "option_type": opt_type,
+                "expiry": "23-Nov-2026",
+                "expiry_kind": "Monthly",
+                "expiry_label": "Monthly (23-Nov-2026)",
+                "lastPrice": opt_ltp["val"],
+                "fetched_at": time.time(),
+            }
+
+        eng = PaperTradingEngine(
+            session=self.session,
+            quote_resolver=mock_spot,
+            chart_resolver=lambda *a: candles,
+            market_status_resolver=lambda: {"is_trading_hours": True},
+            option_quote_resolver=mock_opt,
+        )
+
+        setups = eng.scan_and_evaluate_setups()
+        self.assertGreater(len(setups), 0)
+        for s in setups:
+            self.assertEqual(s["instrument_type"], "STOCK_OPTIONS")
+            self.assertNotIn(s["base_symbol"], ("HUDCO", "SJVN", "ZOMATO"))
+            self.assertIn(s["option_type"], ("CE", "PE"))
+            self.assertEqual(s["expiry_kind"], "Monthly")
+            self.assertEqual(s["expiry_label"], "Monthly (23-Nov-2026)")
+
+        # Start engine and execute top stock option trade
+        self.session.start()
+        eng.last_scan_at = 0.0
+        state_run = eng.tick()
+        self.assertEqual(state_run["active_positions_count"], 1)
+        pos = state_run["active_positions"][0]
+        self.assertEqual(pos["instrument_type"], "STOCK_OPTIONS")
+        self.assertEqual(pos["expiry_label"], "Monthly (23-Nov-2026)")
+        self.assertGreater(pos["quantity"], 0)
+        self.assertLess(pos["allocated_margin"], 200000.0)
+
+        # Verify live option quote updates MTM on STOCK_OPTIONS position
+        opt_ltp["val"] = 26.80
+        self.session.update_positions(mock_spot, market_is_open=True, option_quote_resolver=mock_opt)
+        self.assertAlmostEqual(self.session.positions[0]["current_price"], 26.80, places=2)
+        self.assertGreater(self.session.positions[0]["unrealized_pnl"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
