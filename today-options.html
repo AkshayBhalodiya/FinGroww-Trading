@@ -1547,6 +1547,62 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 2500) {
   }
 }
 
+let activeOptionsBackendHost = null;
+
+async function fetchOptionChainForSymbol(spec) {
+  const hosts = activeOptionsBackendHost !== null ? [activeOptionsBackendHost] : BACKEND_HOSTS;
+  for (const host of hosts) {
+    try {
+      const res = await fetchWithTimeout(`${host}/api/option-chain?symbol=${encodeURIComponent(spec.symbol)}`, {}, 3500);
+      if (res.ok) {
+        const oc = await res.json();
+        activeOptionsBackendHost = host;
+        if (oc && oc.source === "NSE Official Live" && Array.isArray(oc.chain) && oc.chain.length) {
+          return oc;
+        }
+        return null;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+function findOptionChainLtp(ocData, strike, leg) {
+  if (!ocData || !Array.isArray(ocData.chain) || !ocData.chain.length) return null;
+  let best = null;
+  let bestDiff = Infinity;
+  for (const row of ocData.chain) {
+    const diff = Math.abs(Number(row.strikePrice) - Number(strike));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = row;
+    }
+  }
+  if (!best || bestDiff > Math.max(strike * 0.02, 200)) return null;
+  const val = Number((best[leg] || {}).ltp || 0);
+  return val > 0 ? parseFloat(val.toFixed(2)) : null;
+}
+
+function formatDynamicFallbackExpiry(spec) {
+  const now = new Date();
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmt = d => `${String(d.getDate()).padStart(2, '0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+  if (spec.symbol === "NIFTY 50" || spec.symbol === "MIDCPNIFTY") {
+    const cand = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diff = (2 - cand.getDay() + 7) % 7 || 7;
+    cand.setDate(cand.getDate() + diff);
+    return `Weekly (${fmt(cand)})`;
+  }
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  while (lastDay.getDay() !== 2) lastDay.setDate(lastDay.getDate() - 1);
+  if (lastDay < now) {
+    const nextMonthLast = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+    while (nextMonthLast.getDay() !== 2) nextMonthLast.setDate(nextMonthLast.getDate() - 1);
+    return `Monthly (${fmt(nextMonthLast)})`;
+  }
+  return `Monthly (${fmt(lastDay)})`;
+}
+
 // Fetch real spot price via local Flask backend or public proxy
 async function fetchSpotPriceForSymbol(spec) {
   // 1. Try local Flask proxy endpoints first (Ports 8787 & 5000)
@@ -1606,8 +1662,14 @@ async function fetchRealLiveData() {
     let liveSetups = [];
 
     for (const spec of CONTRACT_SPECS) {
-      const q = await fetchSpotPriceForSymbol(spec);
-      let spotPrice = q.price;
+      const [q, liveOc] = await Promise.all([
+        fetchSpotPriceForSymbol(spec),
+        fetchOptionChainForSymbol(spec),
+      ]);
+      let spotPrice = (liveOc && liveOc.spotPrice > 0) ? liveOc.spotPrice : q.price;
+      const liveExpiry = (liveOc && liveOc.selectedExpiryLabel)
+        ? liveOc.selectedExpiryLabel
+        : ((liveOc && liveOc.selectedExpiry) ? liveOc.selectedExpiry : formatDynamicFallbackExpiry(spec));
       
       // Update global header ticker
       if (spec.symbol === "RELIANCE") document.getElementById('tickRel').textContent = `₹${spotPrice.toFixed(2)}`;
@@ -1619,11 +1681,12 @@ async function fetchRealLiveData() {
       // Calculate exact ATM Strike Price
       let atmStrike = Math.round(spotPrice / spec.strikeStep) * spec.strikeStep;
 
-      // CE Call Option Premium calculation based on exact spot!
+      // CE Call Option Premium: prefer exact live NSE option chain LTP
       const ceStrike = atmStrike;
+      const liveCeLtp = findOptionChainLtp(liveOc, ceStrike, "CE");
       const ceIntrins = Math.max(0, spotPrice - ceStrike);
       const ceExtrins = spec.kind === 'index' ? 95.0 : Math.max(3.5, spotPrice * 0.015);
-      const ceLtp = parseFloat((ceIntrins + ceExtrins).toFixed(2));
+      const ceLtp = liveCeLtp !== null ? liveCeLtp : parseFloat((ceIntrins + ceExtrins).toFixed(2));
       const ceTrig = parseFloat((ceLtp * 1.05).toFixed(2));
       const ceSl = parseFloat((ceLtp * 0.82).toFixed(2));
       const ceT1 = parseFloat((ceTrig + (ceTrig - ceSl) * 1.618).toFixed(2));
@@ -1665,7 +1728,7 @@ async function fetchRealLiveData() {
         id: `${spec.nseSym.toLowerCase()}-${ceStrike}-ce`,
         symbol: `${spec.symbol} ${ceStrike.toLocaleString()} CE`,
         underlying: spec.symbol,
-        expiry: spec.exp,
+        expiry: liveExpiry,
         optionType: "CE",
         kind: spec.kind,
         lotSize: spec.lot,
@@ -1709,11 +1772,12 @@ async function fetchRealLiveData() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
 
-      // PE Put Option Setup
+      // PE Put Option Setup: prefer exact live NSE option chain LTP
       const peStrike = atmStrike - spec.strikeStep;
+      const livePeLtp = findOptionChainLtp(liveOc, peStrike, "PE");
       const peIntrins = Math.max(0, peStrike - spotPrice);
       const peExtrins = spec.kind === 'index' ? 90.0 : Math.max(3.0, spotPrice * 0.014);
-      const peLtp = parseFloat((peIntrins + peExtrins).toFixed(2));
+      const peLtp = livePeLtp !== null ? livePeLtp : parseFloat((peIntrins + peExtrins).toFixed(2));
       const peTrig = parseFloat((peLtp * 1.06).toFixed(2));
       const peSl = parseFloat((peLtp * 0.80).toFixed(2));
       const peT1 = parseFloat((peTrig + (peTrig - peSl) * 1.618).toFixed(2));
@@ -1728,7 +1792,7 @@ async function fetchRealLiveData() {
         id: `${spec.nseSym.toLowerCase()}-${peStrike}-pe`,
         symbol: `${spec.symbol} ${peStrike.toLocaleString()} PE`,
         underlying: spec.symbol,
-        expiry: spec.exp,
+        expiry: liveExpiry,
         optionType: "PE",
         kind: spec.kind,
         lotSize: spec.lot,

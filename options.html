@@ -1172,7 +1172,6 @@ async function loadOptionData(symbolChanged = false) {
   if ($("symbolInput")) $("symbolInput").value = sym;
   renderQuickChips();
 
-  // Populate Expiries Dropdown according to symbol type
   const expSelect = $("expirySelect");
   const expList = getExpiriesForSymbol(sym);
 
@@ -1180,13 +1179,14 @@ async function loadOptionData(symbolChanged = false) {
     expSelect.innerHTML = expList.map(x => `<option value="${escHtml(x.label)}">${escHtml(x.label)}</option>`).join("");
   }
 
-  const selectedExpLabel = expSelect.value || expList[0].label;
+  let selectedExpLabel = symbolChanged ? "" : (expSelect.value || "");
 
-  $("chainTableBody").innerHTML = '<tr><td colspan="9" style="padding:30px; color:var(--text-muted)">Fetching live option data for ' + escHtml(sym) + ' (' + escHtml(selectedExpLabel) + ')…</td></tr>';
+  $("chainTableBody").innerHTML = '<tr><td colspan="9" style="padding:30px; color:var(--text-muted)">Fetching live option data for ' + escHtml(sym) + (selectedExpLabel ? (' (' + escHtml(selectedExpLabel) + ')') : '') + '…</td></tr>';
 
   let data = null;
   try {
-    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + "&expiry=" + encodeURIComponent(selectedExpLabel));
+    const expParam = selectedExpLabel ? ("&expiry=" + encodeURIComponent(selectedExpLabel)) : "";
+    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + expParam);
     if (r && r.ok) data = await r.json();
   } catch (err) {}
 
@@ -1204,29 +1204,40 @@ async function loadOptionData(symbolChanged = false) {
   }
 
   if (!data || !data.chain) {
+    selectedExpLabel = selectedExpLabel || expList[0].label;
     data = genFallbackClientChain(sym, liveSpot, selectedExpLabel);
   }
 
-  // Adjust chain prices if selected expiry has a higher DTE multiplier than base
-  const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
-  const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
+  // When NSE Official Live returns real expiries & real contract LTPs, use them verbatim without DTE distortion
+  if (data.source === "NSE Official Live" && Array.isArray(data.expiries) && data.expiries.length) {
+    const metaList = Array.isArray(data.expiriesMeta) && data.expiriesMeta.length
+      ? data.expiriesMeta
+      : data.expiries.map(x => ({ date: x, kind: "", label: x }));
+    expSelect.innerHTML = metaList.map(m => `<option value="${escHtml(m.date)}" ${m.date === data.selectedExpiry ? 'selected' : ''}>${escHtml(m.label)}</option>`).join("");
+    selectedExpLabel = data.selectedExpiry || metaList[0].date;
+    expSelect.value = selectedExpLabel;
+  } else {
+    selectedExpLabel = selectedExpLabel || expList[0].label;
+    const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
+    const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
 
-  if (dteRatio !== 1.0 && data.chain) {
-    data.chain = data.chain.map(row => {
-      const st = row.strikePrice;
-      const spot = data.spotPrice;
-      const ceInt = Math.max(0, spot - st);
-      const peInt = Math.max(0, st - spot);
-      
-      const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
-      const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
-      
-      return {
-        ...row,
-        CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
-        PE: { ...row.PE, ltp: round(peInt + peExtr) }
-      };
-    });
+    if (dteRatio !== 1.0 && data.chain) {
+      data.chain = data.chain.map(row => {
+        const st = row.strikePrice;
+        const spot = data.spotPrice;
+        const ceInt = Math.max(0, spot - st);
+        const peInt = Math.max(0, st - spot);
+
+        const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
+        const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
+
+        return {
+          ...row,
+          CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
+          PE: { ...row.PE, ltp: round(peInt + peExtr) }
+        };
+      });
+    }
   }
 
   state.chainData = data;
@@ -1286,9 +1297,12 @@ function renderSignalRecommendation(data) {
                      isBearish ? '<i class="fa-solid fa-arrow-trend-down"></i> RECOMMENDED PUT BUY TRADE (SINGLE PE)' :
                                  '<i class="fa-solid fa-scale-balanced"></i> STRADDLE SETUP (CE + PE COMBINED)';
 
-  const strikeTitle = isBullish ? `${data.symbol} ${atm} CE` :
-                      isBearish ? `${data.symbol} ${atm} PE` :
-                                  `${data.symbol} ${atm} STRADDLE (CE + PE)`;
+  const expBadge = data.selectedExpiryLabel
+    ? ` (${data.selectedExpiryLabel.replace(" (", ": ").replace(")", "")})`
+    : (data.selectedExpiry ? ` (${data.selectedExpiry})` : "");
+  const strikeTitle = isBullish ? `${data.symbol} ${atm} CE${expBadge}` :
+                      isBearish ? `${data.symbol} ${atm} PE${expBadge}` :
+                                  `${data.symbol} ${atm} STRADDLE (CE + PE)${expBadge}`;
   $("sigStrikeTitle").textContent = strikeTitle;
 
   const entryLtp = isBullish ? ceLtp : isBearish ? peLtp : straddleLtp;

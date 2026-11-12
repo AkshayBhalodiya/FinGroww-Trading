@@ -2589,43 +2589,42 @@ async function fetchOptionChain(symbol) {
   const expSelect = $("optionExpiry");
   const expList = getExpiriesForSymbol(sym);
 
-  if (expSelect) {
-    const currentVal = expSelect.value;
-    const isValid = expList.some(x => x.label === currentVal);
-    if (!isValid || !expSelect.options.length || expSelect.options[0].text.includes("Loading")) {
-      expSelect.innerHTML = expList.map(x => `<option value="${escHtml(x.label)}">${escHtml(x.label)}</option>`).join("");
-    }
+  if (expSelect && (!expSelect.options.length || expSelect.options[0].text.includes("Loading"))) {
+    expSelect.innerHTML = expList.map(x => `<option value="${escHtml(x.label)}">${escHtml(x.label)}</option>`).join("");
   }
 
-  const selectedExpLabel = expSelect ? (expSelect.value || expList[0].label) : expList[0].label;
+  const selectedExpLabel = expSelect ? (expSelect.value || "") : "";
 
   if ($("optionChainBody")) {
-    $("optionChainBody").innerHTML = '<tr><td colspan="9" style="padding:24px;color:var(--muted)">Loading Option Chain for ' + escHtml(sym) + ' (' + escHtml(selectedExpLabel) + ')…</td></tr>';
+    $("optionChainBody").innerHTML = '<tr><td colspan="9" style="padding:24px;color:var(--muted)">Loading Option Chain for ' + escHtml(sym) + (selectedExpLabel ? (' (' + escHtml(selectedExpLabel) + ')') : '') + '…</td></tr>';
   }
 
   try {
-    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + "&expiry=" + encodeURIComponent(selectedExpLabel));
+    const expParam = selectedExpLabel ? ("&expiry=" + encodeURIComponent(selectedExpLabel)) : "";
+    const r = await fetchApi("/api/option-chain?symbol=" + encodeURIComponent(sym) + expParam);
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || "Failed to load Option Chain");
 
-    // Adjust prices by selected DTE ratio if applicable
-    const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
-    const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
+    // Only apply DTE ratio when using fallback synthetic chain; never alter live NSE LTPs
+    if (data.source !== "NSE Official Live") {
+      const matchedExp = expList.find(x => x.label === selectedExpLabel) || expList[0];
+      const dteRatio = Math.sqrt(matchedExp.dte / expList[0].dte);
 
-    if (dteRatio !== 1.0 && data.chain) {
-      data.chain = data.chain.map(row => {
-        const st = row.strikePrice;
-        const spot = data.spotPrice;
-        const ceInt = Math.max(0, spot - st);
-        const peInt = Math.max(0, st - spot);
-        const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
-        const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
-        return {
-          ...row,
-          CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
-          PE: { ...row.PE, ltp: round(peInt + peExtr) }
-        };
-      });
+      if (dteRatio !== 1.0 && data.chain) {
+        data.chain = data.chain.map(row => {
+          const st = row.strikePrice;
+          const spot = data.spotPrice;
+          const ceInt = Math.max(0, spot - st);
+          const peInt = Math.max(0, st - spot);
+          const ceExtr = Math.max(1.5, (row.CE.ltp - ceInt) * dteRatio);
+          const peExtr = Math.max(1.5, (row.PE.ltp - peInt) * dteRatio);
+          return {
+            ...row,
+            CE: { ...row.CE, ltp: round(ceInt + ceExtr) },
+            PE: { ...row.PE, ltp: round(peInt + peExtr) }
+          };
+        });
+      }
     }
 
     currentOptionChain = data;
@@ -2647,7 +2646,10 @@ function renderOptionChain(data) {
 
   const expSelect = $("optionExpiry");
   if (expSelect && data.expiries && data.expiries.length) {
-    expSelect.innerHTML = data.expiries.map(x => `<option value="${escHtml(x)}" ${x===data.selectedExpiry?'selected':''}>${escHtml(x)}</option>`).join("");
+    const metaList = Array.isArray(data.expiriesMeta) && data.expiriesMeta.length
+      ? data.expiriesMeta
+      : data.expiries.map(x => ({ date: x, label: x }));
+    expSelect.innerHTML = metaList.map(m => `<option value="${escHtml(m.date)}" ${m.date===data.selectedExpiry?'selected':''}>${escHtml(m.label)}</option>`).join("");
   }
 
   if ($("optAtmPrice")) $("optAtmPrice").textContent = "₹" + round(data.spotPrice);
@@ -2675,12 +2677,13 @@ function renderOptionChain(data) {
   
   let advice = "";
   const straddleCost = round(ceLtp + peLtp);
+  const expTag = data.selectedExpiryLabel ? ` <span style="font-size:11px;color:var(--accent);">(${escHtml(data.selectedExpiryLabel)})</span>` : "";
   if (pcr >= 1.15 || state.signal === "BUY") {
-    advice = `💡 BUY CALL: ₹${atm} CE @ ₹${ceLtp}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(ceLtp*1.35)} | SL: ₹${round(ceLtp*0.72)}</span>`;
+    advice = `💡 BUY CALL: ₹${atm} CE @ ₹${ceLtp}${expTag}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(ceLtp*1.35)} | SL: ₹${round(ceLtp*0.72)}</span>`;
   } else if (pcr <= 0.82 || state.signal === "SELL") {
-    advice = `💡 BUY PUT: ₹${atm} PE @ ₹${peLtp}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(peLtp*1.35)} | SL: ₹${round(peLtp*0.72)}</span>`;
+    advice = `💡 BUY PUT: ₹${atm} PE @ ₹${peLtp}${expTag}<br><span style="font-weight:400;color:var(--muted)">Target: ₹${round(peLtp*1.35)} | SL: ₹${round(peLtp*0.72)}</span>`;
   } else {
-    advice = `⚖️ WAIT DIRECTION / ${data.symbol} ${atm} STRADDLE<br><span style="font-weight:400;color:var(--muted)">BUY ${atm} CE (₹${ceLtp}) + PE (₹${peLtp}) | Cost: ₹${straddleCost} | Tgt: ₹${round(straddleCost*1.3)} | SL: ₹${round(straddleCost*0.75)}</span>`;
+    advice = `⚖️ WAIT DIRECTION / ${data.symbol} ${atm} STRADDLE${expTag}<br><span style="font-weight:400;color:var(--muted)">BUY ${atm} CE (₹${ceLtp}) + PE (₹${peLtp}) | Cost: ₹${straddleCost} | Tgt: ₹${round(straddleCost*1.3)} | SL: ₹${round(straddleCost*0.75)}</span>`;
   }
   if ($("optTradeAdvice")) $("optTradeAdvice").innerHTML = advice;
 
