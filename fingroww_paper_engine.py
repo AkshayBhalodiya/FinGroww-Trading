@@ -2994,12 +2994,13 @@ class MultiUserPaperSessionManager:
             self.engines[uname] = eng
             sess.save_to_db()
             self._profiles_cache_at = 0.0
+            self._persisted_cache_at = 0.0
             return sess, f"Profile [{uname}] created and persisted!"
 
     def list_profiles(self):
         """Returns list of all registered profile names and up-to-date metrics across all users."""
         now = time.time()
-        if hasattr(self, "_persisted_profiles_cache") and (now - getattr(self, "_persisted_cache_at", 0) < 10.0):
+        if hasattr(self, "_persisted_profiles_cache") and (now - getattr(self, "_persisted_cache_at", 0) < 45.0):
             prof_map = {u: dict(d) for u, d in self._persisted_profiles_cache.items()}
         else:
             prof_map = {}
@@ -3007,7 +3008,7 @@ class MultiUserPaperSessionManager:
             # 1. Fetch all profiles from MongoDB Atlas if available
             if self.db is not None:
                 try:
-                    cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
+                    cursor = self.db["paper_profiles"].find({}, {"_id": 0}, max_time_ms=2500).sort("net_pnl", -1)
                     for doc in cursor:
                         u = (doc.get("user_name") or "").strip()
                         if u:

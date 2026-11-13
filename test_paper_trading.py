@@ -48,7 +48,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         trading_time_patcher.start()
         self.addCleanup(trading_time_patcher.stop)
 
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.addCleanup(self.temp_dir.cleanup)
         db_patcher = patch.dict(
             os.environ,

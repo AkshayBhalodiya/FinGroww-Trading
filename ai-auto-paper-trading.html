@@ -2952,10 +2952,12 @@ function showToast(message, type = "info") {
 const RENDER_BACKEND_URL = "https://fingroww-trading.onrender.com";
 let activePaperApiHost = (function() {
   try {
-    return sessionStorage.getItem("fingroww_active_api_host") || null;
-  } catch (e) {
-    return null;
-  }
+    const cached = sessionStorage.getItem("fingroww_active_api_host");
+    if (cached && (cached.startsWith("http://") || cached.startsWith("https://"))) {
+      return cached;
+    }
+  } catch (e) {}
+  return null;
 })();
 
 // API Helper adhering to FinGroww dual-host pattern
@@ -2968,13 +2970,10 @@ async function fetchPaperApi(path, options = {}) {
   const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
   let candidateHosts = [];
-  if (activePaperApiHost !== null) {
-    candidateHosts.push(activePaperApiHost);
-  } else if (isLocalBackendServed) {
+  if (isLocalBackendServed) {
     // 1. If page is served directly by local Flask backend on port 8787
     candidateHosts.push("");
     candidateHosts.push("http://127.0.0.1:8787");
-    candidateHosts.push(RENDER_BACKEND_URL);
   } else if (isRenderServed) {
     // 2. If page is served on Render (https://fingroww-trading.onrender.com)
     candidateHosts.push("");
@@ -2983,25 +2982,20 @@ async function fetchPaperApi(path, options = {}) {
     // 3. Local dev preview (file:/// or Live Server port 5500) -> check local 8787 first, fallback to live Render
     candidateHosts.push("http://127.0.0.1:8787");
     candidateHosts.push(RENDER_BACKEND_URL);
-    candidateHosts.push("");
   } else {
-    // 4. Live static hosting (GitHub Pages, Netlify, Vercel, Custom Domain) -> DIRECT to live Render backend!
+    // 4. Live static hosting (Vercel: fin-groww-trading.vercel.app, GitHub Pages, Netlify)
+    // ALWAYS use RENDER_BACKEND_URL directly! Static hosts do NOT have Python backend, so "" must NEVER be tried!
     candidateHosts.push(RENDER_BACKEND_URL);
-    candidateHosts.push("");
   }
 
-  // Dynamic timeouts:
-  // - Render free tier cold-start takes ~45-55s on initial wake-up
-  // - Scans evaluate 24 items in parallel (~10-25s)
-  // - Fast endpoints (~1-5s)
-  let timeoutMs = 25000;
+  if (activePaperApiHost && !candidateHosts.includes(activePaperApiHost)) {
+    candidateHosts.unshift(activePaperApiHost);
+  }
+
+  // Generous timeouts to accommodate Render free-tier cold starts and complex scans without aborting
+  let timeoutMs = 45000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 40000;
-  } else if (path.includes("/tick") || path.includes("/start") || path.includes("/create")) {
-    timeoutMs = 35000;
-  } else if (activePaperApiHost === null) {
-    // If not connected yet, give Render enough time to cold-start instead of prematurely canceling at 15s
-    timeoutMs = 45000;
+    timeoutMs = 60000;
   }
 
   for (const host of candidateHosts) {
@@ -3018,8 +3012,10 @@ async function fetchPaperApi(path, options = {}) {
       if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404)) {
         try {
           const json = await r.json();
-          activePaperApiHost = host;
-          try { sessionStorage.setItem("fingroww_active_api_host", host); } catch (e) {}
+          if (host) {
+            activePaperApiHost = host;
+            try { sessionStorage.setItem("fingroww_active_api_host", host); } catch (e) {}
+          }
           return json;
         } catch (parseErr) {
           // Response was not JSON
@@ -3027,10 +3023,6 @@ async function fetchPaperApi(path, options = {}) {
       }
     } catch (e) {
       clearTimeout(timer);
-      // Only clear pinned host if connection was refused/unreachable (not on timeout abort during heavy scan)
-      if (activePaperApiHost !== null && e && e.name !== "AbortError") {
-        // Keep pinned host unless booting; transient network drop shouldn't switch DBs mid-session
-      }
     }
   }
 
@@ -3418,23 +3410,31 @@ function formatInstrumentLabel(code) {
   return code.replace("INDEX_", "").replace("STOCK_", "");
 }
 
+let isProfilesFetching = false;
 async function loadProfilesList() {
-  const data = await fetchPaperApi("/api/paper/profiles");
-  const sel = document.getElementById("selUserProfile");
-  if (!data || !data.profiles || !sel) return;
+  if (isProfilesFetching) return;
+  isProfilesFetching = true;
+  try {
+    const data = await fetchPaperApi("/api/paper/profiles");
+    const sel = document.getElementById("selUserProfile");
+    if (!data || !sel) return;
 
-  const current = currentUserName;
-  const profiles = Array.isArray(data.profiles) ? [...data.profiles] : [];
-  if (current && !profiles.some(p => p.user_name === current)) {
-    profiles.unshift({ user_name: current, trading_style: "HIGH_WINRATE", instruments: [] });
+    const rawList = Array.isArray(data) ? data : (Array.isArray(data.profiles) ? data.profiles : []);
+    const current = currentUserName;
+    const profiles = [...rawList];
+    if (current && !profiles.some(p => p.user_name === current)) {
+      profiles.unshift({ user_name: current, trading_style: "HIGH_WINRATE", instruments: [] });
+    }
+    sel.innerHTML = profiles.map(p => {
+      const isSel = p.user_name === current ? "selected" : "";
+      const styleLabel = p.trading_style || "PORTFOLIO";
+      const instShort = (p.instruments || []).map(formatInstrumentLabel).join(", ");
+      return `<option value="${p.user_name}" ${isSel}>${p.user_name} (${styleLabel} • ${instShort || 'All'})</option>`;
+    }).join("");
+    if (current) sel.value = current;
+  } finally {
+    isProfilesFetching = false;
   }
-  sel.innerHTML = profiles.map(p => {
-    const isSel = p.user_name === current ? "selected" : "";
-    const styleLabel = p.trading_style || "PORTFOLIO";
-    const instShort = (p.instruments || []).map(formatInstrumentLabel).join(", ");
-    return `<option value="${p.user_name}" ${isSel}>${p.user_name} (${styleLabel} • ${instShort || 'All'})</option>`;
-  }).join("");
-  if (current) sel.value = current;
 }
 
 async function onProfileDropdownChange(newVal) {
@@ -4187,22 +4187,30 @@ function filterHistoryTrades() {
 // PERFORMANCE ANALYTICS & CHARTS
 // -------------------------------------------------------------------------
 
+let isAnalyticsFetching = false;
 async function fetchAndRenderAnalytics() {
-  const analytics = await fetchPaperApi(`/api/paper/analytics?user=${encodeURIComponent(currentUserName)}`);
-  if (!analytics) return;
+  if (isAnalyticsFetching) return;
+  isAnalyticsFetching = true;
+  try {
+    const analytics = await fetchPaperApi(`/api/paper/analytics?user=${encodeURIComponent(currentUserName)}`);
+    if (!analytics) return;
 
-  document.getElementById("statWinRate").textContent = `${analytics.win_rate.toFixed(1)}%`;
-  document.getElementById("statWinLossRatio").textContent = `${analytics.winning_trades} Wins / ${analytics.losing_trades} Losses (${analytics.total_trades} Total)`;
-  document.getElementById("statProfitFactor").textContent = analytics.profit_factor.toFixed(2);
-  document.getElementById("statAvgWinLoss").textContent = `₹${Math.round(analytics.avg_win)} / ₹${Math.round(analytics.avg_loss)}`;
-  document.getElementById("statMaxDrawdown").textContent = `${analytics.max_drawdown_pct.toFixed(2)}%`;
-  document.getElementById("statMaxDrawdownInr").textContent = `Peak-to-trough: ${formatInr(analytics.max_drawdown_inr)}`;
+    document.getElementById("statWinRate").textContent = `${(analytics.win_rate || 0).toFixed(1)}%`;
+    document.getElementById("statWinLossRatio").textContent = `${analytics.winning_trades || 0} Wins / ${analytics.losing_trades || 0} Losses (${analytics.total_trades || 0} Total)`;
+    document.getElementById("statProfitFactor").textContent = (analytics.profit_factor || 0).toFixed(2);
+    document.getElementById("statAvgWinLoss").textContent = `₹${Math.round(analytics.avg_win || 0)} / ₹${Math.round(analytics.avg_loss || 0)}`;
+    document.getElementById("statMaxDrawdown").textContent = `${(analytics.max_drawdown_pct || 0).toFixed(2)}%`;
+    document.getElementById("statMaxDrawdownInr").textContent = `Peak-to-trough: ${formatInr(analytics.max_drawdown_inr || 0)}`;
 
-  const m = Math.floor(analytics.avg_holding_duration_secs / 60);
-  const s = analytics.avg_holding_duration_secs % 60;
-  document.getElementById("statAvgDuration").textContent = `${m}m ${s}s`;
+    const secs = analytics.avg_holding_duration_secs || 0;
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    document.getElementById("statAvgDuration").textContent = `${m}m ${s}s`;
 
-  renderCharts(analytics);
+    renderCharts(analytics);
+  } finally {
+    isAnalyticsFetching = false;
+  }
 }
 
 function renderCharts(analytics) {
@@ -4270,49 +4278,58 @@ function renderCharts(analytics) {
 // MARKET CLOCK & STATUS POLLING
 // -------------------------------------------------------------------------
 
+let isMarketStatusFetching = false;
 async function fetchMarketStatus() {
-  const data = await fetchPaperApi("/api/paper/market-status");
-  if (data) {
-    currentMarketStatus = data;
-    document.getElementById("liveClockIst").textContent = data.time_str || "--:--:--";
-    document.getElementById("liveDateIst").textContent = data.date_str || "Today";
-    const badge = document.getElementById("marketBadge");
-    if (data.is_trading_hours) {
-      badge.className = "badge-market-open";
-      badge.textContent = "NSE: OPEN";
-      document.getElementById("scanStatusLabel").textContent = "NSE live scan";
+  if (isMarketStatusFetching) return;
+  isMarketStatusFetching = true;
+  try {
+    const data = await fetchPaperApi("/api/paper/market-status");
+    if (data) {
+      currentMarketStatus = data;
+      document.getElementById("liveClockIst").textContent = data.time_str || "--:--:--";
+      document.getElementById("liveDateIst").textContent = data.date_str || "Today";
+      const badge = document.getElementById("marketBadge");
+      if (data.is_trading_hours) {
+        badge.className = "badge-market-open";
+        badge.textContent = "NSE: OPEN";
+        document.getElementById("scanStatusLabel").textContent = "NSE live scan";
+      } else {
+        badge.className = "badge-market-closed";
+        const statusUnavailable = data.market_status_source === "Unavailable (fail-closed)";
+        badge.textContent = statusUnavailable
+          ? "NSE STATUS UNAVAILABLE (BLOCKED)"
+          : "NSE: CLOSED (NO AUTO TRADES)";
+        document.getElementById("scanStatusLabel").textContent = statusUnavailable
+          ? "Status unavailable · trading blocked"
+          : "Waiting for NSE market open";
+      }
+      document.getElementById("lblDataFreshness").textContent = data.freshness === "REAL_TIME_LIVE"
+        ? "NSE live quotes + indicator candles"
+        : (data.market_status_source === "Unavailable (fail-closed)"
+          ? "NSE status unavailable — automatic trading blocked"
+          : "Market closed — automatic trading blocked");
+      document.getElementById("lblLatency").textContent = data.latency_ms ? `${data.latency_ms}ms` : "--";
+      if (sessionState) updateUiWithState(sessionState);
     } else {
-      badge.className = "badge-market-closed";
-      const statusUnavailable = data.market_status_source === "Unavailable (fail-closed)";
-      badge.textContent = statusUnavailable
-        ? "NSE STATUS UNAVAILABLE (BLOCKED)"
-        : "NSE: CLOSED (NO AUTO TRADES)";
-      document.getElementById("scanStatusLabel").textContent = statusUnavailable
-        ? "Status unavailable · trading blocked"
-        : "Waiting for NSE market open";
-    }
-    document.getElementById("lblDataFreshness").textContent = data.freshness === "REAL_TIME_LIVE"
-      ? "NSE live quotes + indicator candles"
-      : (data.market_status_source === "Unavailable (fail-closed)"
-        ? "NSE status unavailable — automatic trading blocked"
-        : "Market closed — automatic trading blocked");
-    document.getElementById("lblLatency").textContent = data.latency_ms ? `${data.latency_ms}ms` : "--";
-    if (sessionState) updateUiWithState(sessionState);
-  } else {
-    // When backend is connecting or waking up, check client IST trading hours schedule
-    const nowUtc = new Date();
-    const istTime = new Date(nowUtc.getTime() + (5.5 * 60 * 60 * 1000));
-    const day = istTime.getUTCDay();
-    const mins = istTime.getUTCHours() * 60 + istTime.getUTCMinutes();
-    const isRegularTradingHours = (day >= 1 && day <= 5) && (mins >= 555 && mins < 930);
+      // When backend is connecting or waking up, check client IST trading hours schedule
+      const nowUtc = new Date();
+      const istTime = new Date(nowUtc.getTime() + (5.5 * 60 * 60 * 1000));
+      const day = istTime.getUTCDay();
+      const mins = istTime.getUTCHours() * 60 + istTime.getUTCMinutes();
+      const isRegularTradingHours = (day >= 1 && day <= 5) && (mins >= 555 && mins < 930);
 
-    currentMarketStatus = {
-      is_trading_hours: isRegularTradingHours,
-      freshness: "CONNECTING_CLOUD",
-      market_status_source: "Connecting to Cloud Backend...",
-    };
-    const badge = document.getElementById("marketBadge");
-    badge.className = isRegularTradingHours ? "badge-market-open" : "badge-market-closed";
+      currentMarketStatus = {
+        is_trading_hours: isRegularTradingHours,
+        freshness: "CONNECTING_CLOUD",
+        market_status_source: "Connecting to Cloud Backend...",
+      };
+      const badge = document.getElementById("marketBadge");
+      badge.className = isRegularTradingHours ? "badge-market-open" : "badge-market-closed";
+    }
+  } finally {
+    isMarketStatusFetching = false;
+  }
+}
     badge.textContent = isRegularTradingHours ? "NSE: OPEN (Connecting...)" : "NSE: CLOSED";
     document.getElementById("scanStatusLabel").textContent = isRegularTradingHours ? "Connecting to backend..." : "Waiting for NSE market open";
     document.getElementById("lblDataFreshness").textContent = "Connecting to market server...";
@@ -4416,38 +4433,35 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   } catch (e) {}
 
-  // 1. Parallel fetch of all core data (Market Status, Profiles, Active State, and Analytics)
+  // 1. Fetch active session state first (gives user their immediate live data without blocking)
   const stateUrl = `/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`;
-  const [marketRes, profilesRes, stateRes, analyticsRes] = await Promise.all([
-    fetchMarketStatus(),
-    loadProfilesList(),
-    fetchPaperApi(stateUrl),
-    fetchAndRenderAnalytics(),
-  ]);
+  fetchPaperApi(stateUrl).then(stateRes => {
+    if (stateRes) {
+      updateUiWithState(stateRes);
+      syncConfigFormWithState(stateRes);
+    }
+  });
 
-  if (stateRes) {
-    updateUiWithState(stateRes);
-    syncConfigFormWithState(stateRes);
-  }
+  // 2. Fetch market status and profiles concurrently
+  fetchMarketStatus();
+  loadProfilesList();
 
-  // 2. Refresh leaderboard non-blockingly
-  refreshLeaderboard();
+  // 3. Staggered analytics, leaderboard, and setups (avoids cloud server thread contention)
+  setTimeout(fetchAndRenderAnalytics, 1500);
+  setTimeout(refreshLeaderboard, 2500);
+  setTimeout(() => scanConfirmedSetups(null, false), 4000);
 
-  // 3. Asynchronously scan confirmed setups after critical UI is already rendered
-  setTimeout(() => scanConfirmedSetups(null, false), 1500);
-
-  // Periodic polling loops (optimized cadences to avoid saturating cloud server threads)
-  setInterval(fetchMarketStatus, 15000);
-  setInterval(pollSessionTick, 10000);
+  // Periodic polling loops (each guarded against in-flight duplicates and spaced cleanly)
+  setInterval(pollSessionTick, 12000);
+  setInterval(fetchMarketStatus, 30000);
+  setInterval(fetchAndRenderAnalytics, 30000);
+  setInterval(refreshLeaderboard, 35000);
+  setInterval(loadProfilesList, 60000);
   setInterval(() => {
-    // Only re-scan if running or if setups are completely empty, at most every 60s
     if (sessionState?.status === "RUNNING" || !(sessionState?.scanned_signals?.length)) {
       scanConfirmedSetups(null, false);
     }
   }, 60000);
-  setInterval(fetchAndRenderAnalytics, 20000);
-  setInterval(refreshLeaderboard, 20000);
-  setInterval(loadProfilesList, 45000);
   setInterval(updateLiveCountdowns, 1000);
 });
 </script>

@@ -57,11 +57,17 @@ def _init_mongo_connection():
         except Exception:
             pass
 
+        base_mongo_options = {
+            "serverSelectionTimeoutMS": 3000,
+            "connectTimeoutMS": 3000,
+            "socketTimeoutMS": 3500,
+            "maxPoolSize": 10,
+        }
         client_candidates = []
         if ca_file:
-            client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, "serverSelectionTimeoutMS": 4500}))
-        client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, "serverSelectionTimeoutMS": 4500}))
-        client_candidates.append(("standard-tls", {"serverSelectionTimeoutMS": 4500}))
+            client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, **base_mongo_options}))
+        client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, **base_mongo_options}))
+        client_candidates.append(("standard-tls", dict(base_mongo_options)))
 
         last_mongo_err = None
         for mode_name, client_kwargs in client_candidates:
