@@ -4325,16 +4325,14 @@ async function fetchMarketStatus() {
       };
       const badge = document.getElementById("marketBadge");
       badge.className = isRegularTradingHours ? "badge-market-open" : "badge-market-closed";
+      badge.textContent = isRegularTradingHours ? "NSE: OPEN (Connecting...)" : "NSE: CLOSED";
+      document.getElementById("scanStatusLabel").textContent = isRegularTradingHours ? "Connecting to backend..." : "Waiting for NSE market open";
+      document.getElementById("lblDataFreshness").textContent = "Connecting to market server...";
+      document.getElementById("lblLatency").textContent = "--";
+      if (sessionState) updateUiWithState(sessionState);
     }
   } finally {
     isMarketStatusFetching = false;
-  }
-}
-    badge.textContent = isRegularTradingHours ? "NSE: OPEN (Connecting...)" : "NSE: CLOSED";
-    document.getElementById("scanStatusLabel").textContent = isRegularTradingHours ? "Connecting to backend..." : "Waiting for NSE market open";
-    document.getElementById("lblDataFreshness").textContent = "Connecting to market server...";
-    document.getElementById("lblLatency").textContent = "--";
-    if (sessionState) updateUiWithState(sessionState);
   }
 }
 
