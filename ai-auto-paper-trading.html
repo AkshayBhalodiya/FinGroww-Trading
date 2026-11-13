@@ -2948,36 +2948,61 @@ function showToast(message, type = "info") {
   }, 3500);
 }
 
-// Active API host cache to eliminate redundant/failed requests
-let activePaperApiHost = null;
+// Active API host cache to eliminate redundant/failed requests (persisted per tab)
+const RENDER_BACKEND_URL = "https://fingroww-trading.onrender.com";
+let activePaperApiHost = (function() {
+  try {
+    return sessionStorage.getItem("fingroww_active_api_host") || null;
+  } catch (e) {
+    return null;
+  }
+})();
 
-// API Helper adhering to FinGroww dual-host pattern (pinned once connected to prevent split-brain DB switching)
+// API Helper adhering to FinGroww dual-host pattern
 async function fetchPaperApi(path, options = {}) {
-  const isLocalHost = window.location.hostname === "127.0.0.1" || 
-                      window.location.hostname === "localhost" || 
-                      window.location.protocol === "file:" || 
-                      !window.location.hostname;
-  const isLocalBackendServed = (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") && window.location.port === "8787";
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+  const protocol = window.location.protocol;
+  const isLocalBackendServed = (hostname === "127.0.0.1" || hostname === "localhost") && port === "8787";
+  const isRenderServed = hostname.includes("onrender.com");
+  const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
   let candidateHosts = [];
   if (activePaperApiHost !== null) {
     candidateHosts.push(activePaperApiHost);
-  } else if (isLocalHost) {
-    if (isLocalBackendServed) {
-      candidateHosts.push("");
-    }
-    if (!candidateHosts.includes("http://127.0.0.1:8787")) candidateHosts.push("http://127.0.0.1:8787");
-    if (!candidateHosts.includes("http://localhost:8787")) candidateHosts.push("http://localhost:8787");
-    if (!candidateHosts.includes("")) candidateHosts.push("");
-    if (!isLocalBackendServed && !candidateHosts.includes("https://fingroww-trading.onrender.com")) {
-      candidateHosts.push("https://fingroww-trading.onrender.com");
-    }
-  } else {
+  } else if (isLocalBackendServed) {
+    // 1. If page is served directly by local Flask backend on port 8787
     candidateHosts.push("");
-    candidateHosts.push("https://fingroww-trading.onrender.com");
+    candidateHosts.push("http://127.0.0.1:8787");
+    candidateHosts.push(RENDER_BACKEND_URL);
+  } else if (isRenderServed) {
+    // 2. If page is served on Render (https://fingroww-trading.onrender.com)
+    candidateHosts.push("");
+    candidateHosts.push(RENDER_BACKEND_URL);
+  } else if (isLocalDev) {
+    // 3. Local dev preview (file:/// or Live Server port 5500) -> check local 8787 first, fallback to live Render
+    candidateHosts.push("http://127.0.0.1:8787");
+    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push("");
+  } else {
+    // 4. Live static hosting (GitHub Pages, Netlify, Vercel, Custom Domain) -> DIRECT to live Render backend!
+    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push("");
   }
 
-  const timeoutMs = (path.includes("/tick") || path.includes("/start")) ? 22000 : 15000;
+  // Dynamic timeouts:
+  // - Render free tier cold-start takes ~45-55s on initial wake-up
+  // - Scans evaluate 24 items in parallel (~10-25s)
+  // - Fast endpoints (~1-5s)
+  let timeoutMs = 25000;
+  if (path.includes("/scan") || path.includes("/backtest")) {
+    timeoutMs = 40000;
+  } else if (path.includes("/tick") || path.includes("/start") || path.includes("/create")) {
+    timeoutMs = 35000;
+  } else if (activePaperApiHost === null) {
+    // If not connected yet, give Render enough time to cold-start instead of prematurely canceling at 15s
+    timeoutMs = 45000;
+  }
 
   for (const host of candidateHosts) {
     const controller = new AbortController();
@@ -2994,6 +3019,7 @@ async function fetchPaperApi(path, options = {}) {
         try {
           const json = await r.json();
           activePaperApiHost = host;
+          try { sessionStorage.setItem("fingroww_active_api_host", host); } catch (e) {}
           return json;
         } catch (parseErr) {
           // Response was not JSON
@@ -3364,14 +3390,21 @@ async function submitCreateProfile() {
       body: JSON.stringify(payload)
     });
 
-    if (res && res.ok) {
+    if (res && (res.ok || res.profile)) {
       closeModal("modalCreateProfile");
       document.getElementById("createProfileForm").reset();
       showToast(`Profile [${nameInput}] created and saved to the database.`, "success");
       await loadProfilesList();
       await switchUserProfile(nameInput);
+    } else if (res && res.error && res.error.toLowerCase().includes("already exists")) {
+      // If profile was already registered, gracefully switch to it
+      closeModal("modalCreateProfile");
+      document.getElementById("createProfileForm").reset();
+      showToast(`Profile [${nameInput}] already exists. Switched to it.`, "info");
+      await loadProfilesList();
+      await switchUserProfile(nameInput);
     } else {
-      showToast(res && res.error ? res.error : "Failed to create profile.", "error");
+      showToast(res && res.error ? res.error : "Failed to create profile. Server may be warming up, please retry in a moment.", "error");
     }
   }, btn, "Creating...");
 }
@@ -3431,7 +3464,7 @@ async function switchUserProfile(newUserName, btnEl = null) {
         updateUiWithState(state);
         syncConfigFormWithState(state);
         if (!state.scanned_signals || state.scanned_signals.length === 0) {
-          scanConfirmedSetups(null, false);
+          setTimeout(() => scanConfirmedSetups(null, false), 600);
         }
       }
       await fetchAndRenderAnalytics();
@@ -3701,6 +3734,11 @@ async function refreshLeaderboard(btnEl = null) {
 function updateUiWithState(state) {
   if (!state) return;
   sessionState = state;
+  try {
+    if (state.user_name) {
+      localStorage.setItem("fingroww_cached_state_" + state.user_name, JSON.stringify(state));
+    }
+  } catch (e) {}
 
   // Session User & ID in Hero HUD Card
   if (document.getElementById("lblSessionUser")) {
@@ -4289,15 +4327,12 @@ async function pollSessionTick() {
   if (isSessionTicking) return;
   isSessionTicking = true;
   try {
-    const state = await fetchPaperApi("/api/paper/session/tick", { 
+    const res = await fetchPaperApi("/api/paper/session/tick", { 
       method: "POST",
       body: JSON.stringify({ user_name: currentUserName })
     });
-    if (state && state.state) {
-      updateUiWithState(state.state);
-    } else {
-      const curr = await fetchPaperApi(`/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`);
-      if (curr) updateUiWithState(curr);
+    if (res && res.state) {
+      updateUiWithState(res.state);
     }
   } finally {
     isSessionTicking = false;
@@ -4369,35 +4404,50 @@ async function runStrategyBacktest() {
 // INITIALIZATION
 // -------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", async () => {
-  await fetchMarketStatus();
-  
-  // 1. Load profiles into selector
-  await loadProfilesList();
+  // 0. Instant Optimistic Render from LocalStorage Cache (0ms instant page display!)
+  try {
+    const cachedStr = localStorage.getItem("fingroww_cached_state_" + currentUserName);
+    if (cachedStr) {
+      const cached = JSON.parse(cachedStr);
+      if (cached && typeof cached === "object") {
+        updateUiWithState(cached);
+        syncConfigFormWithState(cached);
+      }
+    }
+  } catch (e) {}
 
-  // 2. Initial state fetch for active user
-  const initial = await fetchPaperApi(`/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`);
-  if (initial) {
-    updateUiWithState(initial);
-    syncConfigFormWithState(initial);
+  // 1. Parallel fetch of all core data (Market Status, Profiles, Active State, and Analytics)
+  const stateUrl = `/api/paper/session/state?user=${encodeURIComponent(currentUserName)}`;
+  const [marketRes, profilesRes, stateRes, analyticsRes] = await Promise.all([
+    fetchMarketStatus(),
+    loadProfilesList(),
+    fetchPaperApi(stateUrl),
+    fetchAndRenderAnalytics(),
+  ]);
+
+  if (stateRes) {
+    updateUiWithState(stateRes);
+    syncConfigFormWithState(stateRes);
   }
-  // Auto-scan confirmed 15-minute setups immediately on load (read-only radar)
-  scanConfirmedSetups(null, false);
-  
-  // 3. Analytics & Leaderboard
-  await fetchAndRenderAnalytics();
-  await refreshLeaderboard();
 
-  // Periodic polling loops
-  setInterval(fetchMarketStatus, 10000);
-  setInterval(pollSessionTick, 6000);
+  // 2. Refresh leaderboard non-blockingly
+  refreshLeaderboard();
+
+  // 3. Asynchronously scan confirmed setups after critical UI is already rendered
+  setTimeout(() => scanConfirmedSetups(null, false), 1500);
+
+  // Periodic polling loops (optimized cadences to avoid saturating cloud server threads)
+  setInterval(fetchMarketStatus, 15000);
+  setInterval(pollSessionTick, 10000);
   setInterval(() => {
-    if (!currentMarketStatus?.is_trading_hours || sessionState?.status !== "RUNNING" || !(sessionState?.scanned_signals?.length)) {
+    // Only re-scan if running or if setups are completely empty, at most every 60s
+    if (sessionState?.status === "RUNNING" || !(sessionState?.scanned_signals?.length)) {
       scanConfirmedSetups(null, false);
     }
-  }, 20000);
-  setInterval(fetchAndRenderAnalytics, 15000);
-  setInterval(refreshLeaderboard, 12000);
-  setInterval(loadProfilesList, 30000);
+  }, 60000);
+  setInterval(fetchAndRenderAnalytics, 20000);
+  setInterval(refreshLeaderboard, 20000);
+  setInterval(loadProfilesList, 45000);
   setInterval(updateLiveCountdowns, 1000);
 });
 </script>

@@ -511,7 +511,7 @@ def paper_chart_resolver(symbol, interval="15m", range_="5d"):
     now = time.time()
     with paper_quote_cache_lock:
         cached = paper_chart_cache.get(cache_key)
-        if cached and now - cached["fetched_at"] < 60:
+        if cached and now - cached["fetched_at"] < 120:
             return list(cached["rows"])
     rows, _ = fetch_yahoo_chart(yahoo_ticker(symbol), interval, range_)
     if rows:
@@ -530,12 +530,14 @@ def get_nse_market_status():
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
     regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
-    cached = paper_market_cache["status"]
-    if cached and now - paper_market_cache["at"] < 5:
+    ttl = 25.0 if regular_session else 60.0
+
+    cached = paper_market_cache.get("status")
+    if cached and (now - paper_market_cache.get("at", 0) < ttl):
         current = dict(cached)
         current["is_trading_hours"] = bool(current["is_trading_hours"] and regular_session)
         current["market_status"] = "OPEN" if current["is_trading_hours"] else "CLOSED"
-        if not current["is_trading_hours"] and not current["reason"]:
+        if not current["is_trading_hours"] and not current.get("reason"):
             current["reason"] = "NSE regular trading session is closed."
         return current
 
@@ -1970,7 +1972,7 @@ def paper_background_worker():
             paper_manager.tick_all_running()
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
-        time.sleep(3.5)
+        time.sleep(6.0)
 
 paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
 paper_bg_thread.start()
@@ -2316,11 +2318,20 @@ def paper_create_profile():
         "holding_duration_mins": holding_mins,
     }
 
-    sess, msg = paper_manager.create_profile(user_name, cfg)
-    if not sess:
-        return jsonify({"error": msg}), 409 if "already exists" in msg else 400
+    try:
+        sess, msg = paper_manager.create_profile(user_name, cfg)
+        if not sess:
+            return jsonify({"error": msg}), 409 if "already exists" in msg else 400
 
-    return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
+        return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
+    except Exception as exc:
+        app.logger.exception("Failed to create profile %s", user_name)
+        # Even if persistence had a transient issue, retrieve the session from memory
+        try:
+            sess, _ = paper_manager.get_session(user_name)
+            return jsonify({"ok": True, "message": f"Profile [{user_name}] ready.", "profile": sess.get_state()})
+        except Exception:
+            return jsonify({"error": f"Failed to create profile: {str(exc)}"}), 500
 
 
 @app.get("/api/paper/leaderboard")

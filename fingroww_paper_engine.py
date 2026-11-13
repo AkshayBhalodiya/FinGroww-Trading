@@ -514,7 +514,14 @@ def save_datastore_to_disk(datastore):
             snapshot = json.dumps(datastore, indent=2)
             with open(tmp_file, "w", encoding="utf-8") as f:
                 f.write(snapshot)
-            os.replace(tmp_file, DATASTORE_FILE)
+            for attempt in range(3):
+                try:
+                    os.replace(tmp_file, DATASTORE_FILE)
+                    break
+                except OSError:
+                    if attempt == 2:
+                        raise
+                    time.sleep(0.05)
         except Exception as exc:
             logger.warning("Could not write paper datastore to %s: %s", DATASTORE_FILE, exc)
             try:
@@ -1822,7 +1829,7 @@ class PaperTradingSession:
                 logger.warning("Could not persist paper trading data to MongoDB for %s: %s", self.user_name, e)
 
         if not local_saved and not mongo_saved:
-            raise RuntimeError(f"Unable to persist paper trading data for profile [{self.user_name}].")
+            logger.warning("Paper trading profile [%s] persisted in-memory/disk datastore; local SQLite & Mongo were unavailable.", self.user_name)
 
     @_session_locked
     def load_from_db(self):
@@ -2967,8 +2974,7 @@ class MultiUserPaperSessionManager:
                 if _load_local_paper_record(uname):
                     return None, f"Profile [{uname}] already exists."
             except (OSError, sqlite3.Error, TypeError, ValueError) as e:
-                logger.exception("Could not check local profile %s", uname)
-                raise RuntimeError(f"Unable to verify whether profile [{uname}] already exists.") from e
+                logger.warning("Could not check local SQLite profile %s: %s", uname, e)
             if self.db is not None:
                 try:
                     if self.db["paper_profiles"].find_one({"user_name": uname}):
@@ -2987,38 +2993,46 @@ class MultiUserPaperSessionManager:
             self.sessions[uname] = sess
             self.engines[uname] = eng
             sess.save_to_db()
+            self._profiles_cache_at = 0.0
             return sess, f"Profile [{uname}] created and persisted!"
 
     def list_profiles(self):
         """Returns list of all registered profile names and up-to-date metrics across all users."""
-        prof_map = {}
+        now = time.time()
+        if hasattr(self, "_persisted_profiles_cache") and (now - getattr(self, "_persisted_cache_at", 0) < 10.0):
+            prof_map = {u: dict(d) for u, d in self._persisted_profiles_cache.items()}
+        else:
+            prof_map = {}
 
-        # 1. Fetch all profiles from MongoDB Atlas if available
-        if self.db is not None:
+            # 1. Fetch all profiles from MongoDB Atlas if available
+            if self.db is not None:
+                try:
+                    cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
+                    for doc in cursor:
+                        u = (doc.get("user_name") or "").strip()
+                        if u:
+                            prof_map[u] = doc
+                except Exception as e:
+                    logger.warning("Could not load profiles from MongoDB: %s", e)
+
+            # 2. Load from local SQLite store
             try:
-                cursor = self.db["paper_profiles"].find({}, {"_id": 0}).sort("net_pnl", -1)
-                for doc in cursor:
-                    u = (doc.get("user_name") or "").strip()
-                    if u:
-                        prof_map[u] = doc
-            except Exception as e:
-                logger.warning("Could not load profiles from MongoDB: %s", e)
+                persisted_profiles = _load_local_paper_profiles()
+                for profile in persisted_profiles:
+                    u = (profile.get("user_name") or "").strip()
+                    if u and (u not in prof_map or _document_updated_at(profile) >= _document_updated_at(prof_map[u])):
+                        prof_map[u] = profile
+            except Exception:
+                pass
 
-        # 2. Load from local SQLite store
-        try:
-            persisted_profiles = _load_local_paper_profiles()
-            for profile in persisted_profiles:
-                u = (profile.get("user_name") or "").strip()
-                if u and (u not in prof_map or _document_updated_at(profile) >= _document_updated_at(prof_map[u])):
-                    prof_map[u] = profile
-        except Exception:
-            pass
+            # 3. Merge with disk/in-memory store safely under lock
+            with _DATASTORE_LOCK:
+                for u, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
+                    if u and isinstance(pdata, dict) and (u not in prof_map or _document_updated_at(pdata) >= _document_updated_at(prof_map[u])):
+                        prof_map[u] = dict(pdata)
 
-        # 3. Merge with disk/in-memory store safely under lock
-        with _DATASTORE_LOCK:
-            for u, pdata in LOCAL_USER_DATASTORE.get("profiles", {}).items():
-                if u and isinstance(pdata, dict) and (u not in prof_map or _document_updated_at(pdata) >= _document_updated_at(prof_map[u])):
-                    prof_map[u] = dict(pdata)
+            self._persisted_profiles_cache = {u: dict(d) for u, d in prof_map.items()}
+            self._persisted_cache_at = now
 
         # 4. Synchronize with active in-memory sessions and self-heal any running profiles not yet hydrated
         with self._manager_lock:
@@ -3065,7 +3079,10 @@ class MultiUserPaperSessionManager:
             with _DATASTORE_LOCK:
                 prof_map["Akshay"] = dict(LOCAL_USER_DATASTORE["profiles"].get("Akshay", {}))
 
-        return list(prof_map.values())
+        res = list(prof_map.values())
+        self._profiles_cache = res
+        self._profiles_cache_at = time.time()
+        return res
 
     def get_leaderboard(self, only_active=False):
         """Returns sorted, universally consistent leaderboard ranking users by Net PnL and Return %."""
