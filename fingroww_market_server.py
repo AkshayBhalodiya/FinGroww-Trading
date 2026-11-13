@@ -247,7 +247,18 @@ def yahoo_ticker(symbol):
     return symbol + ".NS"
 
 
+_yahoo_chart_mem_cache = {}
+_yahoo_chart_mem_lock = threading.Lock()
+
+
 def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
+    cache_key = f"{ticker}_{interval}_{range_}"
+    now = time.time()
+    with _yahoo_chart_mem_lock:
+        cached = _yahoo_chart_mem_cache.get(cache_key)
+        if cached and (now - cached.get("fetched_at", 0) < 30.0):
+            return list(cached["rows"]), dict(cached["meta"])
+
     try:
         url = (
             "https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -285,7 +296,17 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
                     "t": int(t) * 1000,
                 }
             )
-        return rows, block.get("meta") or {}
+        meta = block.get("meta") or {}
+        if rows:
+            with _yahoo_chart_mem_lock:
+                if len(_yahoo_chart_mem_cache) > 200:
+                    _yahoo_chart_mem_cache.clear()
+                _yahoo_chart_mem_cache[cache_key] = {
+                    "fetched_at": now,
+                    "rows": rows,
+                    "meta": meta,
+                }
+        return rows, meta
     except Exception:
         return [], {}
 
@@ -293,7 +314,7 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
 def nse_index_rows():
     global indices_cache
     now = time.time()
-    if now - indices_cache["at"] < 3 and indices_cache["rows"]:
+    if now - indices_cache["at"] < 20.0 and indices_cache["rows"]:
         return indices_cache["rows"]
     data = nse_get("/api/allIndices")
     rows = (data or {}).get("data") or []
@@ -416,54 +437,77 @@ DEFAULT_SPOTS = {
 }
 
 
+_general_quote_cache = {}
+_general_quote_cache_lock = threading.Lock()
+
+
 def resolve_quote(symbol):
+    now = time.time()
+    with _general_quote_cache_lock:
+        cached = _general_quote_cache.get(symbol)
+        if cached and (now - cached.get("fetched_at", 0) < 10.0):
+            return dict(cached)
+
+    res = None
     if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
         try:
             q = quote_from_nse_index(symbol)
             if q and q.get("lastPrice"):
-                return q
+                res = q
         except Exception:
             pass
 
-    if symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
+    if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
         try:
             q = quote_from_nse_equity(symbol)
             if q and q.get("lastPrice"):
-                return q
+                res = q
         except Exception:
             pass
 
-    if symbol == "SENSEX":
+    if not res and symbol == "SENSEX":
         try:
-            return quote_from_yahoo(symbol)
+            res = quote_from_yahoo(symbol)
         except Exception:
             pass
 
-    try:
-        q = quote_from_yahoo(symbol)
-        if q and q.get("lastPrice"):
-            return q
-    except Exception:
-        pass
+    if not res:
+        try:
+            q = quote_from_yahoo(symbol)
+            if q and q.get("lastPrice"):
+                res = q
+        except Exception:
+            pass
 
-    try:
-        q = quote_from_nse_index(symbol)
-        if q and q.get("lastPrice"):
-            return q
-    except Exception:
-        pass
+    if not res:
+        try:
+            q = quote_from_nse_index(symbol)
+            if q and q.get("lastPrice"):
+                res = q
+        except Exception:
+            pass
 
-    fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
-    return {
-        "source": "FinGroww Spec Engine (Fallback Close)",
-        "symbol": symbol,
-        "company": symbol,
-        "lastPrice": fallback_price,
-        "change": 0.0,
-        "pChange": 0.0,
-        "previousClose": fallback_price,
-        "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
-    }
+    if not res:
+        fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
+        res = {
+            "source": "FinGroww Spec Engine (Fallback Close)",
+            "symbol": symbol,
+            "company": symbol,
+            "lastPrice": fallback_price,
+            "change": 0.0,
+            "pChange": 0.0,
+            "previousClose": fallback_price,
+            "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
+        }
+
+    if res and res.get("lastPrice"):
+        res["fetched_at"] = now
+        with _general_quote_cache_lock:
+            if len(_general_quote_cache) > 200:
+                _general_quote_cache.clear()
+            _general_quote_cache[symbol] = dict(res)
+
+    return res
 
 
 def resolve_live_quote(symbol):

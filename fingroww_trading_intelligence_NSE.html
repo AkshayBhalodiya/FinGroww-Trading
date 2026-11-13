@@ -2247,31 +2247,40 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
   }
 }
 
-async function fetchApi(path, options = {}) {
-  const isLocalHost = window.location.hostname === "127.0.0.1" || 
-                      window.location.hostname === "localhost" || 
-                      window.location.protocol === "file:" || 
-                      !window.location.hostname;
+let activeIntelHost = null;
 
-  // 1. If running locally, try local Python server with 4500ms timeout
-  if (isLocalHost) {
-    for (const host of ["http://127.0.0.1:8787", "http://localhost:8787"]) {
-      try {
-        const r = await fetchWithTimeout(host + path, options, 4500);
-        if (r.ok) return r;
-      } catch (e) {}
-    }
+async function fetchApi(path, options = {}) {
+  const hostname = window.location.hostname;
+  const isLocalHost = hostname === "127.0.0.1" || 
+                      hostname === "localhost" || 
+                      window.location.protocol === "file:" || 
+                      !hostname;
+
+  let candidateHosts = [];
+  if (activeIntelHost) {
+    candidateHosts.push(activeIntelHost);
+  } else if (isLocalHost) {
+    candidateHosts.push("http://127.0.0.1:8787");
+    candidateHosts.push("https://fingroww-trading.onrender.com");
+  } else {
+    // Live static hosting (Vercel, Netlify, GitHub Pages) -> DIRECT TO RENDER CLOUD!
+    // Never try "" first because Vercel has no Python server and hangs for 12 seconds!
+    candidateHosts.push("https://fingroww-trading.onrender.com");
+    candidateHosts.push("");
   }
 
-  // 2. Try current origin (Vercel Serverless / Proxy) and Render cloud with 4000ms timeout
-  for (const host of ["", "https://fingroww-trading.onrender.com"]) {
+  for (const host of candidateHosts) {
     try {
-      const r = await fetchWithTimeout((host ? host : "") + path, options, 12000);
-      if (r.ok) return r;
+      const url = host ? (host + path) : path;
+      const r = await fetchWithTimeout(url, options, 15000);
+      if (r && (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404))) {
+        if (host) activeIntelHost = host;
+        return r;
+      }
     } catch (e) {}
   }
 
-  // 3. Return a valid Response-compatible object with .json() so callers never crash
+  // Return a valid Response-compatible object with .json() so callers never crash
   return {
     ok: false,
     status: 503,
