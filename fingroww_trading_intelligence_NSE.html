@@ -2231,7 +2231,8 @@ function renderBacktestPanel(bt){
   $("tradeHistoryBody").innerHTML=rows||'<tr><td colspan="9" style="text-align:center;color:var(--muted)">No trades in window.</td></tr>';
 }
 
-const CLOUD_API="https://fingroww-trading.onrender.com";
+const CLOUD_API="https://api.fingroww.tech";
+const FALLBACK_CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
@@ -2261,10 +2262,11 @@ async function fetchApi(path, options = {}) {
     candidateHosts.push(activeIntelHost);
   } else if (isLocalHost) {
     candidateHosts.push("http://127.0.0.1:8787");
+    candidateHosts.push("https://api.fingroww.tech");
     candidateHosts.push("https://fingroww-trading.onrender.com");
   } else {
-    // Live static hosting (Vercel, Netlify, GitHub Pages) -> DIRECT TO RENDER CLOUD!
-    // Never try "" first because Vercel has no Python server and hangs for 12 seconds!
+    // Live static hosting (Hostinger, Vercel, Netlify) -> DIRECT TO CUSTOM API DOMAIN!
+    candidateHosts.push("https://api.fingroww.tech");
     candidateHosts.push("https://fingroww-trading.onrender.com");
     candidateHosts.push("");
   }

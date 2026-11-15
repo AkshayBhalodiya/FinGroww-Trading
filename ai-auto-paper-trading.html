@@ -2949,7 +2949,9 @@ function showToast(message, type = "info") {
 }
 
 // Active API host cache to eliminate redundant/failed requests (persisted per tab)
-const RENDER_BACKEND_URL = "https://fingroww-trading.onrender.com";
+const API_URL = "https://api.fingroww.tech";
+const FALLBACK_API_URL = "https://fingroww-trading.onrender.com";
+const RENDER_BACKEND_URL = API_URL;
 let activePaperApiHost = (function() {
   try {
     const cached = sessionStorage.getItem("fingroww_active_api_host");
@@ -2966,7 +2968,7 @@ async function fetchPaperApi(path, options = {}) {
   const port = window.location.port;
   const protocol = window.location.protocol;
   const isLocalBackendServed = (hostname === "127.0.0.1" || hostname === "localhost") && port === "8787";
-  const isRenderServed = hostname.includes("onrender.com");
+  const isRenderServed = hostname.includes("onrender.com") || hostname.includes("api.fingroww.tech");
   const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
   let candidateHosts = [];
@@ -2975,27 +2977,29 @@ async function fetchPaperApi(path, options = {}) {
     candidateHosts.push("");
     candidateHosts.push("http://127.0.0.1:8787");
   } else if (isRenderServed) {
-    // 2. If page is served on Render (https://fingroww-trading.onrender.com)
+    // 2. If page is served on Render / custom API domain
     candidateHosts.push("");
-    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push(API_URL);
+    candidateHosts.push(FALLBACK_API_URL);
   } else if (isLocalDev) {
     // 3. Local dev preview (file:/// or Live Server port 5500) -> check local 8787 first, fallback to live Render
     candidateHosts.push("http://127.0.0.1:8787");
-    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push(API_URL);
+    candidateHosts.push(FALLBACK_API_URL);
   } else {
-    // 4. Live static hosting (Vercel: fin-groww-trading.vercel.app, GitHub Pages, Netlify)
-    // ALWAYS use RENDER_BACKEND_URL directly! Static hosts do NOT have Python backend, so "" must NEVER be tried!
-    candidateHosts.push(RENDER_BACKEND_URL);
+    // 4. Live static hosting (Hostinger: fingroww.tech, Vercel, Netlify)
+    candidateHosts.push(API_URL);
+    candidateHosts.push(FALLBACK_API_URL);
   }
 
   if (activePaperApiHost && !candidateHosts.includes(activePaperApiHost)) {
     candidateHosts.unshift(activePaperApiHost);
   }
 
-  // Generous timeouts to accommodate Render free-tier cold starts and complex scans without aborting
-  let timeoutMs = 45000;
+  // Fast response timeout (15s max, 30s for heavy scans) to prevent browser freezing
+  let timeoutMs = 15000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 60000;
+    timeoutMs = 30000;
   }
 
   for (const host of candidateHosts) {
