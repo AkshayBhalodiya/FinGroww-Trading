@@ -1103,6 +1103,7 @@ def resolve_option_quote(base_symbol, strike, opt_type="CE", expiry=None):
         "spotPrice": oc.get("spotPrice"),
         "iv": leg.get("iv", 0.0),
         "oi": leg.get("oi", 0),
+        "pcr": oc.get("pcr", 1.0),
         "fetched_at": oc.get("fetched_at", time.time()),
         "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST"),
     }

@@ -159,6 +159,19 @@ LOT_SIZES = {
 # Cash-only stocks in UNIVERSE without active NSE F&O option chains
 NON_FO_STOCK_SYMBOLS = {"HUDCO", "SJVN", "ZOMATO"}
 
+# Sector Groupings for Cross-Asset Benchmark Index Alignment
+BANK_SECTOR_SYMBOLS = {
+    "HDFCBANK", "ICICIBANK", "SBIN", "AXISBANK", "KOTAKBANK",
+    "FEDERALBNK", "INDUSINDBK", "PNB", "BANKBARODA", "AUBANK",
+    "BANDHANBNK", "BAJFINANCE", "BAJAJFINSV", "CHOLAFIN"
+}
+IT_SECTOR_SYMBOLS = {
+    "TCS", "INFY", "WIPRO", "HCLTECH", "TECHM", "PERSISTENT", "COFORGE", "LTIM"
+}
+AUTO_SECTOR_SYMBOLS = {
+    "TATAMOTORS", "MARUTI", "M&M", "BAJAJ-AUTO", "ASHOKLEY", "MOTHERSON"
+}
+
 # Supported Watchlist Universe across Market Capitalizations (Expanded Multi-Profile Catalog)
 UNIVERSE = [
     # Large Cap Benchmark Indices
@@ -1085,6 +1098,8 @@ class PaperTradingSession:
             opt_type = None
             strike = None
             delta = None
+            opt_pcr = None
+            opt_oi = None
 
         trade_id = f"PT-{now_ist.strftime('%m%d')}-{uuid.uuid4().hex[:8].upper()}"
         position = {
@@ -1226,8 +1241,20 @@ class PaperTradingSession:
                 favorable_move = (curr_price - entry_p) if side == "BUY" else (entry_p - curr_price)
                 progress_ratio = favorable_move / target_distance
 
+                # Tier 3: >= 90% target achieved -> Lock in +70% windfall profit
+                if progress_ratio >= 0.90:
+                    profit_lock_sl = round(entry_p + (target_distance * 0.70) if side == "BUY" else entry_p - (target_distance * 0.70), 2)
+                    if (side == "BUY" and profit_lock_sl > sl) or (side == "SELL" and profit_lock_sl < sl):
+                        pos["stop_loss"] = profit_lock_sl
+                        sl = profit_lock_sl
+                        pos["trailing_state"] = "PROFIT_LOCKED_MAX"
+                        pos["trailing_label"] = "🏆 Locked +1.4R Windfall"
+                        if not pos.get("logged_profit_lock_max"):
+                            pos["logged_profit_lock_max"] = True
+                            self.log_event("SL_PROFIT_LOCK_MAX", f"Position [{pos['symbol']}] reached 90% target! Trailed SL to lock in +70% windfall @ ₹{profit_lock_sl:,.2f}.")
+
                 # Tier 2: >= 75% target achieved -> Lock in +40% profit
-                if progress_ratio >= 0.75:
+                elif progress_ratio >= 0.75 and pos.get("trailing_state") != "PROFIT_LOCKED_MAX":
                     profit_lock_sl = round(entry_p + (target_distance * 0.40) if side == "BUY" else entry_p - (target_distance * 0.40), 2)
                     if (side == "BUY" and profit_lock_sl > sl) or (side == "SELL" and profit_lock_sl < sl):
                         pos["stop_loss"] = profit_lock_sl
@@ -1239,7 +1266,7 @@ class PaperTradingSession:
                             self.log_event("SL_PROFIT_LOCK", f"Position [{pos['symbol']}] achieved 75% target! Trailed SL to lock in profit @ ₹{profit_lock_sl:,.2f} (+40% gain).")
 
                 # Tier 1: >= 45% target achieved (+0.8R) -> Move SL to Breakeven (Cost-to-Cost)
-                elif progress_ratio >= 0.45 and pos.get("trailing_state") != "PROFIT_LOCKED":
+                elif progress_ratio >= 0.45 and pos.get("trailing_state") not in ("PROFIT_LOCKED", "PROFIT_LOCKED_MAX"):
                     buffer_pct = 0.0008 if inst_type not in ("INDEX_OPTIONS", "STOCK_OPTIONS") else 0.005
                     be_sl = round(entry_p * (1.0 + buffer_pct) if side == "BUY" else entry_p * (1.0 - buffer_pct), 2)
                     if (side == "BUY" and be_sl > sl) or (side == "SELL" and be_sl < sl):
@@ -1257,7 +1284,7 @@ class PaperTradingSession:
                 if curr_price >= tp:
                     exit_reason = "TARGET_HIT"
                 elif curr_price <= sl:
-                    if pos.get("trailing_state") == "PROFIT_LOCKED":
+                    if pos.get("trailing_state") in ("PROFIT_LOCKED", "PROFIT_LOCKED_MAX"):
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
                         exit_reason = "BREAKEVEN_STOP_HIT"
@@ -1267,12 +1294,20 @@ class PaperTradingSession:
                 if curr_price <= tp:
                     exit_reason = "TARGET_HIT"
                 elif curr_price >= sl:
-                    if pos.get("trailing_state") == "PROFIT_LOCKED":
+                    if pos.get("trailing_state") in ("PROFIT_LOCKED", "PROFIT_LOCKED_MAX"):
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
                         exit_reason = "BREAKEVEN_STOP_HIT"
                     else:
                         exit_reason = "STOP_LOSS_HIT"
+
+            # Stagnant option theta decay protection: if option held >45 min and making no progress, auto-exit to prevent theta decay
+            if not exit_reason and inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
+                entry_ts = float(pos.get("entry_timestamp") or 0.0)
+                if entry_ts > 0 and (now_ts - entry_ts >= 2700):
+                    favorable_move = (curr_price - entry_p) if side == "BUY" else (entry_p - curr_price)
+                    if favorable_move <= 0.02 * entry_p and gross_pnl <= 0:
+                        exit_reason = "THETA_STALL_PROTECTION"
 
             # Time Duration Check (only if positive target exit timestamp configured)
             if not exit_reason and pos.get("target_exit_timestamp") and pos["target_exit_timestamp"] > 0 and now_ts >= pos["target_exit_timestamp"]:
@@ -2068,6 +2103,26 @@ class PaperTradingEngine:
                 buy_score += 5
                 sell_score += 5
 
+            # 7. Sector & Benchmark Index Confluence (Multi-Asset Beta Filter)
+            benchmark_confluence = "Neutral"
+            is_index_asset = "NIFTY" in sym or "SENSEX" in sym
+            if not is_index_asset and self.quote_resolver:
+                try:
+                    bench_sym = "BANK NIFTY" if sym in BANK_SECTOR_SYMBOLS else "NIFTY 50"
+                    bench_q = self.quote_resolver(bench_sym)
+                    if bench_q and bench_q.get("pChange") is not None:
+                        bench_pchange = float(bench_q.get("pChange") or 0.0)
+                        if bench_pchange >= 0.20:
+                            buy_score += 10
+                            sell_score -= 10
+                            benchmark_confluence = f"{bench_sym} Bullish (+{bench_pchange:.2f}%)"
+                        elif bench_pchange <= -0.20:
+                            sell_score += 10
+                            buy_score -= 10
+                            benchmark_confluence = f"{bench_sym} Bearish ({bench_pchange:.2f}%)"
+                except Exception:
+                    pass
+
             is_index = "NIFTY" in sym or "SENSEX" in sym
             vol_floor = 0.002 if is_index else 0.004
             risk_distance = max(1.5 * atr14, live_price * vol_floor)
@@ -2104,6 +2159,8 @@ class PaperTradingEngine:
             opt_type = None
             strike = None
             delta = None
+            opt_pcr = None
+            opt_oi = None
 
             # Resolve real live NSE option contract LTP for INDEX_OPTIONS & STOCK_OPTIONS
             expiry_date = None
@@ -2134,6 +2191,8 @@ class PaperTradingEngine:
                 opt_type = "CE" if curr_side == "BUY" else "PE"
                 display_sym = f"{sym} {strike} {opt_type}"
                 opt_premium = None
+                opt_pcr = None
+                opt_oi = None
                 if self.option_quote_resolver:
                     try:
                         opt_q = self.option_quote_resolver(sym, strike, opt_type)
@@ -2146,6 +2205,23 @@ class PaperTradingEngine:
                             expiry_date = opt_q.get("expiry")
                             expiry_kind = opt_q.get("expiry_kind")
                             expiry_label = opt_q.get("expiry_label")
+                            opt_pcr = opt_q.get("pcr")
+                            opt_oi = opt_q.get("oi")
+                            if opt_pcr is not None:
+                                try:
+                                    pcr_f = float(opt_pcr)
+                                    if opt_type == "CE":
+                                        if pcr_f >= 1.05:
+                                            score = min(score + 5, 98)
+                                        elif pcr_f < 0.70:
+                                            score = max(score - 10, 45)
+                                    else: # PE
+                                        if pcr_f <= 0.95:
+                                            score = min(score + 5, 98)
+                                        elif pcr_f > 1.30:
+                                            score = max(score - 10, 45)
+                                except Exception:
+                                    pass
                     except Exception as exc:
                         logger.warning("Could not fetch live option quote for %s: %s", display_sym, exc)
 
@@ -2222,6 +2298,9 @@ class PaperTradingEngine:
                     "atr14": round(atr14, 4),
                     "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
                     "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 4),
+                    "benchmark_confluence": benchmark_confluence,
+                    "pcr": round(float(opt_pcr), 2) if opt_pcr is not None else None,
+                    "oi": int(opt_oi) if opt_oi is not None else None,
                 },
                 "side": curr_side,
                 "entry_price": entry_price,
