@@ -2231,7 +2231,8 @@ function renderBacktestPanel(bt){
   $("tradeHistoryBody").innerHTML=rows||'<tr><td colspan="9" style="text-align:center;color:var(--muted)">No trades in window.</td></tr>';
 }
 
-const CLOUD_API="https://fingroww-trading.onrender.com";
+const CLOUD_API="https://api.fingroww.tech";
+const FALLBACK_CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {

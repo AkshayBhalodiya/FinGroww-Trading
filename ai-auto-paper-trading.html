@@ -2949,7 +2949,9 @@ function showToast(message, type = "info") {
 }
 
 // Active API host cache to eliminate redundant/failed requests (persisted per tab)
-const RENDER_BACKEND_URL = "https://fingroww-trading.onrender.com";
+const CUSTOM_API_URL = "https://api.fingroww.tech";
+const RENDER_BACKEND_URL = "https://api.fingroww.tech";
+const FALLBACK_RENDER_URL = "https://fingroww-trading.onrender.com";
 let activePaperApiHost = (function() {
   try {
     const cached = sessionStorage.getItem("fingroww_active_api_host");
@@ -2977,15 +2979,16 @@ async function fetchPaperApi(path, options = {}) {
   } else if (isRenderServed) {
     // 2. If page is served on Render (https://fingroww-trading.onrender.com)
     candidateHosts.push("");
-    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push(FALLBACK_RENDER_URL);
   } else if (isLocalDev) {
     // 3. Local dev preview (file:/// or Live Server port 5500) -> check local 8787 first, fallback to live Render
     candidateHosts.push("http://127.0.0.1:8787");
-    candidateHosts.push(RENDER_BACKEND_URL);
+    candidateHosts.push(CUSTOM_API_URL);
+    candidateHosts.push(FALLBACK_RENDER_URL);
   } else {
-    // 4. Live static hosting (Vercel: fin-groww-trading.vercel.app, GitHub Pages, Netlify)
-    // ALWAYS use RENDER_BACKEND_URL directly! Static hosts do NOT have Python backend, so "" must NEVER be tried!
-    candidateHosts.push(RENDER_BACKEND_URL);
+    // 4. Live static hosting (Hostinger: fingroww.tech, Vercel, Netlify)
+    candidateHosts.push(CUSTOM_API_URL);
+    candidateHosts.push(FALLBACK_RENDER_URL);
   }
 
   if (activePaperApiHost && !candidateHosts.includes(activePaperApiHost)) {
