@@ -500,7 +500,7 @@ function searchTrades() {
 // Dynamic MongoDB Atlas Signal Sync & 11-Skill Engine Integration
 async function fetchDbSignalsForTrades() {
   const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
-  const hosts = isLocal ? ["http://127.0.0.1:8787", "https://api.fingroww.tech", "https://fingroww-trading.onrender.com"] : ["https://api.fingroww.tech", "https://fingroww-trading.onrender.com"];
+  const hosts = isLocal ? ["http://127.0.0.1:8787", "https://fingroww-trading.onrender.com"] : ["https://fingroww-trading.onrender.com"];
   let resData = null;
   for (const host of hosts) {
     try {
