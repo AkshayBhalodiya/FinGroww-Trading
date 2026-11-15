@@ -2349,7 +2349,7 @@ button[disabled],
         <div style="font-size:11px;color:var(--text-dim);line-height:1.55;margin-bottom:8px;">
           Live algorithmic trade setups confirmed across technical trend, VWAP, momentum, and ATR risk metrics using real-time NSE market data (ranked in exact execution priority order).
         </div>
-        <div id="scannedSetupsList" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;">
+        <div id="scannedSetupsList" style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;">
           <!-- Dynamically filled with setups -->
           <div style="padding:10px;text-align:center;color:var(--text-dim);font-size:12px;">
             Scanning confirmed 15-minute setups...
@@ -4071,7 +4071,7 @@ function renderScannedSetups(setups) {
     return;
   }
 
-  list.innerHTML = items.slice(0, 10).map((s, idx) => {
+  list.innerHTML = items.map((s, idx) => {
     const isBuy = s.side === "BUY";
     const m = s.timewise_metrics || {};
     const sig = s.signal_indicators || {};

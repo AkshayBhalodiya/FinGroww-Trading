@@ -1642,7 +1642,7 @@ class PaperTradingSession:
             "recent_closed_trades": self.closed_trades[:25],
             "total_closed_trades_count": len(self.closed_trades),
             "logs": self.logs[:30],
-            "scanned_signals": self.scanned_signals[:10],
+            "scanned_signals": self.scanned_signals,
         }
 
     @_session_locked
@@ -2431,25 +2431,23 @@ class PaperTradingEngine:
 
         batch = []
         if indices:
-            batch.extend(indices[:4])
+            batch.extend(indices)
 
-        # Allocate slots equally across all selected market caps (Large, Mid, and Small)
-        per_cap = max(6, 24 // max(len(allowed_market_caps), 1))
         for mc in allowed_market_caps:
             if mc in stocks_by_mcap:
-                batch.extend(stocks_by_mcap[mc][:per_cap])
+                batch.extend(stocks_by_mcap[mc])
 
         if not batch:
-            batch = eligible[:24]
+            batch = list(eligible)
 
         raw_setups = []
         from concurrent.futures import ThreadPoolExecutor, wait
-        with ThreadPoolExecutor(max_workers=12) as executor:
+        with ThreadPoolExecutor(max_workers=16) as executor:
             future_to_item = {
                 executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
                 for it, tg in batch
             }
-            done_futs, _ = wait(future_to_item.keys(), timeout=16.0)
+            done_futs, _ = wait(future_to_item.keys(), timeout=18.0)
             for fut in done_futs:
                 try:
                     res = fut.result()
@@ -2467,33 +2465,12 @@ class PaperTradingEngine:
             seen_keys.add(key)
             setups.append(s)
 
+        # Strictly rank by maximum profit potential, margin ROI %, remaining R:R and style fit
         setups.sort(
             key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
             reverse=True,
         )
 
-        # When multiple market caps are enabled, ensure fair representation across Large, Mid, and Small caps
-        if len(allowed_market_caps) > 1 and len(setups) > 5:
-            balanced_setups = []
-            seen_setups = set()
-            by_cap = {mc: [s for s in setups if s.get("market_cap") == mc] for mc in allowed_market_caps}
-            # Add top 2-3 from each enabled cap first
-            for i in range(3):
-                for mc in allowed_market_caps:
-                    cap_list = by_cap.get(mc) or []
-                    if i < len(cap_list):
-                        s = cap_list[i]
-                        s_key = (s.get("symbol"), s.get("instrument_type"))
-                        if s_key not in seen_setups:
-                            seen_setups.add(s_key)
-                            balanced_setups.append(s)
-            # Fill the remainder with overall top ranked setups
-            for s in setups:
-                s_key = (s.get("symbol"), s.get("instrument_type"))
-                if s_key not in seen_setups:
-                    seen_setups.add(s_key)
-                    balanced_setups.append(s)
-            setups = balanced_setups
         self.last_scan_at = time.time()
         self.session.scanned_signals = setups
         return setups

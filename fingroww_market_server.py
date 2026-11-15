@@ -2236,7 +2236,7 @@ def paper_session_scan():
         "ok": True,
         "market_open": bool(market_status.get("is_trading_hours")),
         "count": len(setups),
-        "scanned_signals": u_sess.scanned_signals[:10],
+        "scanned_signals": u_sess.scanned_signals,
         "state": u_sess.get_state(),
     })
 
