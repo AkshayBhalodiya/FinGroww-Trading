@@ -57,11 +57,17 @@ def _init_mongo_connection():
         except Exception:
             pass
 
+        base_mongo_options = {
+            "serverSelectionTimeoutMS": 3000,
+            "connectTimeoutMS": 3000,
+            "socketTimeoutMS": 3500,
+            "maxPoolSize": 10,
+        }
         client_candidates = []
         if ca_file:
-            client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, "serverSelectionTimeoutMS": 4500}))
-        client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, "serverSelectionTimeoutMS": 4500}))
-        client_candidates.append(("standard-tls", {"serverSelectionTimeoutMS": 4500}))
+            client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, **base_mongo_options}))
+        client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, **base_mongo_options}))
+        client_candidates.append(("standard-tls", dict(base_mongo_options)))
 
         last_mongo_err = None
         for mode_name, client_kwargs in client_candidates:
@@ -241,7 +247,18 @@ def yahoo_ticker(symbol):
     return symbol + ".NS"
 
 
+_yahoo_chart_mem_cache = {}
+_yahoo_chart_mem_lock = threading.Lock()
+
+
 def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
+    cache_key = f"{ticker}_{interval}_{range_}"
+    now = time.time()
+    with _yahoo_chart_mem_lock:
+        cached = _yahoo_chart_mem_cache.get(cache_key)
+        if cached and (now - cached.get("fetched_at", 0) < 30.0):
+            return list(cached["rows"]), dict(cached["meta"])
+
     try:
         url = (
             "https://query1.finance.yahoo.com/v8/finance/chart/"
@@ -279,7 +296,17 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
                     "t": int(t) * 1000,
                 }
             )
-        return rows, block.get("meta") or {}
+        meta = block.get("meta") or {}
+        if rows:
+            with _yahoo_chart_mem_lock:
+                if len(_yahoo_chart_mem_cache) > 200:
+                    _yahoo_chart_mem_cache.clear()
+                _yahoo_chart_mem_cache[cache_key] = {
+                    "fetched_at": now,
+                    "rows": rows,
+                    "meta": meta,
+                }
+        return rows, meta
     except Exception:
         return [], {}
 
@@ -287,7 +314,7 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
 def nse_index_rows():
     global indices_cache
     now = time.time()
-    if now - indices_cache["at"] < 3 and indices_cache["rows"]:
+    if now - indices_cache["at"] < 20.0 and indices_cache["rows"]:
         return indices_cache["rows"]
     data = nse_get("/api/allIndices")
     rows = (data or {}).get("data") or []
@@ -410,54 +437,77 @@ DEFAULT_SPOTS = {
 }
 
 
+_general_quote_cache = {}
+_general_quote_cache_lock = threading.Lock()
+
+
 def resolve_quote(symbol):
+    now = time.time()
+    with _general_quote_cache_lock:
+        cached = _general_quote_cache.get(symbol)
+        if cached and (now - cached.get("fetched_at", 0) < 10.0):
+            return dict(cached)
+
+    res = None
     if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
         try:
             q = quote_from_nse_index(symbol)
             if q and q.get("lastPrice"):
-                return q
+                res = q
         except Exception:
             pass
 
-    if symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
+    if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
         try:
             q = quote_from_nse_equity(symbol)
             if q and q.get("lastPrice"):
-                return q
+                res = q
         except Exception:
             pass
 
-    if symbol == "SENSEX":
+    if not res and symbol == "SENSEX":
         try:
-            return quote_from_yahoo(symbol)
+            res = quote_from_yahoo(symbol)
         except Exception:
             pass
 
-    try:
-        q = quote_from_yahoo(symbol)
-        if q and q.get("lastPrice"):
-            return q
-    except Exception:
-        pass
+    if not res:
+        try:
+            q = quote_from_yahoo(symbol)
+            if q and q.get("lastPrice"):
+                res = q
+        except Exception:
+            pass
 
-    try:
-        q = quote_from_nse_index(symbol)
-        if q and q.get("lastPrice"):
-            return q
-    except Exception:
-        pass
+    if not res:
+        try:
+            q = quote_from_nse_index(symbol)
+            if q and q.get("lastPrice"):
+                res = q
+        except Exception:
+            pass
 
-    fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
-    return {
-        "source": "FinGroww Spec Engine (Fallback Close)",
-        "symbol": symbol,
-        "company": symbol,
-        "lastPrice": fallback_price,
-        "change": 0.0,
-        "pChange": 0.0,
-        "previousClose": fallback_price,
-        "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
-    }
+    if not res:
+        fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
+        res = {
+            "source": "FinGroww Spec Engine (Fallback Close)",
+            "symbol": symbol,
+            "company": symbol,
+            "lastPrice": fallback_price,
+            "change": 0.0,
+            "pChange": 0.0,
+            "previousClose": fallback_price,
+            "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
+        }
+
+    if res and res.get("lastPrice"):
+        res["fetched_at"] = now
+        with _general_quote_cache_lock:
+            if len(_general_quote_cache) > 200:
+                _general_quote_cache.clear()
+            _general_quote_cache[symbol] = dict(res)
+
+    return res
 
 
 def resolve_live_quote(symbol):
@@ -511,7 +561,7 @@ def paper_chart_resolver(symbol, interval="15m", range_="5d"):
     now = time.time()
     with paper_quote_cache_lock:
         cached = paper_chart_cache.get(cache_key)
-        if cached and now - cached["fetched_at"] < 60:
+        if cached and now - cached["fetched_at"] < 120:
             return list(cached["rows"])
     rows, _ = fetch_yahoo_chart(yahoo_ticker(symbol), interval, range_)
     if rows:
@@ -530,12 +580,14 @@ def get_nse_market_status():
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
     regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
-    cached = paper_market_cache["status"]
-    if cached and now - paper_market_cache["at"] < 5:
+    ttl = 25.0 if regular_session else 60.0
+
+    cached = paper_market_cache.get("status")
+    if cached and (now - paper_market_cache.get("at", 0) < ttl):
         current = dict(cached)
         current["is_trading_hours"] = bool(current["is_trading_hours"] and regular_session)
         current["market_status"] = "OPEN" if current["is_trading_hours"] else "CLOSED"
-        if not current["is_trading_hours"] and not current["reason"]:
+        if not current["is_trading_hours"] and not current.get("reason"):
             current["reason"] = "NSE regular trading session is closed."
         return current
 
@@ -1970,7 +2022,7 @@ def paper_background_worker():
             paper_manager.tick_all_running()
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
-        time.sleep(3.5)
+        time.sleep(6.0)
 
 paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
 paper_bg_thread.start()
@@ -2316,11 +2368,20 @@ def paper_create_profile():
         "holding_duration_mins": holding_mins,
     }
 
-    sess, msg = paper_manager.create_profile(user_name, cfg)
-    if not sess:
-        return jsonify({"error": msg}), 409 if "already exists" in msg else 400
+    try:
+        sess, msg = paper_manager.create_profile(user_name, cfg)
+        if not sess:
+            return jsonify({"error": msg}), 409 if "already exists" in msg else 400
 
-    return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
+        return jsonify({"ok": True, "message": msg, "profile": sess.get_state()})
+    except Exception as exc:
+        app.logger.exception("Failed to create profile %s", user_name)
+        # Even if persistence had a transient issue, retrieve the session from memory
+        try:
+            sess, _ = paper_manager.get_session(user_name)
+            return jsonify({"ok": True, "message": f"Profile [{user_name}] ready.", "profile": sess.get_state()})
+        except Exception:
+            return jsonify({"error": f"Failed to create profile: {str(exc)}"}), 500
 
 
 @app.get("/api/paper/leaderboard")

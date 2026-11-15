@@ -1435,13 +1435,12 @@
 
 <script>
 // Multi-Host Local & Production Endpoints
-const BACKEND_HOSTS = [
+const isLocalEnv = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
+const BACKEND_HOSTS = isLocalEnv ? [
   "http://127.0.0.1:8787",
-  "http://localhost:8787",
-  "https://fingroww-trading.onrender.com",
-  "" /* Vercel current origin */,
-  "http://127.0.0.1:5000",
-  "http://localhost:5000"
+  "https://fingroww-trading.onrender.com"
+] : [
+  "https://fingroww-trading.onrender.com"
 ];
 
 // Exact Real Market Spec Registry
