@@ -4056,8 +4056,8 @@ function renderScannedSetups(setups) {
   const list = document.getElementById("scannedSetupsList");
   const countEl = document.getElementById("lblScannedCount");
   const modeEl = document.getElementById("scannedRadarMode");
-  const items = setups || [];
-  countEl.textContent = `${items.length} detected`;
+  const items = (setups || []).slice(0, 30);
+  countEl.textContent = `${items.length} detected${items.length >= 30 ? ' (Top 30)' : ''}`;
 
   if (modeEl) {
     const isLive = Boolean(currentMarketStatus && currentMarketStatus.is_trading_hours);

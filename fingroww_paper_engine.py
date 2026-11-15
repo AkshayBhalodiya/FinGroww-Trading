@@ -1642,7 +1642,7 @@ class PaperTradingSession:
             "recent_closed_trades": self.closed_trades[:25],
             "total_closed_trades_count": len(self.closed_trades),
             "logs": self.logs[:30],
-            "scanned_signals": self.scanned_signals,
+            "scanned_signals": self.scanned_signals[:30],
         }
 
     @_session_locked
@@ -2431,14 +2431,16 @@ class PaperTradingEngine:
 
         batch = []
         if indices:
-            batch.extend(indices)
+            batch.extend(indices[:4])
 
+        # Allocate slots equally across all selected market caps (up to 36 high-liquidity candidate stocks)
+        per_cap = max(8, 36 // max(len(allowed_market_caps), 1))
         for mc in allowed_market_caps:
             if mc in stocks_by_mcap:
-                batch.extend(stocks_by_mcap[mc])
+                batch.extend(stocks_by_mcap[mc][:per_cap])
 
         if not batch:
-            batch = list(eligible)
+            batch = list(eligible[:36])
 
         raw_setups = []
         from concurrent.futures import ThreadPoolExecutor, wait
@@ -2470,6 +2472,9 @@ class PaperTradingEngine:
             key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
             reverse=True,
         )
+
+        # Limit to Top 30 maximum setups sorted by highest profit potential for ultra-fast performance
+        setups = setups[:30]
 
         self.last_scan_at = time.time()
         self.session.scanned_signals = setups
