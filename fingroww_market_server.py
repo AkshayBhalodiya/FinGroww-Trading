@@ -58,9 +58,9 @@ def _init_mongo_connection():
             pass
 
         base_mongo_options = {
-            "serverSelectionTimeoutMS": 3000,
-            "connectTimeoutMS": 3000,
-            "socketTimeoutMS": 3500,
+            "serverSelectionTimeoutMS": 1500,
+            "connectTimeoutMS": 1500,
+            "socketTimeoutMS": 2000,
             "maxPoolSize": 10,
         }
         client_candidates = []
@@ -182,7 +182,7 @@ def add_cors(resp):
 def init_nse(force=False):
     global last_init
     with lock:
-        if not force and time.time() - last_init < 60:
+        if not force and time.time() - last_init < 90:
             return
         last_init = time.time()
         try:
@@ -193,13 +193,13 @@ def init_nse(force=False):
                     "Accept": "text/html,application/xhtml+xml",
                     "Referer": NSE + "/",
                 },
-                timeout=3.0,
+                timeout=1.5,
             )
         except Exception:
             pass
 
 
-def nse_get(path, params=None, referer=None, timeout=2.5):
+def nse_get(path, params=None, referer=None, timeout=1.5):
     try:
         init_nse()
         r = session.get(
@@ -580,7 +580,20 @@ def get_nse_market_status():
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
     regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
-    ttl = 25.0 if regular_session else 60.0
+    ttl = 25.0 if regular_session else 120.0
+
+    # Instant fast-path for weekends and outside trading hours (prevents network hangs on cloud IPs)
+    if not regular_session:
+        reason = "NSE market is closed on weekends (Saturday & Sunday)." if ist.weekday() >= 5 else "NSE regular trading session is closed (trading hours: weekdays 09:15 to 15:30 IST)."
+        status = {
+            "is_trading_hours": False,
+            "market_status": "CLOSED",
+            "source": "NSE Schedule (Trading Hours 09:15-15:30 IST)",
+            "trade_date": ist.strftime("%d-%b-%Y"),
+            "reason": reason,
+        }
+        paper_market_cache.update({"at": now, "status": status})
+        return dict(status)
 
     cached = paper_market_cache.get("status")
     if cached and (now - paper_market_cache.get("at", 0) < ttl):
@@ -591,7 +604,7 @@ def get_nse_market_status():
             current["reason"] = "NSE regular trading session is closed."
         return current
 
-    data = nse_get("/api/marketStatus")
+    data = nse_get("/api/marketStatus", timeout=1.5)
     market_states = data.get("marketState") if isinstance(data, dict) else None
     market_states = market_states if isinstance(market_states, list) else []
     capital_market = next(

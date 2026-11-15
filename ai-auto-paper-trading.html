@@ -2995,10 +2995,10 @@ async function fetchPaperApi(path, options = {}) {
     candidateHosts.unshift(activePaperApiHost);
   }
 
-  // Generous timeouts to accommodate Render free-tier cold starts and complex scans without aborting
-  let timeoutMs = 45000;
+  // Responsive timeout: fast failover to fallback host without freezing browser
+  let timeoutMs = 12000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 60000;
+    timeoutMs = 25000;
   }
 
   for (const host of candidateHosts) {
