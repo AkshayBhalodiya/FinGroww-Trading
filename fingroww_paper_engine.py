@@ -664,7 +664,7 @@ class PaperTradingSession:
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
             "daily_loss_limit_inr": None,
-            "max_open_positions": 4,
+            "max_open_positions": 10,
             "auto_square_off_time": "15:15",
             "auto_stop_on_exit": False, # If True, engine automatically stops after all positions exit
         }
@@ -791,7 +791,7 @@ class PaperTradingSession:
             return False, "New trades are allowed only on NSE weekdays from 09:15 to 15:15 IST."
 
         # Max open positions check
-        max_pos = int(self.config.get("max_open_positions", 4))
+        max_pos = int(self.config.get("max_open_positions", 10))
         if len(self.positions) >= max_pos:
             return False, f"Maximum concurrent positions reached ({len(self.positions)}/{max_pos})."
 

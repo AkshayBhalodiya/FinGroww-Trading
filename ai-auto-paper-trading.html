@@ -2198,11 +2198,11 @@ button[disabled],
                 <option value="1">1 Concurrent Trade (Sniper Focus)</option>
                 <option value="2">2 Concurrent Trades</option>
                 <option value="3">3 Concurrent Trades</option>
-                <option value="4" selected>4 Concurrent Trades (Balanced Default)</option>
+                <option value="4">4 Concurrent Trades (Balanced)</option>
                 <option value="5">5 Concurrent Trades</option>
                 <option value="6">6 Concurrent Trades</option>
                 <option value="8">8 Concurrent Trades</option>
-                <option value="10">10 Concurrent Trades</option>
+                <option value="10" selected>10 Concurrent Trades (Default)</option>
                 <option value="12">12 Concurrent Trades</option>
                 <option value="15">15 Concurrent Trades</option>
                 <option value="20">20 Concurrent Trades</option>
@@ -3105,7 +3105,7 @@ function getFormConfig() {
     durUnit = durMins >= 1440 ? "days" : (durMins < 1 ? "seconds" : "minutes");
   }
 
-  const maxPos = parseInt(document.getElementById("selMaxPositions").value) || 4;
+  const maxPos = parseInt(document.getElementById("selMaxPositions").value) || 10;
   const riskProf = document.querySelector("input[name='riskProfile']:checked")?.value || "MODERATE";
   const stopLossInp = document.getElementById("inpStopLossPct");
   let stopLossPct = stopLossInp ? parseFloat(stopLossInp.value) : 10;
@@ -3597,7 +3597,7 @@ function syncConfigFormWithState(state) {
   if (rRadio) rRadio.checked = true;
 
   // Max positions & Risk guardrails (Stop Loss %, Target %, Auto-Stop)
-  if (document.getElementById("selMaxPositions")) document.getElementById("selMaxPositions").value = cfg.max_open_positions || 4;
+  if (document.getElementById("selMaxPositions")) document.getElementById("selMaxPositions").value = cfg.max_open_positions || 10;
   if (document.getElementById("inpStopLossPct")) {
     document.getElementById("inpStopLossPct").value = (cfg.stop_loss_pct !== undefined && cfg.stop_loss_pct !== null) ? cfg.stop_loss_pct : 10;
   }
