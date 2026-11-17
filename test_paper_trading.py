@@ -1738,6 +1738,139 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertAlmostEqual(self.session.positions[0]["current_price"], 26.80, places=2)
         self.assertGreater(self.session.positions[0]["unrealized_pnl"], 0)
 
+    def test_34_mandatory_stop_loss_pct_optional_target_pct_and_independent_position_exits(self):
+        """
+        Verifies:
+        1. Mandatory Stop Loss % (e.g. 10%) applies automatically to all open trades.
+        2. Optional Target % (e.g. 12%) applies automatically to all open trades when configured.
+        3. Independent position lifecycle: When 5 trades are running and 1 reaches +12% target,
+           ONLY that 1 trade closes with TARGET_HIT; the other 4 trades remain open and undisturbed.
+        4. When another single trade drops -10%, ONLY that trade closes with STOP_LOSS_HIT;
+           the remaining trades stay active and continue running.
+        5. When Target % is not configured (None), the trade does not auto-exit on arbitrary gain,
+           exiting only on Stop Loss, duration expiry, or manual close.
+        """
+        self.session.start()
+        self.session.reset(initial_capital=500000.0)
+        self.session.start()
+        self.session.update_config({
+            "stop_loss_pct": 10.0,
+            "target_pct": 12.0,
+            "max_open_positions": 5,
+        })
+
+        quotes = {
+            "STOCK1": 100.0,
+            "STOCK2": 100.0,
+            "STOCK3": 100.0,
+            "STOCK4": 100.0,
+            "STOCK5": 100.0,
+        }
+        quote_resolver = lambda sym: {
+            "source": "NSE",
+            "lastPrice": quotes.get(sym, 100.0),
+            "fetched_at": time.time(),
+            "exchange_timestamp": time.time(),
+        }
+
+        # Open 5 concurrent positions
+        opened = []
+        for sym in ["STOCK1", "STOCK2", "STOCK3", "STOCK4", "STOCK5"]:
+            setup = {
+                "symbol": sym,
+                "name": f"Company {sym}",
+                "instrument_type": "EQUITY",
+                "side": "BUY",
+                "entry_price": 100.0,
+                "stop_loss": 95.0,  # Legacy ATR fallback
+                "target_price": 105.0,  # Legacy ATR fallback
+                "strategy": "AI Momentum Pullback",
+                "confidence_score": 88,
+            }
+            pos, err = self.session.execute_trade(setup, quote_resolver=quote_resolver, market_is_open=True)
+            self.assertIsNotNone(pos, f"Failed to open position for {sym}: {err}")
+            opened.append(pos)
+
+        self.assertEqual(len(self.session.positions), 5)
+
+        # Verify all 5 positions have 10% SL and 12% Target calculated from execution price
+        for pos in self.session.positions:
+            entry = pos["entry_price"]
+            expected_sl = max(0.05, round(entry * 0.90, 2))
+            expected_tp = round(entry * 1.12, 2)
+            self.assertAlmostEqual(pos["stop_loss"], expected_sl, delta=0.05)
+            self.assertAlmostEqual(pos["target_price"], expected_tp, delta=0.05)
+            self.assertEqual(pos["stop_loss_pct"], 10.0)
+            self.assertEqual(pos["target_pct"], 12.0)
+
+        # Scenario 1: STOCK1 reaches +12% target (price goes to 115.0)
+        # All other 4 stocks stay at 100.0
+        quotes["STOCK1"] = 115.0
+        self.session.update_positions(quote_resolver, market_is_open=True)
+
+        # STOCK1 must be closed with TARGET_HIT
+        self.assertEqual(len(self.session.positions), 4)
+        self.assertEqual(len(self.session.closed_trades), 1)
+        closed_1 = self.session.closed_trades[0]
+        self.assertEqual(closed_1["symbol"], "STOCK1")
+        self.assertEqual(closed_1["exit_reason"], "TARGET_HIT")
+        self.assertTrue(closed_1["is_win"])
+        self.assertGreater(closed_1["net_pnl"], 0)
+
+        # The other 4 positions must remain ACTIVE and running
+        active_symbols = [p["symbol"] for p in self.session.positions]
+        self.assertEqual(active_symbols, ["STOCK2", "STOCK3", "STOCK4", "STOCK5"])
+        self.assertEqual(self.session.status, "RUNNING")
+
+        # Scenario 2: STOCK2 drops -10% and hits Stop-Loss (price drops to 88.0)
+        # STOCK3, STOCK4, STOCK5 stay at 100.0
+        quotes["STOCK2"] = 88.0
+        self.session.update_positions(quote_resolver, market_is_open=True)
+
+        # STOCK2 must be closed with STOP_LOSS_HIT
+        self.assertEqual(len(self.session.positions), 3)
+        self.assertEqual(len(self.session.closed_trades), 2)
+        closed_2 = self.session.closed_trades[0]  # Latest closed trade is at index 0
+        self.assertEqual(closed_2["symbol"], "STOCK2")
+        self.assertEqual(closed_2["exit_reason"], "STOP_LOSS_HIT")
+        self.assertFalse(closed_2["is_win"])
+        self.assertLess(closed_2["net_pnl"], 0)
+
+        # The remaining 3 positions must remain ACTIVE and running
+        active_symbols = [p["symbol"] for p in self.session.positions]
+        self.assertEqual(active_symbols, ["STOCK3", "STOCK4", "STOCK5"])
+        self.assertEqual(self.session.status, "RUNNING")
+
+        # Scenario 3: Optional Target (target_pct is not set / None)
+        # Open STOCK6 with no percentage target
+        self.session.update_config({"target_pct": None, "stop_loss_pct": 10.0})
+        quotes["STOCK6"] = 100.0
+        setup6 = {
+            "symbol": "STOCK6",
+            "name": "Company STOCK6",
+            "instrument_type": "EQUITY",
+            "side": "BUY",
+            "entry_price": 100.0,
+            "stop_loss": 90.0,
+            "target_price": 200.0,  # Distant setup target
+            "strategy": "Open Trend",
+            "confidence_score": 85,
+        }
+        pos6, err6 = self.session.execute_trade(setup6, quote_resolver=quote_resolver, market_is_open=True)
+        self.assertIsNotNone(pos6)
+        # Price rises by 12% (112.0) - should NOT trigger Target Hit because user did not set target_pct
+        quotes["STOCK6"] = 112.0
+        self.session.update_positions(quote_resolver, market_is_open=True)
+        self.assertIn("STOCK6", [p["symbol"] for p in self.session.positions])
+
+        # Price drops to 89.0 - mandatory 10% SL MUST trigger
+        quotes["STOCK6"] = 89.0
+        self.session.update_positions(quote_resolver, market_is_open=True)
+        self.assertNotIn("STOCK6", [p["symbol"] for p in self.session.positions])
+        closed_6 = self.session.closed_trades[0]
+        self.assertEqual(closed_6["symbol"], "STOCK6")
+        self.assertEqual(closed_6["exit_reason"], "STOP_LOSS_HIT")
+
 
 if __name__ == "__main__":
     unittest.main()

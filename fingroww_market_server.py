@@ -2143,6 +2143,30 @@ def paper_update_config():
         except (ValueError, TypeError):
             pass
 
+    if "stop_loss_pct" in data:
+        try:
+            if data["stop_loss_pct"] is not None and str(data["stop_loss_pct"]).strip() != "":
+                sl_val = float(data["stop_loss_pct"])
+                if sl_val <= 0 or sl_val > 95:
+                    return jsonify({"error": "Stop Loss (%) must be between 0.5% and 95%."}), 400
+                data["stop_loss_pct"] = sl_val
+            else:
+                return jsonify({"error": "Stop Loss (%) is mandatory for every trade."}), 400
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid Stop Loss percentage value."}), 400
+
+    if "target_pct" in data:
+        try:
+            if data["target_pct"] is not None and str(data["target_pct"]).strip() != "":
+                tp_val = float(data["target_pct"])
+                if tp_val <= 0 or tp_val > 500:
+                    return jsonify({"error": "Target (%) must be between 0.5% and 500%."}), 400
+                data["target_pct"] = tp_val
+            else:
+                data["target_pct"] = None
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid Target percentage value."}), 400
+
     u_sess.update_config(data)
     u_eng.last_scan_at = 0.0
     u_sess.save_to_db()

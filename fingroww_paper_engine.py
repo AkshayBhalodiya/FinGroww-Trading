@@ -663,7 +663,7 @@ class PaperTradingSession:
             "holding_duration_mins": 15, # 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
-            "daily_loss_limit_inr": 4000.0,
+            "daily_loss_limit_inr": None,
             "max_open_positions": 4,
             "auto_square_off_time": "15:15",
             "auto_stop_on_exit": False, # If True, engine automatically stops after all positions exit
@@ -718,7 +718,7 @@ class PaperTradingSession:
             return
         for k in ["instruments", "market_caps", "market", "trading_style", "holding_duration_mins", "risk_profile",
                   "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions",
-                  "auto_stop_on_exit"]:
+                  "auto_stop_on_exit", "stop_loss_pct", "target_pct"]:
             if k in new_config:
                 self.config[k] = new_config[k]
 
@@ -795,10 +795,11 @@ class PaperTradingSession:
         if len(self.positions) >= max_pos:
             return False, f"Maximum concurrent positions reached ({len(self.positions)}/{max_pos})."
 
-        # Daily loss limit check
-        daily_loss_limit = float(self.config.get("daily_loss_limit_inr", 4000.0))
-        if self.total_pnl <= -daily_loss_limit:
-            return False, f"Daily max loss limit ₹{daily_loss_limit:,.2f} breached. New trades halted."
+        # Daily loss limit check (if configured)
+        daily_loss_limit = self.config.get("daily_loss_limit_inr")
+        if daily_loss_limit is not None and float(daily_loss_limit) > 0:
+            if self.total_pnl <= -float(daily_loss_limit):
+                return False, f"Daily max loss limit ₹{float(daily_loss_limit):,.2f} breached. New trades halted."
 
         # Available capital check
         if self.available_balance < 3000.0:
@@ -965,6 +966,24 @@ class PaperTradingSession:
                     else:
                         sl = round(exec_price + risk_distance, 2)
                         tp = round(exec_price - (risk_distance * reward_risk), 2)
+
+        # Apply user-configured per-trade Stop Loss % and Target %
+        cfg_sl_pct = self.config.get("stop_loss_pct")
+        cfg_tp_pct = self.config.get("target_pct")
+
+        if cfg_sl_pct is not None and float(cfg_sl_pct) > 0:
+            user_sl = float(cfg_sl_pct)
+            if side == "BUY":
+                sl = max(0.05, round(exec_price * (1.0 - (user_sl / 100.0)), 2))
+            else:
+                sl = round(exec_price * (1.0 + (user_sl / 100.0)), 2)
+
+        if cfg_tp_pct is not None and str(cfg_tp_pct).strip() != "" and float(cfg_tp_pct) > 0:
+            user_tp = float(cfg_tp_pct)
+            if side == "BUY":
+                tp = round(exec_price * (1.0 + (user_tp / 100.0)), 2)
+            else:
+                tp = max(0.05, round(exec_price * (1.0 - (user_tp / 100.0)), 2))
 
         if side == "BUY" and not sl < exec_price < tp:
             return None, f"Invalid stop-loss or target relative to live entry for {sym}."
@@ -1138,9 +1157,11 @@ class PaperTradingSession:
             "target_price": tp,
             "stop_loss": sl,
             "initial_stop_loss": sl,
+            "stop_loss_pct": float(cfg_sl_pct) if (cfg_sl_pct is not None and float(cfg_sl_pct) > 0) else None,
+            "target_pct": float(cfg_tp_pct) if (cfg_tp_pct is not None and str(cfg_tp_pct).strip() != "" and float(cfg_tp_pct) > 0) else None,
             "trailing_state": "INITIAL",
             "trailing_label": "Standard SL Active",
-            "risk_reward": round(abs(tp - exec_price) / risk_per_unit, 2),
+            "risk_reward": round(abs(tp - exec_price) / risk_per_unit, 2) if (tp is not None and tp > 0) else None,
             "max_risk_inr": round(actual_qty * risk_per_unit, 2),
             "strategy": setup.get("strategy", "AI Quantitative Momentum"),
             "confidence_score": setup.get("confidence_score", 84),
@@ -1159,7 +1180,8 @@ class PaperTradingSession:
         }
 
         self.positions.append(position)
-        self.log_event("ORDER_FILLED", f"Filled {side} {actual_qty} {sym} ({inst_type}) @ ₹{exec_price:,.2f}. Target: ₹{tp:,.2f}, SL: ₹{sl:,.2f}")
+        tp_str = f"₹{tp:,.2f}" if (tp is not None and tp > 0) else "None (Open)"
+        self.log_event("ORDER_FILLED", f"Filled {side} {actual_qty} {sym} ({inst_type}) @ ₹{exec_price:,.2f}. Target: {tp_str}, SL: ₹{sl:,.2f}")
         self._recalculate_equity()
         self.save_to_db()
         return position, "Success"
@@ -1236,7 +1258,7 @@ class PaperTradingSession:
             pos["last_updated"] = get_ist_str()
 
             # --- 80%+ Win-Rate Dynamic Breakeven & Profit Lock-In Trailing System ---
-            target_distance = abs(tp - entry_p)
+            target_distance = abs(tp - entry_p) if (tp is not None and tp > 0) else 0.0
             if target_distance > 0:
                 favorable_move = (curr_price - entry_p) if side == "BUY" else (entry_p - curr_price)
                 progress_ratio = favorable_move / target_distance
@@ -1281,9 +1303,9 @@ class PaperTradingSession:
             # Check Exit Conditions:
             exit_reason = None
             if side == "BUY":
-                if curr_price >= tp:
+                if tp is not None and tp > 0 and curr_price >= tp:
                     exit_reason = "TARGET_HIT"
-                elif curr_price <= sl:
+                elif sl is not None and sl > 0 and curr_price <= sl:
                     if pos.get("trailing_state") in ("PROFIT_LOCKED", "PROFIT_LOCKED_MAX"):
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
@@ -1291,9 +1313,9 @@ class PaperTradingSession:
                     else:
                         exit_reason = "STOP_LOSS_HIT"
             else: # SELL
-                if curr_price <= tp:
+                if tp is not None and tp > 0 and curr_price <= tp:
                     exit_reason = "TARGET_HIT"
-                elif curr_price >= sl:
+                elif sl is not None and sl > 0 and curr_price >= sl:
                     if pos.get("trailing_state") in ("PROFIT_LOCKED", "PROFIT_LOCKED_MAX"):
                         exit_reason = "TRAILING_STOP_PROFIT_HIT"
                     elif pos.get("trailing_state") == "BREAKEVEN":
@@ -1402,6 +1424,8 @@ class PaperTradingSession:
             "used_amount": pos.get("allocated_margin", round(entry_p * qty, 2)),
             "target_price": pos["target_price"],
             "stop_loss": pos["stop_loss"],
+            "stop_loss_pct": pos.get("stop_loss_pct"),
+            "target_pct": pos.get("target_pct"),
             "gross_pnl": gross_pnl,
             "net_pnl": net_pnl,
             "charges": total_charges,
@@ -2156,6 +2180,16 @@ class PaperTradingEngine:
             stop_loss = round(entry_price - risk_distance if curr_side == "BUY" else entry_price + risk_distance, 2)
             target_price = round(entry_price + (risk_distance * min_rr) if curr_side == "BUY" else entry_price - (risk_distance * min_rr), 2)
             setup_risk = round(risk_distance, 4)
+
+            sess_cfg = self.session.config if getattr(self, "session", None) else {}
+            sl_pct_cfg = sess_cfg.get("stop_loss_pct")
+            if sl_pct_cfg is not None and float(sl_pct_cfg) > 0:
+                stop_loss = max(0.05, round(entry_price * (1.0 - (float(sl_pct_cfg) / 100.0)) if curr_side == "BUY" else entry_price * (1.0 + (float(sl_pct_cfg) / 100.0)), 2))
+                setup_risk = round(abs(entry_price - stop_loss), 4)
+
+            tp_pct_cfg = sess_cfg.get("target_pct")
+            if tp_pct_cfg is not None and str(tp_pct_cfg).strip() != "" and float(tp_pct_cfg) > 0:
+                target_price = round(entry_price * (1.0 + (float(tp_pct_cfg) / 100.0)) if curr_side == "BUY" else entry_price * (1.0 - (float(tp_pct_cfg) / 100.0)), 2)
             opt_type = None
             strike = None
             delta = None
@@ -2266,8 +2300,16 @@ class PaperTradingEngine:
                     opt_premium = round(live_price * (0.020 if target_inst_type == "STOCK_OPTIONS" else 0.010), 2)
                 opt_risk = round(opt_premium * 0.25, 2)
                 entry_price = opt_premium
-                stop_loss = max(0.05, round(entry_price - opt_risk, 2))
-                target_price = round(entry_price + (opt_risk * min_rr), 2)
+                if sl_pct_cfg is not None and float(sl_pct_cfg) > 0:
+                    stop_loss = max(0.05, round(entry_price * (1.0 - (float(sl_pct_cfg) / 100.0)), 2))
+                    opt_risk = round(abs(entry_price - stop_loss), 2)
+                else:
+                    stop_loss = max(0.05, round(entry_price - opt_risk, 2))
+
+                if tp_pct_cfg is not None and str(tp_pct_cfg).strip() != "" and float(tp_pct_cfg) > 0:
+                    target_price = round(entry_price * (1.0 + (float(tp_pct_cfg) / 100.0)), 2)
+                else:
+                    target_price = round(entry_price + (opt_risk * min_rr), 2)
                 setup_risk = opt_risk
                 curr_side = "BUY"  # Retail option buyer buys contract
                 delta = 0.50
@@ -2307,6 +2349,8 @@ class PaperTradingEngine:
                 "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 2),
                 "stop_loss": stop_loss,
                 "target_price": target_price,
+                "stop_loss_pct": float(sl_pct_cfg) if (sl_pct_cfg is not None and float(sl_pct_cfg) > 0) else None,
+                "target_pct": float(tp_pct_cfg) if (tp_pct_cfg is not None and str(tp_pct_cfg).strip() != "" and float(tp_pct_cfg) > 0) else None,
                 "risk_distance": setup_risk,
                 "reward_risk": min_rr,
                 "strategy": strat,
@@ -2322,13 +2366,13 @@ class PaperTradingEngine:
                 "min_lot_margin": min_lot_margin,
                 "delta": delta,
                 "rationale": (
-                    f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: ₹{target_price:.2f} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
+                    f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: {f'₹{target_price:.2f}' if target_price else 'Open'} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
                 ) if (is_long_term_style and target_inst_type == "EQUITY") else (
                     f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
-                    f"Entry uses NSE LTP; stop is 1.5x ATR(14), target is {min_rr:.2f}R."
+                    f"Entry uses NSE LTP; stop is {f'{sl_pct_cfg:.1f}% (₹{stop_loss:.2f})' if sl_pct_cfg else '1.5x ATR(14)'}, target is {f'₹{target_price:.2f}' if target_price else f'{min_rr:.2f}R'}."
                 ) if target_inst_type not in ("INDEX_OPTIONS", "STOCK_OPTIONS") else (
                     f"BUY {display_sym} [{expiry_label}]: ATM option tracking {sym} trend. "
-                    f"Option SL: ₹{stop_loss:.2f}, Target: ₹{target_price:.2f} ({min_rr:.2f}R)."
+                    f"Option SL: ₹{stop_loss:.2f}, Target: {f'₹{target_price:.2f}' if target_price else 'Open'} ({min_rr:.2f}R)."
                 ),
             }
 

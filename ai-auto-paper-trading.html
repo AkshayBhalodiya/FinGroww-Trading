@@ -2245,25 +2245,40 @@ button[disabled],
             </div>
           </div>
 
-          <!-- Daily Max Loss Limit & Auto-Stop Switch -->
+          <!-- Per-Trade Risk Management: Stop Loss % (Mandatory) & Target % (Optional) -->
           <div class="config-row">
             <div class="form-group">
-              <label class="form-label">Daily Max Loss Stop (₹)</label>
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Stop Loss per Trade (%)</span>
+                <span style="color:var(--accent-red); font-size:10px; font-weight:800; text-transform:uppercase;">* Mandatory</span>
+              </label>
               <div class="input-with-symbol">
-                <span class="sym-icon" style="color:var(--accent-red);">₹</span>
-                <input type="number" id="inpDailyLoss" value="4000" min="500" step="500">
+                <span class="sym-icon" style="color:var(--accent-red); font-size:14px; font-weight:800;">%</span>
+                <input type="number" id="inpStopLossPct" value="10" min="0.5" max="95" step="0.5" placeholder="e.g. 10" required>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Auto-Stop After Exit</label>
-              <label class="toggle-switch-card" title="Stop taking trades once all current positions complete their holding duration">
-                <span class="toggle-switch-label">Auto-stop on duration exit</span>
-                <span class="toggle-pill">
-                  <input type="checkbox" id="chkAutoStopOnExit">
-                  <span class="toggle-slider"></span>
-                </span>
+              <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Target per Trade (%)</span>
+                <span style="color:var(--text-dim); font-size:10px; font-weight:600; text-transform:uppercase;">Optional</span>
               </label>
+              <div class="input-with-symbol">
+                <span class="sym-icon" style="color:var(--accent-green); font-size:14px; font-weight:800;">%</span>
+                <input type="number" id="inpTargetPct" value="12" min="0.5" max="500" step="0.5" placeholder="Optional (e.g. 12)">
+              </div>
             </div>
+          </div>
+
+          <!-- Auto-Stop Switch -->
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Auto-Stop After Exit</label>
+            <label class="toggle-switch-card" title="Stop taking trades once all current positions complete their holding duration">
+              <span class="toggle-switch-label">Auto-stop on duration exit</span>
+              <span class="toggle-pill">
+                <input type="checkbox" id="chkAutoStopOnExit">
+                <span class="toggle-slider"></span>
+              </span>
+            </label>
           </div>
         </div>
 
@@ -3092,7 +3107,16 @@ function getFormConfig() {
 
   const maxPos = parseInt(document.getElementById("selMaxPositions").value) || 4;
   const riskProf = document.querySelector("input[name='riskProfile']:checked")?.value || "MODERATE";
-  const dailyLoss = parseFloat(document.getElementById("inpDailyLoss").value) || 4000;
+  const stopLossInp = document.getElementById("inpStopLossPct");
+  let stopLossPct = stopLossInp ? parseFloat(stopLossInp.value) : 10;
+  if (isNaN(stopLossPct) || stopLossPct <= 0) {
+    stopLossPct = 10;
+  }
+  const targetInp = document.getElementById("inpTargetPct");
+  let targetPct = targetInp && targetInp.value.trim() !== "" ? parseFloat(targetInp.value) : null;
+  if (targetPct !== null && (isNaN(targetPct) || targetPct <= 0)) {
+    targetPct = null;
+  }
   const autoStopOnExit = document.getElementById("chkAutoStopOnExit") ? document.getElementById("chkAutoStopOnExit").checked : false;
 
   return {
@@ -3107,7 +3131,8 @@ function getFormConfig() {
     duration_unit: durUnit,
     max_open_positions: maxPos,
     risk_profile: riskProf,
-    daily_loss_limit_inr: dailyLoss,
+    stop_loss_pct: stopLossPct,
+    target_pct: targetPct,
     auto_stop_on_exit: autoStopOnExit
   };
 }
@@ -3171,6 +3196,23 @@ async function scanConfirmedSetups(btnEl = null, showFeedback = false) {
 }
 
 async function applyConfig(btnEl = null) {
+  const slInp = document.getElementById("inpStopLossPct");
+  const slVal = slInp ? parseFloat(slInp.value) : NaN;
+  if (isNaN(slVal) || slVal <= 0) {
+    showToast("Stop Loss (%) is mandatory for every trade (e.g. 10%).", "warning");
+    if (slInp) slInp.focus();
+    return;
+  }
+  const tpInp = document.getElementById("inpTargetPct");
+  if (tpInp && tpInp.value.trim() !== "") {
+    const tpVal = parseFloat(tpInp.value);
+    if (isNaN(tpVal) || tpVal <= 0) {
+      showToast("Target (%) must be a positive percentage or left blank.", "warning");
+      tpInp.focus();
+      return;
+    }
+  }
+
   return withActionLock("apply_config", async () => {
     const config = getFormConfig();
     const res = await fetchPaperApi("/api/paper/session/config", {
@@ -3191,6 +3233,23 @@ async function applyConfig(btnEl = null) {
 // -------------------------------------------------------------------------
 
 async function handleStartTrading() {
+  const slInp = document.getElementById("inpStopLossPct");
+  const slVal = slInp ? parseFloat(slInp.value) : NaN;
+  if (isNaN(slVal) || slVal <= 0) {
+    showToast("Stop Loss (%) is mandatory for every trade (e.g. 10%).", "warning");
+    if (slInp) slInp.focus();
+    return;
+  }
+  const tpInp = document.getElementById("inpTargetPct");
+  if (tpInp && tpInp.value.trim() !== "") {
+    const tpVal = parseFloat(tpInp.value);
+    if (isNaN(tpVal) || tpVal <= 0) {
+      showToast("Target (%) must be a positive percentage or left blank.", "warning");
+      tpInp.focus();
+      return;
+    }
+  }
+
   const btn = document.getElementById("btnStart");
   return withActionLock("engine_start", async () => {
     const config = getFormConfig();
@@ -3537,9 +3596,14 @@ function syncConfigFormWithState(state) {
   const rRadio = document.querySelector(`input[name='riskProfile'][value='${rp}']`);
   if (rRadio) rRadio.checked = true;
 
-  // Max positions & Daily loss
+  // Max positions & Risk guardrails (Stop Loss %, Target %, Auto-Stop)
   if (document.getElementById("selMaxPositions")) document.getElementById("selMaxPositions").value = cfg.max_open_positions || 4;
-  if (document.getElementById("inpDailyLoss")) document.getElementById("inpDailyLoss").value = cfg.daily_loss_limit_inr || 4000;
+  if (document.getElementById("inpStopLossPct")) {
+    document.getElementById("inpStopLossPct").value = (cfg.stop_loss_pct !== undefined && cfg.stop_loss_pct !== null) ? cfg.stop_loss_pct : 10;
+  }
+  if (document.getElementById("inpTargetPct")) {
+    document.getElementById("inpTargetPct").value = (cfg.target_pct !== undefined && cfg.target_pct !== null) ? cfg.target_pct : "";
+  }
   if (document.getElementById("chkAutoStopOnExit")) document.getElementById("chkAutoStopOnExit").checked = !!cfg.auto_stop_on_exit;
 
   // Update HUD Characteristic Badges
@@ -3943,20 +4007,24 @@ function renderActivePositions(positions) {
     const sl = pos.stop_loss;
 
     let progressPct = 50;
-    if (isBuy) {
-      if (curr >= target) progressPct = 100;
-      else if (curr <= sl) progressPct = 0;
-      else {
-        const span = target - sl;
-        if (span > 0) progressPct = Math.round(((curr - sl) / span) * 100);
+    if (target && target > 0) {
+      if (isBuy) {
+        if (curr >= target) progressPct = 100;
+        else if (curr <= sl) progressPct = 0;
+        else {
+          const span = target - sl;
+          if (span > 0) progressPct = Math.round(((curr - sl) / span) * 100);
+        }
+      } else {
+        if (curr <= target) progressPct = 100;
+        else if (curr >= sl) progressPct = 0;
+        else {
+          const span = sl - target;
+          if (span > 0) progressPct = Math.round(((sl - curr) / span) * 100);
+        }
       }
     } else {
-      if (curr <= target) progressPct = 100;
-      else if (curr >= sl) progressPct = 0;
-      else {
-        const span = sl - target;
-        if (span > 0) progressPct = Math.round(((sl - curr) / span) * 100);
-      }
+      progressPct = curr >= entry ? 65 : Math.max(10, Math.round(((curr - sl) / Math.max(1, entry - sl)) * 50));
     }
 
     // Time elapsed / remaining
@@ -3994,9 +4062,12 @@ function renderActivePositions(positions) {
           <div style="font-weight:800;color:var(--accent-gold);">₹${usedAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <div style="font-size:10px;color:var(--text-dim);">${usedSubtext}</div>
         </td>
-        <td style="font-family:var(--font-mono);color:var(--accent-green);">₹${(Number(pos.target_price) || 0).toFixed(2)}</td>
+        <td style="font-family:var(--font-mono);color:var(--accent-green);">
+          ${pos.target_price ? `₹${(Number(pos.target_price) || 0).toFixed(2)}${pos.target_pct ? `<div style="font-size:10px;font-weight:700;color:var(--accent-green);">+${pos.target_pct}%</div>` : ''}` : '<span style="color:var(--text-dim);font-size:11px;">Open</span>'}
+        </td>
         <td style="font-family:var(--font-mono);color:var(--accent-red);">
           ₹${(Number(pos.stop_loss) || 0).toFixed(2)}
+          ${pos.stop_loss_pct ? `<div style="font-size:10px;font-weight:700;color:var(--accent-red);">-${pos.stop_loss_pct}%</div>` : ''}
           ${pos.trailing_label ? `<div style="font-size:9.5px;font-weight:800;color:${pos.trailing_state === 'PROFIT_LOCKED_MAX' || pos.trailing_state === 'PROFIT_LOCKED' ? 'var(--accent-green)' : (pos.trailing_state === 'BREAKEVEN' ? 'var(--accent-blue)' : 'var(--text-dim)')};margin-top:2px;">${pos.trailing_label}</div>` : ''}
         </td>
         <td style="font-size:12px;font-family:var(--font-mono);">
@@ -4107,7 +4178,7 @@ function renderScannedSetups(setups) {
           </div>
         </div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">
-          NSE LTP ${formatInr(s.entry_price)} | SL ${formatInr(s.stop_loss)} | Target ${formatInr(s.target_price)} | Room: +${m.remaining_profit_points || 0} pts
+          NSE LTP ${formatInr(s.entry_price)} | SL ${formatInr(s.stop_loss)} | Target ${s.target_price ? formatInr(s.target_price) : 'Open'} | Room: +${m.remaining_profit_points || 0} pts
         </div>
         <div style="font-size:10.5px;color:var(--text-dim);margin-top:4px;">${s.rationale}</div>
       </div>`;
