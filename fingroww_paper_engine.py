@@ -660,7 +660,7 @@ class PaperTradingSession:
             "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
             "market": "NSE",
              "trading_style": "HIGH_WINRATE", # HIGH_WINRATE, INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
-            "holding_duration_mins": 15, # 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
+            "holding_duration_mins": 1440, # 1 Day (1440 mins) default; 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
             "daily_loss_limit_inr": None,
@@ -867,7 +867,7 @@ class PaperTradingSession:
         raw_entry = float(setup["entry_price"])
         sl = float(setup["stop_loss"])
         tp = float(setup["target_price"])
-        holding_duration_mins = float(self.config.get("holding_duration_mins", 15))
+        holding_duration_mins = float(self.config.get("holding_duration_mins", 1440))
 
         supported_types = ("EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_FUTURES", "STOCK_OPTIONS")
         if side not in ("BUY", "SELL") or inst_type not in supported_types:

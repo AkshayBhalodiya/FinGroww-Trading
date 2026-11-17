@@ -2150,13 +2150,13 @@ button[disabled],
                   <option value="0.5">30 Seconds (⚡ Fast Demo - Auto Exit Test)</option>
                   <option value="1">1 Minute (Quick Test)</option>
                   <option value="5">5 Minutes</option>
-                  <option value="15" selected>15 Minutes (Standard Intraday)</option>
+                  <option value="15">15 Minutes (Standard Intraday)</option>
                   <option value="30">30 Minutes</option>
                   <option value="60">1 Hour (Session Trend)</option>
                   <option value="240">4 Hours (Half Day)</option>
                 </optgroup>
                 <optgroup label="📅 Swing Trading (Days)">
-                  <option value="1440">1 Day (EOD Carryforward)</option>
+                  <option value="1440" selected>1 Day (EOD Carryforward)</option>
                   <option value="2880">2 Days (Short Swing)</option>
                   <option value="4320">3 Days</option>
                   <option value="7200">5 Days (1 Trading Week)</option>
@@ -3082,9 +3082,9 @@ function getFormConfig() {
   const market = document.getElementById("selMarket").value;
   const style = document.getElementById("selStyle").value;
   
-  let durMins = 15;
-  let durVal = 15;
-  let durUnit = "minutes";
+  let durMins = 1440;
+  let durVal = 1;
+  let durUnit = "days";
 
   const selDur = document.getElementById("selDuration").value;
   if (selDur === "custom") {
@@ -3100,9 +3100,9 @@ function getFormConfig() {
     };
     durMins = durVal * (multMap[durUnit] || 1);
   } else {
-    durMins = parseFloat(selDur) || 15;
-    durVal = durMins;
-    durUnit = durMins < 1 ? "seconds" : "minutes";
+    durMins = parseFloat(selDur) || 1440;
+    durVal = durMins >= 1440 ? Math.floor(durMins / 1440) : durMins;
+    durUnit = durMins >= 1440 ? "days" : (durMins < 1 ? "seconds" : "minutes");
   }
 
   const maxPos = parseInt(document.getElementById("selMaxPositions").value) || 4;
@@ -3576,7 +3576,7 @@ function syncConfigFormWithState(state) {
   if (document.getElementById("selStyle")) document.getElementById("selStyle").value = cfg.trading_style || "HIGH_WINRATE";
 
   // Duration
-  const durMins = cfg.holding_duration_mins || 15;
+  const durMins = (cfg.holding_duration_mins !== undefined && cfg.holding_duration_mins !== null) ? cfg.holding_duration_mins : 1440;
   const selDur = document.getElementById("selDuration");
   if (selDur) {
     const matchOpt = Array.from(selDur.options).some(o => o.value == durMins);
