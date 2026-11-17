@@ -580,7 +580,7 @@ def get_nse_market_status():
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
     regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
-    ttl = 25.0 if regular_session else 60.0
+    ttl = 45.0 if regular_session else 120.0
 
     cached = paper_market_cache.get("status")
     if cached and (now - paper_market_cache.get("at", 0) < ttl):
@@ -2023,7 +2023,7 @@ def paper_background_worker():
             paper_manager.tick_all_running()
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
-        time.sleep(6.0)
+        time.sleep(10.0)
 
 paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
 paper_bg_thread.start()
@@ -2254,7 +2254,7 @@ def paper_session_scan():
     if scan_patch:
         u_sess.update_config(scan_patch)
 
-    setups = u_eng.scan_and_evaluate_setups()
+    setups = u_eng.scan_and_evaluate_setups(force=True)
     market_status = get_nse_market_status()
     return jsonify({
         "ok": True,

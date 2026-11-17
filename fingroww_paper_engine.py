@@ -1983,6 +1983,8 @@ class PaperTradingEngine:
         self.option_quote_resolver = option_quote_resolver
         self.last_scan_at = 0.0
         self._tick_lock = threading.Lock()
+        self._scan_lock = threading.Lock()
+        self._scan_in_flight = False
 
     def _eval_single_item(self, item, targets_for_item, allowed_market_caps, is_long_term_style, min_rr):
         sym = item["symbol"]
@@ -2417,119 +2419,131 @@ class PaperTradingEngine:
             setup.get("symbol", ""),
         )
 
-    def scan_and_evaluate_setups(self):
+    def scan_and_evaluate_setups(self, force=False):
         """
         Scans instrument universe using real-time quotes, multi-strategy quantitative confluence,
         and institutional risk-reward models for Equities, Index Futures, Index Options, Stock Futures, and Stock Options.
+        Optimized with non-blocking concurrency guard and balanced worker pool for instant response.
         """
-        cfg_types = list(self.session.config.get("instruments") or [])
-        allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"]
+        if not force and not self._scan_lock.acquire(blocking=False):
+            # Another scan is already active; reuse cached setups without blocking
+            return list(self.session.scanned_signals)
 
-        cfg_market_caps = list(self.session.config.get("market_caps") or [])
-        allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
+        try:
+            self.last_scan_at = time.time()
+            cfg_types = list(self.session.config.get("instruments") or [])
+            allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"]
 
-        trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
-        is_long_term_style = (trading_style == "LONG_TERM")
+            cfg_market_caps = list(self.session.config.get("market_caps") or [])
+            allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
 
-        # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
-        has_index_options = "INDEX_OPTIONS" in allowed_types
-        has_stock_options = ("STOCK_OPTIONS" in allowed_types) or ("OPTIONS" in allowed_types)
-        has_index_futures = "INDEX_FUTURES" in allowed_types
-        has_equity = "EQUITY" in allowed_types
-        has_stock_futures = "STOCK_FUTURES" in allowed_types
-        min_rr = float(self.session.config.get("min_rr", 1.8))
+            trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
+            is_long_term_style = (trading_style == "LONG_TERM")
 
-        eligible = []
-        for item in UNIVERSE:
-            item_type = item["type"]
-            item_sym = item["symbol"]
-            item_mcap = item.get("market_cap", "LARGE_CAP")
-            if item_mcap not in allowed_market_caps:
-                continue
+            # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
+            has_index_options = "INDEX_OPTIONS" in allowed_types
+            has_stock_options = ("STOCK_OPTIONS" in allowed_types) or ("OPTIONS" in allowed_types)
+            has_index_futures = "INDEX_FUTURES" in allowed_types
+            has_equity = "EQUITY" in allowed_types
+            has_stock_futures = "STOCK_FUTURES" in allowed_types
+            min_rr = float(self.session.config.get("min_rr", 1.8))
 
-            targets_for_item = []
-            if item_type == "INDEX":
-                if has_index_options:
-                    targets_for_item.append("INDEX_OPTIONS")
-                if has_index_futures:
-                    targets_for_item.append("INDEX_FUTURES")
-            elif item_type == "STOCK":
-                is_fo_stock = (item_sym in LOT_SIZES) and (item_sym not in NON_FO_STOCK_SYMBOLS)
-                if has_stock_options and is_fo_stock:
-                    targets_for_item.append("STOCK_OPTIONS")
-                if has_equity:
-                    targets_for_item.append("EQUITY")
-                if has_stock_futures and is_fo_stock:
-                    targets_for_item.append("STOCK_FUTURES")
+            eligible = []
+            for item in UNIVERSE:
+                item_type = item["type"]
+                item_sym = item["symbol"]
+                item_mcap = item.get("market_cap", "LARGE_CAP")
+                if item_mcap not in allowed_market_caps:
+                    continue
 
-            if targets_for_item:
-                eligible.append((item, targets_for_item))
+                targets_for_item = []
+                if item_type == "INDEX":
+                    if has_index_options:
+                        targets_for_item.append("INDEX_OPTIONS")
+                    if has_index_futures:
+                        targets_for_item.append("INDEX_FUTURES")
+                elif item_type == "STOCK":
+                    is_fo_stock = (item_sym in LOT_SIZES) and (item_sym not in NON_FO_STOCK_SYMBOLS)
+                    if has_stock_options and is_fo_stock:
+                        targets_for_item.append("STOCK_OPTIONS")
+                    if has_equity:
+                        targets_for_item.append("EQUITY")
+                    if has_stock_futures and is_fo_stock:
+                        targets_for_item.append("STOCK_FUTURES")
 
-        # Separate benchmark indices and market-cap stocks so indices do not crowd out Large Cap equities
-        indices = [entry for entry in eligible if entry[0]["type"] == "INDEX"]
-        stocks_by_mcap = {}
-        for it, tg in eligible:
-            if it["type"] == "STOCK":
-                mc = it.get("market_cap", "LARGE_CAP")
-                stocks_by_mcap.setdefault(mc, []).append((it, tg))
+                if targets_for_item:
+                    eligible.append((item, targets_for_item))
 
-        batch = []
-        if indices:
-            batch.extend(indices[:4])
+            # Separate benchmark indices and market-cap stocks so indices do not crowd out Large Cap equities
+            indices = [entry for entry in eligible if entry[0]["type"] == "INDEX"]
+            stocks_by_mcap = {}
+            for it, tg in eligible:
+                if it["type"] == "STOCK":
+                    mc = it.get("market_cap", "LARGE_CAP")
+                    stocks_by_mcap.setdefault(mc, []).append((it, tg))
 
-        # Allocate slots equally across all selected market caps (up to 36 high-liquidity candidate stocks)
-        per_cap = max(8, 36 // max(len(allowed_market_caps), 1))
-        for mc in allowed_market_caps:
-            if mc in stocks_by_mcap:
-                batch.extend(stocks_by_mcap[mc][:per_cap])
+            batch = []
+            if indices:
+                batch.extend(indices[:3]) # Top 3 benchmark indices
 
-        if not batch:
-            batch = list(eligible[:36])
+            # Balanced allocation: up to 12-15 top candidate stocks to avoid CPU / thread contention
+            per_cap = max(3, 12 // max(len(allowed_market_caps), 1))
+            for mc in allowed_market_caps:
+                if mc in stocks_by_mcap:
+                    batch.extend(stocks_by_mcap[mc][:per_cap])
 
-        raw_setups = []
-        from concurrent.futures import ThreadPoolExecutor, wait
-        with ThreadPoolExecutor(max_workers=16) as executor:
-            future_to_item = {
-                executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
-                for it, tg in batch
-            }
-            done_futs, _ = wait(future_to_item.keys(), timeout=18.0)
-            for fut in done_futs:
+            if not batch:
+                batch = list(eligible[:15])
+
+            raw_setups = []
+            from concurrent.futures import ThreadPoolExecutor, wait
+            with ThreadPoolExecutor(max_workers=6) as executor:
+                future_to_item = {
+                    executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
+                    for it, tg in batch
+                }
+                done_futs, _ = wait(future_to_item.keys(), timeout=7.5)
+                for fut in done_futs:
+                    try:
+                        res = fut.result()
+                        if res:
+                            raw_setups.extend(res)
+                    except Exception:
+                        pass
+
+            seen_keys = set()
+            setups = []
+            for s in raw_setups:
+                key = (s.get("symbol"), s.get("instrument_type"))
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                setups.append(s)
+
+            # Strictly rank by maximum profit potential, margin ROI %, remaining R:R and style fit
+            setups.sort(
+                key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
+                reverse=True,
+            )
+
+            # Limit to Top 30 maximum setups sorted by highest profit potential for ultra-fast performance
+            setups = setups[:30]
+
+            self.session.scanned_signals = setups
+            return setups
+        finally:
+            if not force:
                 try:
-                    res = fut.result()
-                    if res:
-                        raw_setups.extend(res)
-                except Exception:
+                    self._scan_lock.release()
+                except RuntimeError:
                     pass
-
-        seen_keys = set()
-        setups = []
-        for s in raw_setups:
-            key = (s.get("symbol"), s.get("instrument_type"))
-            if key in seen_keys:
-                continue
-            seen_keys.add(key)
-            setups.append(s)
-
-        # Strictly rank by maximum profit potential, margin ROI %, remaining R:R and style fit
-        setups.sort(
-            key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
-            reverse=True,
-        )
-
-        # Limit to Top 30 maximum setups sorted by highest profit potential for ultra-fast performance
-        setups = setups[:30]
-
-        self.last_scan_at = time.time()
-        self.session.scanned_signals = setups
-        return setups
 
     def tick(self):
         """
-        Main execution step:
+        Main execution step (Non-blocking, <50ms response):
         1. Updates open positions against current market quotes (checks Target/SL/Time exits).
-        2. While NSE is open, refreshes confirmed 15-minute setups periodically and executes
-           autonomous paper entries when running and risk capacity allows.
+        2. While NSE is open, asynchronously triggers 15-minute setup radar in background and
+           executes autonomous paper entries using validated cached setups.
         """
         if not self._tick_lock.acquire(blocking=False):
             return self.session.get_state()
@@ -2545,7 +2559,7 @@ class PaperTradingEngine:
                 except Exception as exc:
                     logger.warning("Could not confirm NSE market status: %s", exc)
 
-            # Without confirmed exchange status or fresh quotes, do not simulate fills or exits.
+            # Ultra-fast position lifecycle update (< 10ms)
             self.session.update_positions(
                 self.quote_resolver,
                 market_is_open=market_is_open,
@@ -2554,10 +2568,20 @@ class PaperTradingEngine:
 
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                setups = self.session.scanned_signals
-                if time.time() - self.last_scan_at >= 12:
-                    setups = self.scan_and_evaluate_setups()
+                # Trigger setup scan in the background every 90s without blocking the tick response (<50ms)
+                if time.time() - self.last_scan_at >= 90:
+                    if not self._scan_in_flight:
+                        self._scan_in_flight = True
+                        def _bg_scan_runner():
+                            try:
+                                self.scan_and_evaluate_setups()
+                            except Exception as scan_err:
+                                logger.warning("Background setup radar scan failed: %s", scan_err)
+                            finally:
+                                self._scan_in_flight = False
+                        threading.Thread(target=_bg_scan_runner, daemon=True).start()
 
+                setups = self.session.scanned_signals
                 if self.session.status == "RUNNING":
                     can_trade, _reason = self.session.can_open_new_trade()
                     if can_trade and setups:

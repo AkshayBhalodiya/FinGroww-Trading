@@ -3011,10 +3011,10 @@ async function fetchPaperApi(path, options = {}) {
     candidateHosts.unshift(activePaperApiHost);
   }
 
-  // Fast response timeout (15s max, 30s for heavy scans) to prevent browser freezing
-  let timeoutMs = 15000;
+  // Resilient response timeout (25s normal, 45s for heavy scans/backtests) to survive cloud wake-up
+  let timeoutMs = 25000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 30000;
+    timeoutMs = 45000;
   }
 
   for (const host of candidateHosts) {
@@ -3042,6 +3042,10 @@ async function fetchPaperApi(path, options = {}) {
       }
     } catch (e) {
       clearTimeout(timer);
+      if (host && host === activePaperApiHost) {
+        activePaperApiHost = null;
+        try { sessionStorage.removeItem("fingroww_active_api_host"); } catch (_) {}
+      }
     }
   }
 
