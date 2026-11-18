@@ -513,9 +513,18 @@ def resolve_quote(symbol):
 def resolve_live_quote(symbol):
     """Returns an NSE quote only; never substitutes delayed or synthetic prices."""
     now = time.time()
+    market_is_open = False
+    try:
+        st = get_nse_market_status()
+        market_is_open = bool(st and st.get("is_trading_hours"))
+    except Exception:
+        pass
+    # 15s during market hours, 300s when market is closed (saves 95% redundant HTTP requests)
+    cache_ttl = 15.0 if market_is_open else 300.0
+
     with paper_quote_cache_lock:
         cached = paper_live_quote_cache.get(symbol)
-        if cached and now - cached.get("fetched_at", 0) <= 5:
+        if cached and (now - cached.get("fetched_at", 0) <= cache_ttl):
             return dict(cached)
 
     try:
@@ -528,8 +537,8 @@ def resolve_live_quote(symbol):
         if quote and quote.get("lastPrice"):
             quote["fetched_at"] = time.time()
             with paper_quote_cache_lock:
-                if len(paper_live_quote_cache) > 100:
-                    oldest = sorted(paper_live_quote_cache.keys(), key=lambda k: paper_live_quote_cache[k].get("fetched_at", 0))[:40]
+                if len(paper_live_quote_cache) > 200:
+                    oldest = sorted(paper_live_quote_cache.keys(), key=lambda k: paper_live_quote_cache[k].get("fetched_at", 0))[:80]
                     for k in oldest:
                         paper_live_quote_cache.pop(k, None)
                 paper_live_quote_cache[symbol] = dict(quote)
@@ -2010,9 +2019,11 @@ paper_manager = MultiUserPaperSessionManager(
 # Retain default session & engine for backward compatibility
 paper_session, paper_engine = paper_manager.get_session("Akshay")
 
+_last_bg_radar_scan_at = 0.0
+
 def paper_background_worker():
-    """Autonomous background supervisor to evaluate all active user sessions concurrently."""
-    global _last_mongo_retry_at
+    """Autonomous background supervisor to evaluate active user sessions and pre-compute radar setups in background."""
+    global _last_mongo_retry_at, _last_bg_radar_scan_at
     while True:
         try:
             if mongo_db is None and raw_mongo_url and "<db_username>" not in raw_mongo_url and (time.time() - _last_mongo_retry_at >= 60.0):
@@ -2021,6 +2032,18 @@ def paper_background_worker():
                 if reconnected_db is not None:
                     paper_manager.set_db(reconnected_db)
             paper_manager.tick_all_running()
+
+            # Pre-compute and refresh 15m radar setups asynchronously in background so frontend /scan responds in <1ms
+            now_ts = time.time()
+            st = get_nse_market_status()
+            market_is_open = bool(st and st.get("is_trading_hours"))
+            scan_interval = 35.0 if market_is_open else 90.0
+            if now_ts - _last_bg_radar_scan_at >= scan_interval:
+                _last_bg_radar_scan_at = now_ts
+                try:
+                    paper_engine.scan_and_evaluate_setups(force=True)
+                except Exception:
+                    pass
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
         time.sleep(10.0)
@@ -2254,7 +2277,7 @@ def paper_session_scan():
     if scan_patch:
         u_sess.update_config(scan_patch)
 
-    force = bool(data.get("force", True))
+    force = bool(data.get("force", False))
     setups = u_eng.scan_and_evaluate_setups(force=force)
     market_status = get_nse_market_status()
 
@@ -2568,4 +2591,4 @@ if __name__ == "__main__":
     print("  AI Auto Paper Trading: http://127.0.0.1:8787/ai-auto-paper-trading.html")
     print("  GET /api/live?symbol=RELIANCE&interval=15m")
     print("  GET /api/skills/suite?symbol=RELIANCE")
-    app.run(host="127.0.0.1", port=8787, debug=False)
+    app.run(host="127.0.0.1", port=8787, debug=False, threaded=True)

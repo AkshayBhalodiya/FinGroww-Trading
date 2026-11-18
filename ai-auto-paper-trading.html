@@ -3068,14 +3068,14 @@ async function fetchPaperApi(path, options = {}) {
     candidateHosts.push(FALLBACK_API_URL);
   }
 
-  if (activePaperApiHost && !candidateHosts.includes(activePaperApiHost)) {
-    candidateHosts.unshift(activePaperApiHost);
+  if (activePaperApiHost) {
+    candidateHosts = [activePaperApiHost, ...candidateHosts.filter(h => h !== activePaperApiHost)];
   }
 
-  // Resilient response timeout (25s normal, 45s for heavy scans/backtests) to survive cloud wake-up
-  let timeoutMs = 25000;
+  // Fast response timeout (12s normal, 30s for heavy scans/backtests)
+  let timeoutMs = 12000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 45000;
+    timeoutMs = 30000;
   }
 
   for (const host of candidateHosts) {
@@ -4128,10 +4128,16 @@ function renderExpiryBadgeHtml(item, marginLeft = "5px") {
   return `<span style="margin-left:${marginLeft};font-size:10px;padding:2px 7px;border-radius:999px;background:${bg};color:${fg};font-weight:700;">${txt}</span>`;
 }
 
+let lastRenderedPositionsHash = "";
 function renderActivePositions(positions) {
   const badge = document.getElementById("activePositionsBadge");
-  badge.textContent = `${positions.length} Open`;
+  if (badge) badge.textContent = `${(positions || []).length} Open`;
   const tbody = document.getElementById("activeTradesBody");
+  if (!tbody) return;
+
+  const hash = (positions || []).map(p => `${p.trade_id}_${p.current_price}_${p.unrealized_pnl}`).join("|");
+  if (hash === lastRenderedPositionsHash) return;
+  lastRenderedPositionsHash = hash;
 
   if (!positions || positions.length === 0) {
     tbody.innerHTML = `
@@ -4579,63 +4585,79 @@ async function fetchAndRenderAnalytics(force = false) {
 }
 
 function renderCharts(analytics) {
-  // 1. Strategy Chart
-  const stratCtx = document.getElementById("strategyPerformanceChart")?.getContext("2d");
-  if (stratCtx) {
+  // 1. Strategy Chart (In-Place Fast Update)
+  const stratCanvas = document.getElementById("strategyPerformanceChart");
+  if (stratCanvas) {
     const stratData = analytics.strategy_performance || {};
     const labels = Object.keys(stratData);
     const pnlValues = labels.map(k => stratData[k].pnl);
-    const winRates = labels.map(k => stratData[k].win_rate);
+    const finalLabels = labels.length ? labels : ["ORB Breakout", "EMA Cross", "VWAP Reclaim"];
+    const finalData = pnlValues.length ? pnlValues : [1200, -450, 850];
+    const finalColors = finalData.map(v => v >= 0 ? "rgba(16, 185, 129, 0.75)" : "rgba(244, 63, 94, 0.75)");
 
-    if (stratChart) stratChart.destroy();
-    stratChart = new Chart(stratCtx, {
-      type: "bar",
-      data: {
-        labels: labels.length ? labels : ["ORB Breakout", "EMA Cross", "VWAP Reclaim"],
-        datasets: [{
-          label: "Net P&L (₹)",
-          data: pnlValues.length ? pnlValues : [1200, -450, 850],
-          backgroundColor: pnlValues.map(v => v >= 0 ? "rgba(16, 185, 129, 0.75)" : "rgba(244, 63, 94, 0.75)"),
-          borderRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: "rgba(255, 255, 255, 0.05)" }, ticks: { color: "#94a3b8", font: { size: 10 } } },
-          y: { grid: { color: "rgba(255, 255, 255, 0.05)" }, ticks: { color: "#94a3b8", font: { size: 10 } } }
+    if (stratChart) {
+      stratChart.data.labels = finalLabels;
+      stratChart.data.datasets[0].data = finalData;
+      stratChart.data.datasets[0].backgroundColor = finalColors;
+      stratChart.update("none");
+    } else {
+      const stratCtx = stratCanvas.getContext("2d");
+      stratChart = new Chart(stratCtx, {
+        type: "bar",
+        data: {
+          labels: finalLabels,
+          datasets: [{
+            label: "Net P&L (₹)",
+            data: finalData,
+            backgroundColor: finalColors,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: "rgba(255, 255, 255, 0.05)" }, ticks: { color: "#94a3b8", font: { size: 10 } } },
+            y: { grid: { color: "rgba(255, 255, 255, 0.05)" }, ticks: { color: "#94a3b8", font: { size: 10 } } }
+          }
         }
-      }
-    });
+      });
+    }
   }
 
-  // 2. Instrument Chart
-  const instCtx = document.getElementById("instrumentPerformanceChart")?.getContext("2d");
-  if (instCtx) {
+  // 2. Instrument Chart (In-Place Fast Update)
+  const instCanvas = document.getElementById("instrumentPerformanceChart");
+  if (instCanvas) {
     const instData = analytics.instrument_performance || {};
     const labels = Object.keys(instData);
-    const pnlValues = labels.map(k => instData[k].pnl);
+    const finalLabels = labels.length ? labels : ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"];
+    const finalData = labels.length ? labels.map(k => instData[k].trades) : [8, 4, 5, 5];
 
-    if (instChart) instChart.destroy();
-    instChart = new Chart(instCtx, {
-      type: "doughnut",
-      data: {
-        labels: labels.length ? labels : ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"],
-        datasets: [{
-          data: labels.length ? labels.map(k => instData[k].trades) : [8, 4, 5, 5],
-          backgroundColor: ["#38bdf8", "#10b981", "#a855f7", "#f59e0b", "#f43f5e"]
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11 } } }
+    if (instChart) {
+      instChart.data.labels = finalLabels;
+      instChart.data.datasets[0].data = finalData;
+      instChart.update("none");
+    } else {
+      const instCtx = instCanvas.getContext("2d");
+      instChart = new Chart(instCtx, {
+        type: "doughnut",
+        data: {
+          labels: finalLabels,
+          datasets: [{
+            data: finalData,
+            backgroundColor: ["#38bdf8", "#10b981", "#a855f7", "#f59e0b", "#f43f5e"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "right", labels: { color: "#94a3b8", font: { size: 11 } } }
+          }
         }
-      }
-    });
+      });
+    }
   }
 }
 
