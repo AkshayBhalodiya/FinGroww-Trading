@@ -2254,13 +2254,30 @@ def paper_session_scan():
     if scan_patch:
         u_sess.update_config(scan_patch)
 
-    setups = u_eng.scan_and_evaluate_setups(force=True)
+    force = bool(data.get("force", True))
+    setups = u_eng.scan_and_evaluate_setups(force=force)
     market_status = get_nse_market_status()
+
+    # Optional pagination support for API callers
+    page = int(request.args.get("page") or data.get("page") or 1)
+    limit = int(request.args.get("limit") or data.get("limit") or 0)
+
+    signals = list(u_sess.scanned_signals or [])
+    total_count = len(signals)
+    if limit > 0:
+        start_idx = max(0, (page - 1) * limit)
+        paged_signals = signals[start_idx:start_idx + limit]
+    else:
+        paged_signals = signals
+
     return jsonify({
         "ok": True,
         "market_open": bool(market_status.get("is_trading_hours")),
-        "count": len(setups),
-        "scanned_signals": u_sess.scanned_signals[:30],
+        "count": total_count,
+        "page": page,
+        "limit": limit if limit > 0 else total_count,
+        "total_pages": (total_count + limit - 1) // limit if limit > 0 else 1,
+        "scanned_signals": paged_signals,
         "state": u_sess.get_state(),
     })
 
@@ -2289,27 +2306,99 @@ def paper_get_positions():
 
 
 @app.get("/api/paper/trades")
-
 def paper_get_trades():
     """Returns complete trade history for a user with filtering by instrument and outcome."""
     u_sess, _ = get_user_session_and_engine(request)
-    trades = u_sess.closed_trades
+    trades = list(u_sess.closed_trades)
     inst_filter = request.args.get("instrument")
     outcome_filter = request.args.get("outcome") # "WIN" or "LOSS"
-    limit = min(max(int(request.args.get("limit", 50)), 1), 200)
 
-    if inst_filter:
+    if inst_filter and inst_filter != "ALL":
         trades = [t for t in trades if t.get("instrument_type") == inst_filter]
     if outcome_filter:
         is_win = (outcome_filter.upper() == "WIN")
         trades = [t for t in trades if t.get("is_win") == is_win]
 
+    limit_param = request.args.get("limit")
+    if limit_param and str(limit_param).lower() not in ("all", "0", "none"):
+        try:
+            limit = max(int(limit_param), 1)
+            trades = trades[:limit]
+        except (ValueError, TypeError):
+            pass
+
     return jsonify({
         "user_name": u_sess.user_name,
         "count": len(trades),
         "total_closed_trades": len(u_sess.closed_trades),
-        "trades": trades[:limit],
+        "trades": trades,
     })
+
+
+@app.get("/api/paper/export-csv")
+@app.get("/api/paper/export/trades.csv")
+def paper_export_trades_csv():
+    """Direct streaming/download endpoint for all closed trades in RFC 4180 CSV format with all details."""
+    import csv
+    import io
+    u_sess, _ = get_user_session_and_engine(request)
+    trades = list(u_sess.closed_trades)
+
+    output = io.StringIO()
+    output.write("\ufeff")  # UTF-8 BOM for Microsoft Excel
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+    headers = [
+        "Trade ID", "Symbol", "Company Name", "Instrument", "Side", "Expiry / Contract",
+        "Entry Time", "Exit Time", "Holding Duration", "Quantity",
+        "Entry Price (₹)", "Exit Price (₹)", "Stop Loss (₹)", "Stop Loss %", "Target (₹)", "Target %",
+        "Margin Used (₹)", "Gross PnL (₹)", "Charges & Taxes (₹)", "Slippage (₹)", "Net PnL (₹)", "ROI %",
+        "Outcome", "Exit Reason", "Strategy", "Signal Rationale", "Market Data Source"
+    ]
+    writer.writerow(headers)
+
+    for t in trades:
+        margin = t.get("allocated_margin") or t.get("used_amount") or ((t.get("entry_price") or 0) * (t.get("quantity") or 0))
+        writer.writerow([
+            t.get("trade_id", ""),
+            t.get("symbol", ""),
+            t.get("name", t.get("symbol", "")),
+            t.get("instrument_type", ""),
+            t.get("side", ""),
+            t.get("expiry_label") or t.get("expiry_date") or "N/A",
+            t.get("entry_time", ""),
+            t.get("exit_time") or t.get("closed_at", ""),
+            t.get("holding_duration_str", ""),
+            t.get("quantity", 0),
+            round(float(t.get("entry_price") or 0), 2),
+            round(float(t.get("exit_price") or 0), 2),
+            round(float(t.get("stop_loss") or 0), 2) if t.get("stop_loss") is not None else "",
+            f"{t.get('stop_loss_pct')}%" if t.get("stop_loss_pct") is not None else "",
+            round(float(t.get("target_price") or 0), 2) if t.get("target_price") else "Open",
+            f"{t.get('target_pct')}%" if t.get("target_pct") else "Open",
+            round(float(margin or 0), 2),
+            round(float(t.get("gross_pnl") or 0), 2),
+            round(float(t.get("charges") or 0), 2),
+            round(float(t.get("slippage") or 0), 2),
+            round(float(t.get("net_pnl") or 0), 2),
+            f"{round(float(t.get('return_pct') or 0), 2)}%",
+            "WIN" if t.get("is_win") else "LOSS",
+            t.get("exit_reason", ""),
+            t.get("strategy", ""),
+            t.get("signal_rationale", ""),
+            t.get("market_data_source", "NSE Live")
+        ])
+
+    csv_data = output.getvalue()
+    filename = f"FinGroww_{u_sess.user_name}_Paper_Trades_{int(time.time())}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+        }
+    )
 
 
 @app.get("/api/paper/analytics")

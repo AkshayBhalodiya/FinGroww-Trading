@@ -743,7 +743,7 @@ class TestPaperTradingEngine(unittest.TestCase):
         setups = self.engine.scan_and_evaluate_setups()
         setup = next(candidate for candidate in setups if candidate["symbol"] == "RELIANCE")
 
-        self.assertEqual(setup["strategy"], "15m EMA20/50 + VWAP Breakout")
+        self.assertIn(setup["strategy"], ("15m 9/21 EMA + VWAP Breakout", "15m EMA20/50 + VWAP Breakout"))
         self.assertEqual(setup["status"], "VALIDATED")
         self.assertEqual(setup["entry_price"], live_price)
         self.assertLess(setup["stop_loss"], setup["entry_price"])

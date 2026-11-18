@@ -328,6 +328,9 @@ def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
 def _is_fresh_nse_quote(quote, max_age_seconds=180):
     if not isinstance(quote, dict):
         return False
+    source = quote.get("source")
+    if source and source != "NSE":
+        return False
     try:
         price = float(quote.get("lastPrice") or 0.0)
         fetched_at = float(quote.get("fetched_at", time.time()))
@@ -1662,10 +1665,11 @@ class PaperTradingSession:
             },
             "active_positions_count": len(self.positions),
             "active_positions": self.positions,
-            "recent_closed_trades": self.closed_trades[:25],
+            "recent_closed_trades": self.closed_trades,
+            "closed_trades": self.closed_trades,
             "total_closed_trades_count": len(self.closed_trades),
             "logs": self.logs[:30],
-            "scanned_signals": self.scanned_signals[:30],
+            "scanned_signals": self.scanned_signals,
         }
 
     @_session_locked
@@ -2020,12 +2024,19 @@ class PaperTradingEngine:
 
         # Combine closed historical candles with real-time live price for zero-lag trend & momentum detection
         active_closes = closes + [live_price]
-        ema20 = _ema(active_closes, 20)
+        ema9 = _ema(active_closes, 9)
+        ema21 = _ema(active_closes, 21)
         ema50 = _ema(active_closes, 50)
         atr14 = _atr(candles, 14)
         vwap = _session_vwap(candles)
-        if len(ema20) < 2 or len(ema50) < 2 or not atr14:
+        if len(ema9) < 2 or len(ema21) < 2 or not atr14:
             return []
+        
+        # Backward compatibility for any helper accessing ema20/50
+        ema20 = _ema(active_closes, 20) if len(active_closes) >= 20 else ema21
+        if len(ema50) < 2:
+            ema50 = ema21
+
         recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
         avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
         volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
@@ -2036,9 +2047,9 @@ class PaperTradingEngine:
                 return []
 
             lt_score = 65
-            if ema20[-1] >= ema50[-1]:
+            if ema21[-1] >= ema50[-1]:
                 lt_score += 15
-            if live_price >= float(latest["h"]) * 0.995 or abs(live_price - ema20[-1]) / ema20[-1] < 0.015:
+            if live_price >= float(latest["h"]) * 0.995 or abs(live_price - ema21[-1]) / ema21[-1] < 0.015:
                 lt_score += 15
             if p_change >= 0.0:
                 lt_score += 5
@@ -2060,11 +2071,24 @@ class PaperTradingEngine:
             is_bullish_flow = (p_change >= 0.0) and (vwap is None or live_price >= vwap * 0.998)
             is_bearish_flow = (p_change <= 0.0) and (vwap is None or live_price <= vwap * 1.002)
 
-            # 1. EMA20 vs EMA50 & Intraday Flow Alignment
-            if ema20[-1] > ema50[-1] or (vwap is not None and live_price > vwap and p_change > 0.15):
+            # 1. 9/21 EMA Dynamic Crossover & Trend Alignment (+25 Points)
+            is_fresh_golden_cross = (ema9[-2] <= ema21[-2] and ema9[-1] > ema21[-1])
+            is_fresh_death_cross = (ema9[-2] >= ema21[-2] and ema9[-1] < ema21[-1])
+            is_bull_trend_9_21 = (ema9[-1] > ema21[-1])
+            is_bear_trend_9_21 = (ema9[-1] < ema21[-1])
+
+            if is_bull_trend_9_21 or (vwap is not None and live_price > vwap and p_change > 0.15):
                 buy_score += 25
-            elif ema20[-1] < ema50[-1] or (vwap is not None and live_price < vwap and p_change < -0.15):
+                if is_fresh_golden_cross:
+                    buy_score += 5  # Bonus for fresh 9/21 Golden Cross
+                if len(ema50) >= 1 and ema21[-1] > ema50[-1]:
+                    buy_score += 5  # Macro triple-EMA alignment (9 > 21 > 50)
+            elif is_bear_trend_9_21 or (vwap is not None and live_price < vwap and p_change < -0.15):
                 sell_score += 25
+                if is_fresh_death_cross:
+                    sell_score += 5  # Bonus for fresh 9/21 Death Cross
+                if len(ema50) >= 1 and ema21[-1] < ema50[-1]:
+                    sell_score += 5  # Macro triple-EMA alignment (9 < 21 < 50)
 
             # 2. Session VWAP Confluence
             if vwap:
@@ -2078,19 +2102,23 @@ class PaperTradingEngine:
                     elif is_bearish_flow:
                         sell_score += 15
 
-            # 3. Momentum & Relative Strength
-            if p_change >= 0.05 and live_price >= ema20[-1] * 0.995:
+            # 3. Momentum & Relative Strength (9 EMA Fast Momentum)
+            if p_change >= 0.05 and (live_price >= ema9[-1] * 0.995 or live_price >= ema21[-1] * 0.995):
                 buy_score += 25
-            elif p_change <= -0.05 and live_price <= ema20[-1] * 1.005:
+            elif p_change <= -0.05 and (live_price <= ema9[-1] * 1.005 or live_price <= ema21[-1] * 1.005):
                 sell_score += 25
             elif p_change >= 0.0:
                 buy_score += 15
             else:
                 sell_score += 15
 
-            # 4. Pullback vs Breakout High-Win-Rate Detection
-            # Long Breakout / Pullback ONLY when intraday flow is Bullish
+            # 4. Pullback vs Breakout High-Win-Rate Detection (9/21 Dynamic Value Zone)
             is_long_breakout = (live_price >= float(latest["h"])) and is_bullish_flow
+            in_long_ema_zone = (
+                abs(live_price - ema9[-1]) / max(ema9[-1], 1.0) < 0.010
+                or abs(live_price - ema21[-1]) / max(ema21[-1], 1.0) < 0.010
+                or (live_price >= ema21[-1] * 0.997 and live_price <= ema9[-1] * 1.005)
+            ) and live_price >= ema21[-1] * 0.997
             is_long_pullback = not is_long_breakout and is_bullish_flow and (
                 (
                     vwap is not None 
@@ -2098,16 +2126,19 @@ class PaperTradingEngine:
                     and live_price >= vwap * 0.998 
                     and float(latest["c"]) >= float(latest["o"])
                 ) or (
-                    abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010
-                    and live_price >= ema20[-1] * 0.998
+                    in_long_ema_zone
                     and float(latest["c"]) >= float(latest["o"])
                 )
             )
             if is_long_breakout or is_long_pullback:
                 buy_score += 20
 
-            # Short Breakdown / Pullback ONLY when intraday flow is Bearish
             is_short_breakdown = (live_price <= float(latest["l"])) and is_bearish_flow
+            in_short_ema_zone = (
+                abs(live_price - ema9[-1]) / max(ema9[-1], 1.0) < 0.010
+                or abs(live_price - ema21[-1]) / max(ema21[-1], 1.0) < 0.010
+                or (live_price <= ema21[-1] * 1.003 and live_price >= ema9[-1] * 0.995)
+            ) and live_price <= ema21[-1] * 1.003
             is_short_pullback = not is_short_breakdown and is_bearish_flow and (
                 (
                     vwap is not None 
@@ -2115,8 +2146,7 @@ class PaperTradingEngine:
                     and live_price <= vwap * 1.002 
                     and float(latest["c"]) <= float(latest["o"])
                 ) or (
-                    abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010
-                    and live_price <= ema20[-1] * 1.002
+                    in_short_ema_zone
                     and float(latest["c"]) <= float(latest["o"])
                 )
             )
@@ -2180,18 +2210,22 @@ class PaperTradingEngine:
                 side = "BUY"
                 score = min(buy_score, 98)
                 if is_long_breakout:
-                    strat = "15m EMA20/50 + VWAP Breakout"
+                    strat = "15m 9/21 EMA + VWAP Breakout"
                 elif is_long_pullback:
-                    strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback"
+                    strat = "🎯 80%+ Smart Money VWAP & 9/21 EMA Pullback"
+                elif is_fresh_golden_cross:
+                    strat = "9/21 EMA Golden Cross"
                 else:
                     strat = "VWAP Momentum Expansion"
             elif sell_score >= 60 and sell_score > buy_score:
                 side = "SELL"
                 score = min(sell_score, 98)
                 if is_short_breakdown:
-                    strat = "15m EMA20/50 + VWAP Breakdown"
+                    strat = "15m 9/21 EMA + VWAP Breakdown"
                 elif is_short_pullback:
-                    strat = "🎯 80%+ Smart Money VWAP & EMA20 Pullback (Short)"
+                    strat = "🎯 80%+ Smart Money VWAP & 9/21 EMA Pullback (Short)"
+                elif is_fresh_death_cross:
+                    strat = "9/21 EMA Death Cross"
                 else:
                     strat = "Supertrend ATR Continuation"
             else:
@@ -2359,6 +2393,8 @@ class PaperTradingEngine:
                 "market_data_fetched_at": quote.get("fetched_at", time.time()),
                 "market_data_timestamp": quote.get("timestamp"),
                 "signal_indicators": {
+                    "ema9": round(ema9[-1], 4),
+                    "ema21": round(ema21[-1], 4),
                     "ema20": round(ema20[-1], 4),
                     "ema50": round(ema50[-1], 4),
                     "session_vwap": round(vwap, 4) if vwap else 0.0,
@@ -2366,6 +2402,7 @@ class PaperTradingEngine:
                     "volume_ratio": round(float(latest.get("v") or 0) / avg_volume, 3) if avg_volume else 1.0,
                     "breakout_level": round(float(latest["h"] if curr_side == "BUY" else latest["l"]), 4),
                     "benchmark_confluence": benchmark_confluence,
+                    "fresh_cross": "GOLDEN_CROSS" if is_fresh_golden_cross else ("DEATH_CROSS" if is_fresh_death_cross else None),
                     "pcr": round(float(opt_pcr), 2) if opt_pcr is not None else None,
                     "oi": int(opt_oi) if opt_oi is not None else None,
                 },
@@ -2394,7 +2431,7 @@ class PaperTradingEngine:
                 "rationale": (
                     f"BUY {display_sym} (CNC Delivery): Macro trend above EMA50, healthy institutional accumulation. Target: {f'₹{target_price:.2f}' if target_price else 'Open'} (+20%), Protective Stop: ₹{stop_loss:.2f} (-7%). Horizon: Multi-month investment."
                 ) if (is_long_term_style and target_inst_type == "EQUITY") else (
-                    f"{curr_side}: confirmed 15m trend (EMA20/50), VWAP alignment, and momentum. "
+                    f"{curr_side}: confirmed 15m trend (9/21 EMA), VWAP alignment, and momentum. "
                     f"Entry uses NSE LTP; stop is {f'{sl_pct_cfg:.1f}% (₹{stop_loss:.2f})' if sl_pct_cfg else '1.5x ATR(14)'}, target is {f'₹{target_price:.2f}' if target_price else f'{min_rr:.2f}R'}."
                 ) if target_inst_type not in ("INDEX_OPTIONS", "STOCK_OPTIONS") else (
                     f"BUY {display_sym} [{expiry_label}]: ATM option tracking {sym} trend. "
@@ -2449,19 +2486,38 @@ class PaperTradingEngine:
         and institutional risk-reward models for Equities, Index Futures, Index Options, Stock Futures, and Stock Options.
         Optimized with non-blocking concurrency guard and balanced worker pool for instant response.
         """
+        now_ts = time.time()
+        last_scan = getattr(self, "last_scan_at", 0.0)
+
+        cfg_types = list(self.session.config.get("instruments") or []) if getattr(self, "session", None) else []
+        allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"]
+
+        cfg_market_caps = list(self.session.config.get("market_caps") or []) if getattr(self, "session", None) else []
+        allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
+
+        trading_style = self.session.config.get("trading_style", "HIGH_WINRATE") if getattr(self, "session", None) else "HIGH_WINRATE"
+        cache_key = (tuple(sorted(allowed_types)), tuple(sorted(allowed_market_caps)), trading_style)
+
+        cache_cooldown = 15.0
+        if self.market_status_resolver:
+            try:
+                st = self.market_status_resolver()
+                if not (st and st.get("is_trading_hours")):
+                    cache_cooldown = 60.0
+            except Exception:
+                pass
+
+        # Low API load: if already scanned within cooldown with the exact same config, return cached setups immediately unless forced
+        if not force and (now_ts - last_scan < cache_cooldown) and getattr(self, "_last_scan_cache_key", None) == cache_key and getattr(self, "session", None) and self.session.scanned_signals:
+            return list(self.session.scanned_signals)
+
         if not force and not self._scan_lock.acquire(blocking=False):
             # Another scan is already active; reuse cached setups without blocking
             return list(self.session.scanned_signals)
 
         try:
             self.last_scan_at = time.time()
-            cfg_types = list(self.session.config.get("instruments") or [])
-            allowed_types = list(cfg_types) if cfg_types else ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"]
-
-            cfg_market_caps = list(self.session.config.get("market_caps") or [])
-            allowed_market_caps = list(cfg_market_caps) if cfg_market_caps else ["LARGE_CAP", "MID_CAP", "SMALL_CAP"]
-
-            trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
+            self._last_scan_cache_key = cache_key
             is_long_term_style = (trading_style == "LONG_TERM")
 
             # Strictly respect the user's selected instruments - DO NOT force EQUITY if user didn't select it!
@@ -2498,64 +2554,7 @@ class PaperTradingEngine:
                 if targets_for_item:
                     eligible.append((item, targets_for_item))
 
-            # Separate benchmark indices and market-cap stocks so indices do not crowd out Large Cap equities
-            indices = [entry for entry in eligible if entry[0]["type"] == "INDEX"]
-            stocks_by_mcap = {}
-            for it, tg in eligible:
-                if it["type"] == "STOCK":
-                    mc = it.get("market_cap", "LARGE_CAP")
-                    stocks_by_mcap.setdefault(mc, []).append((it, tg))
-
-            batch = []
-            if indices:
-                batch.extend(indices[:3]) # Top 3 benchmark indices: NIFTY 50, BANK NIFTY, FINNIFTY
-
-            already_queued = {it["symbol"] for it, _ in batch}
-
-            # 1. Re-evaluate any symbols currently in active scanned signals so reversals or stop hits are updated/dropped
-            existing_symbols = {s.get("base_symbol") or s.get("symbol") for s in (self.session.scanned_signals or [])}
-            for it, tg in eligible:
-                sym = it["symbol"]
-                if sym in existing_symbols and sym not in already_queued:
-                    batch.append((it, tg))
-                    already_queued.add(sym)
-
-            # 2. Advance rolling scan offset to continuously rotate across the entire 72-stock universe
-            self._scan_offset = (getattr(self, "_scan_offset", 0) + 1) % 1000
-
-            # 3. Dynamic allocation: Scan up to 6 rotating candidate stocks per allowed market cap
-            for mc in allowed_market_caps:
-                pool = stocks_by_mcap.get(mc, [])
-                if not pool:
-                    continue
-                pool_len = len(pool)
-                per_cap = min(6, pool_len)
-                start_idx = (self._scan_offset * 3) % pool_len
-                selected_pool = (pool[start_idx:] + pool[:start_idx])[:per_cap]
-                for it, tg in selected_pool:
-                    if it["symbol"] not in already_queued:
-                        batch.append((it, tg))
-                        already_queued.add(it["symbol"])
-
-            # 4. Check if any remaining eligible stocks have strong live intraday momentum (>0.5% move)
-            if self.quote_resolver:
-                try:
-                    for it, tg in eligible:
-                        if it["symbol"] in already_queued:
-                            continue
-                        q = self.quote_resolver(it["symbol"])
-                        if q and abs(float(q.get("pChange") or 0.0)) >= 0.50:
-                            batch.append((it, tg))
-                            already_queued.add(it["symbol"])
-                            if len(batch) >= 26:
-                                break
-                except Exception:
-                    pass
-
-            if not batch:
-                batch = list(eligible[:20])
-
-            batch = batch[:26]
+            batch = list(eligible)
 
             raw_setups = []
             from concurrent.futures import ThreadPoolExecutor, wait
@@ -2591,9 +2590,6 @@ class PaperTradingEngine:
                 key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
                 reverse=True,
             )
-
-            # Limit to Top 30 maximum setups sorted by highest profit potential for ultra-fast performance
-            setups = setups[:30]
 
             self.session.scanned_signals = setups
             return setups
@@ -2662,8 +2658,10 @@ class PaperTradingEngine:
 
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                # Trigger setup scan in the background every 20s without blocking the tick response (<50ms)
-                if time.time() - self.last_scan_at >= 20:
+                # Trigger setup scan: cold scan immediately synchronous, then in background every 20s
+                if not self.session.scanned_signals:
+                    self.scan_and_evaluate_setups()
+                elif time.time() - self.last_scan_at >= 20:
                     if not self._scan_in_flight:
                         self._scan_in_flight = True
                         def _bg_scan_runner():
@@ -2760,6 +2758,7 @@ class PaperTradingEngine:
 
         is_pullback_strat = ("80%" in strategy) or ("pullback" in strategy.lower()) or (strategy == "HIGH_WINRATE") or ("smart money" in strategy.lower())
         is_breakout_strat = ("breakout" in strategy.lower()) or ("orb" in strategy.lower())
+        is_ema_cross_strat = ("ema" in strategy.lower() and "cross" in strategy.lower()) or ("golden" in strategy.lower())
         is_supertrend_strat = "supertrend" in strategy.lower()
         is_mean_rev_strat = "mean" in strategy.lower() or "reversion" in strategy.lower() or "rsi" in strategy.lower()
 
@@ -2768,12 +2767,15 @@ class PaperTradingEngine:
         for idx in range(60, len(rows)):
             window = rows[max(0, idx-100):idx+1]
             closes = [b["c"] for b in window]
-            e20_l = _ema(closes, 20)
+            e9_l = _ema(closes, 9)
+            e21_l = _ema(closes, 21)
             e50_l = _ema(closes, 50)
-            if len(e20_l) < 2 or len(e50_l) < 2:
+            if len(e9_l) < 2 or len(e21_l) < 2:
                 continue
-            ema20 = e20_l[-1]
-            ema50 = e50_l[-1]
+            ema9 = e9_l[-1]
+            ema21 = e21_l[-1]
+            ema20 = ema21
+            ema50 = e50_l[-1] if len(e50_l) >= 2 else ema21
             atr14 = _atr(window, 14) or (rows[idx]["c"] * 0.015)
             rsi14 = _rsi(closes, 14)
 
@@ -2788,10 +2790,18 @@ class PaperTradingEngine:
             trigger = False
             side = "BUY"
 
-            if is_pullback_strat:
-                # 80%+ Triple Confluence Pullback & Breakeven
-                is_bull = (ema20 > ema50) and (abs(bar["o"] - ema20)/ema20 < 0.012 or bar["l"] <= ema20 * 1.004) and (bar["c"] >= bar["o"]) and (40 <= rsi14 <= 66)
-                is_bear = (ema20 < ema50) and (abs(bar["o"] - ema20)/ema20 < 0.012 or bar["h"] >= ema20 * 0.996) and (bar["c"] <= bar["o"]) and (34 <= rsi14 <= 60)
+            if is_ema_cross_strat:
+                # 9/21 EMA Golden Cross / Death Cross
+                if ema9 > ema21:
+                    trigger = True
+                    side = "BUY"
+                elif ema9 < ema21:
+                    trigger = True
+                    side = "SELL"
+            elif is_pullback_strat:
+                # 80%+ Triple Confluence 9/21 EMA Pullback & Breakeven
+                is_bull = (ema9 > ema21) and (abs(bar["o"] - ema9)/ema9 < 0.012 or abs(bar["o"] - ema21)/ema21 < 0.012 or bar["l"] <= ema9 * 1.004) and (bar["c"] >= bar["o"]) and (40 <= rsi14 <= 66)
+                is_bear = (ema9 < ema21) and (abs(bar["o"] - ema9)/ema9 < 0.012 or abs(bar["o"] - ema21)/ema21 < 0.012 or bar["h"] >= ema9 * 0.996) and (bar["c"] <= bar["o"]) and (34 <= rsi14 <= 60)
                 if is_bull:
                     trigger = True
                     side = "BUY"
@@ -2799,21 +2809,21 @@ class PaperTradingEngine:
                     trigger = True
                     side = "SELL"
             elif is_breakout_strat:
-                # 15m EMA20/50 + VWAP Breakout
+                # 15m 9/21 EMA + VWAP Breakout
                 high10 = max(b["h"] for b in window[-11:-1])
                 low10 = min(b["l"] for b in window[-11:-1])
-                if bar["c"] > high10 and ema20 > ema50:
+                if bar["c"] > high10 and ema9 > ema21:
                     trigger = True
                     side = "BUY"
-                elif bar["c"] < low10 and ema20 < ema50:
+                elif bar["c"] < low10 and ema9 < ema21:
                     trigger = True
                     side = "SELL"
             elif is_supertrend_strat:
                 # Supertrend ATR continuation
-                if bar["c"] > ema20 + (atr14 * 0.5) and ema20 > ema50:
+                if bar["c"] > ema21 + (atr14 * 0.5) and ema9 > ema21:
                     trigger = True
                     side = "BUY"
-                elif bar["c"] < ema20 - (atr14 * 0.5) and ema20 < ema50:
+                elif bar["c"] < ema21 - (atr14 * 0.5) and ema9 < ema21:
                     trigger = True
                     side = "SELL"
             else:
