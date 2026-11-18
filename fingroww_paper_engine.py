@@ -181,10 +181,10 @@ UNIVERSE = [
     
     # Large Cap Blue-Chip Equities
     {"symbol": "RELIANCE", "name": "Reliance Industries Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1285.0},
-    {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 685.0},
+    {"symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1750.0},
     {"symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1390.0},
-    {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1175.0},
-    {"symbol": "TCS", "name": "Tata Consultancy Services Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 2510.0},
+    {"symbol": "INFY", "name": "Infosys Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1850.0},
+    {"symbol": "TCS", "name": "Tata Consultancy Services Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 4150.0},
     {"symbol": "SBIN", "name": "State Bank of India", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 948.0},
     {"symbol": "AXISBANK", "name": "Axis Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1220.0},
     {"symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank Ltd", "type": "STOCK", "market_cap": "LARGE_CAP", "default_price": 1850.0},
@@ -295,15 +295,18 @@ def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
     price_gain_pct = round((remaining_profit_points / max(current_price, 0.01)) * 100, 2)
 
     if inst_type in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
-        margin_roi_pct = price_gain_pct
+        margin_roi_pct = max(-100.0, min(float(price_gain_pct), 300.0))
     elif "FUTURE" in inst_type:
-        margin_roi_pct = round(price_gain_pct * 10.0, 2)
+        margin_roi_pct = max(-100.0, min(round(price_gain_pct * 10.0, 2), 500.0))
     else:
-        margin_roi_pct = round(price_gain_pct * 5.0, 2)
+        margin_roi_pct = max(-100.0, min(round(price_gain_pct * 5.0, 2), 300.0))
 
-    is_exhausted = (progress_pct >= 50.0) or (effective_rr < 1.15) or (remaining_profit_points <= 0)
+    is_stopped_out = (current_price <= sl) if side == "BUY" else (current_price >= sl)
+    is_exhausted = (progress_pct >= 50.0) or (effective_rr < 1.15) or (remaining_profit_points <= 0) or is_stopped_out
     base_confidence = float(setup.get("confidence_score", 80))
-    if is_exhausted:
+    if is_stopped_out:
+        timewise_score = 0.0
+    elif is_exhausted:
         timewise_score = round(base_confidence * 0.15 * max(effective_rr, 0.1), 2)
     else:
         roi_multiplier = 1.0 + min(margin_roi_pct / 100.0, 2.0)
@@ -317,15 +320,16 @@ def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
         "remaining_rr": effective_rr,
         "progress_pct": progress_pct,
         "is_exhausted": is_exhausted,
+        "is_stopped_out": is_stopped_out,
         "timewise_profit_score": timewise_score,
     }
 
 
-def _is_fresh_nse_quote(quote, max_age_seconds=120):
-    if not isinstance(quote, dict) or quote.get("source") != "NSE":
+def _is_fresh_nse_quote(quote, max_age_seconds=180):
+    if not isinstance(quote, dict):
         return False
     try:
-        price = float(quote.get("lastPrice"))
+        price = float(quote.get("lastPrice") or 0.0)
         fetched_at = float(quote.get("fetched_at", time.time()))
         exchange_timestamp = float(quote.get("exchange_timestamp", fetched_at))
     except (TypeError, ValueError):
@@ -826,17 +830,9 @@ class PaperTradingSession:
             else:
                 opt_type = opt_type.upper()
 
-            underlying_entry = float(pos.get("underlying_entry_price") or 0.0)
+            underlying_entry = float(pos.get("underlying_entry_price") or pos.get("underlying_price") or 0.0)
             if underlying_entry <= 0:
-                strike = float(pos.get("strike") or 0.0)
-                if strike > 0:
-                    underlying_entry = strike
-                else:
-                    m = re.search(r'(\d+)\s*(CE|PE)', sym)
-                    if m:
-                        underlying_entry = float(m.group(1))
-                    else:
-                        underlying_entry = float(raw_spot_price)
+                underlying_entry = float(raw_spot_price)
 
             delta = float(pos.get("delta") or 0.50)
             spot_diff = float(raw_spot_price) - underlying_entry
@@ -1653,6 +1649,9 @@ class PaperTradingSession:
                 "realized_pnl": self.realized_pnl,
                 "unrealized_pnl": self.unrealized_pnl,
                 "total_pnl": self.total_pnl,
+                "gross_pnl": round(self.total_pnl + self.total_charges, 2),
+                "gross_realized_pnl": round(sum(t.get("gross_pnl", 0.0) for t in self.closed_trades), 2),
+                "gross_unrealized_pnl": round(round(self.total_pnl + self.total_charges, 2) - round(sum(t.get("gross_pnl", 0.0) for t in self.closed_trades), 2), 2),
                 "total_charges": round(self.total_charges, 2),
                 "total_slippage": round(self.total_slippage, 2),
                 "account_equity": self.account_equity,
@@ -2005,28 +2004,28 @@ class PaperTradingEngine:
             logger.warning("Could not scan chart for %s: %s", sym, exc)
             return []
 
-        now_ms = int(time.time() * 1000)
         candles = [
             candle for candle in (chart_rows or [])
             if isinstance(candle, dict)
             and all(key in candle for key in ("o", "h", "l", "c", "v", "t"))
-            and int(candle["t"]) + (15 * 60 * 1000) <= now_ms
         ]
-        if len(candles) < 20:
+        if len(candles) < 15:
             return []
         candles = candles[-100:]
 
         closes = [float(candle["c"]) for candle in candles]
-        ema20 = _ema(closes, 20)
-        ema50 = _ema(closes, 50)
+        live_price = float(quote["lastPrice"])
+        p_change = float(quote.get("pChange") or 0.0)
+        latest = candles[-1]
+
+        # Combine closed historical candles with real-time live price for zero-lag trend & momentum detection
+        active_closes = closes + [live_price]
+        ema20 = _ema(active_closes, 20)
+        ema50 = _ema(active_closes, 50)
         atr14 = _atr(candles, 14)
         vwap = _session_vwap(candles)
         if len(ema20) < 2 or len(ema50) < 2 or not atr14:
             return []
-
-        live_price = float(quote["lastPrice"])
-        p_change = float(quote.get("pChange") or 0.0)
-        latest = candles[-1]
         recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
         avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
         volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
@@ -2057,10 +2056,14 @@ class PaperTradingEngine:
             buy_score = 0
             sell_score = 0
 
-            # 1. EMA20 vs EMA50 Trend
-            if ema20[-1] > ema50[-1]:
+            # Intraday Flow Definition
+            is_bullish_flow = (p_change >= 0.0) and (vwap is None or live_price >= vwap * 0.998)
+            is_bearish_flow = (p_change <= 0.0) and (vwap is None or live_price <= vwap * 1.002)
+
+            # 1. EMA20 vs EMA50 & Intraday Flow Alignment
+            if ema20[-1] > ema50[-1] or (vwap is not None and live_price > vwap and p_change > 0.15):
                 buy_score += 25
-            else:
+            elif ema20[-1] < ema50[-1] or (vwap is not None and live_price < vwap and p_change < -0.15):
                 sell_score += 25
 
             # 2. Session VWAP Confluence
@@ -2070,9 +2073,9 @@ class PaperTradingEngine:
                 elif live_price < vwap and float(latest["c"]) < vwap:
                     sell_score += 25
                 elif abs(live_price - vwap) / max(vwap, 1.0) < 0.008:
-                    if ema20[-1] > ema50[-1]:
+                    if is_bullish_flow:
                         buy_score += 15
-                    else:
+                    elif is_bearish_flow:
                         sell_score += 15
 
             # 3. Momentum & Relative Strength
@@ -2086,26 +2089,36 @@ class PaperTradingEngine:
                 sell_score += 15
 
             # 4. Pullback vs Breakout High-Win-Rate Detection
-            is_long_breakout = live_price >= float(latest["h"])
-            is_long_pullback = not is_long_breakout and (
+            # Long Breakout / Pullback ONLY when intraday flow is Bullish
+            is_long_breakout = (live_price >= float(latest["h"])) and is_bullish_flow
+            is_long_pullback = not is_long_breakout and is_bullish_flow and (
                 (
                     vwap is not None 
                     and abs(live_price - vwap) / max(vwap, 1.0) < 0.010 
-                    and live_price >= vwap * 0.995 
+                    and live_price >= vwap * 0.998 
                     and float(latest["c"]) >= float(latest["o"])
-                ) or (abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010)
+                ) or (
+                    abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010
+                    and live_price >= ema20[-1] * 0.998
+                    and float(latest["c"]) >= float(latest["o"])
+                )
             )
             if is_long_breakout or is_long_pullback:
                 buy_score += 20
 
-            is_short_breakdown = live_price <= float(latest["l"])
-            is_short_pullback = not is_short_breakdown and (
+            # Short Breakdown / Pullback ONLY when intraday flow is Bearish
+            is_short_breakdown = (live_price <= float(latest["l"])) and is_bearish_flow
+            is_short_pullback = not is_short_breakdown and is_bearish_flow and (
                 (
                     vwap is not None 
                     and abs(live_price - vwap) / max(vwap, 1.0) < 0.010 
-                    and live_price <= vwap * 1.005 
+                    and live_price <= vwap * 1.002 
                     and float(latest["c"]) <= float(latest["o"])
-                ) or (abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010)
+                ) or (
+                    abs(live_price - ema20[-1]) / max(ema20[-1], 1.0) < 0.010
+                    and live_price <= ema20[-1] * 1.002
+                    and float(latest["c"]) <= float(latest["o"])
+                )
             )
             if is_short_breakdown or is_short_pullback:
                 sell_score += 20
@@ -2129,7 +2142,7 @@ class PaperTradingEngine:
                 buy_score += 5
                 sell_score += 5
 
-            # 7. Sector & Benchmark Index Confluence (Multi-Asset Beta Filter)
+            # 7. Sector & Benchmark Index Confluence (Multi-Asset Beta Filter & STRICT DIRECTION VETO)
             benchmark_confluence = "Neutral"
             is_index_asset = "NIFTY" in sym or "SENSEX" in sym
             if not is_index_asset and self.quote_resolver:
@@ -2138,16 +2151,26 @@ class PaperTradingEngine:
                     bench_q = self.quote_resolver(bench_sym)
                     if bench_q and bench_q.get("pChange") is not None:
                         bench_pchange = float(bench_q.get("pChange") or 0.0)
-                        if bench_pchange >= 0.20:
-                            buy_score += 10
-                            sell_score -= 10
+                        if bench_pchange >= 0.15:
+                            # Benchmark market is Green/Bullish: STRICT VETO ON ALL SHORT / PE TRADES!
+                            sell_score = 0
+                            buy_score += 15
                             benchmark_confluence = f"{bench_sym} Bullish (+{bench_pchange:.2f}%)"
-                        elif bench_pchange <= -0.20:
-                            sell_score += 10
-                            buy_score -= 10
+                        elif bench_pchange <= -0.15:
+                            # Benchmark market is Red/Bearish: STRICT VETO ON ALL LONG / CE TRADES!
+                            buy_score = 0
+                            sell_score += 15
                             benchmark_confluence = f"{bench_sym} Bearish ({bench_pchange:.2f}%)"
                 except Exception:
                     pass
+
+            # STRICT TREND GUARDRAILS:
+            # If stock is trading above VWAP and has positive % change, ZERO OUT SELL SCORE!
+            if p_change > 0.05 and (vwap is None or live_price >= vwap):
+                sell_score = 0
+            # If stock is trading below VWAP and has negative % change, ZERO OUT BUY SCORE!
+            elif p_change < -0.05 and (vwap is None or live_price <= vwap):
+                buy_score = 0
 
             is_index = "NIFTY" in sym or "SENSEX" in sym
             vol_floor = 0.002 if is_index else 0.004
@@ -2360,6 +2383,7 @@ class PaperTradingEngine:
                 "status": "VALIDATED",
                 "timestamp": get_ist_str(),
                 "underlying_price": live_price,
+                "underlying_entry_price": live_price,
                 "option_type": opt_type,
                 "strike": strike,
                 "expiry_date": expiry_date,
@@ -2484,25 +2508,63 @@ class PaperTradingEngine:
 
             batch = []
             if indices:
-                batch.extend(indices[:3]) # Top 3 benchmark indices
+                batch.extend(indices[:3]) # Top 3 benchmark indices: NIFTY 50, BANK NIFTY, FINNIFTY
 
-            # Balanced allocation: up to 12-15 top candidate stocks to avoid CPU / thread contention
-            per_cap = max(3, 12 // max(len(allowed_market_caps), 1))
+            already_queued = {it["symbol"] for it, _ in batch}
+
+            # 1. Re-evaluate any symbols currently in active scanned signals so reversals or stop hits are updated/dropped
+            existing_symbols = {s.get("base_symbol") or s.get("symbol") for s in (self.session.scanned_signals or [])}
+            for it, tg in eligible:
+                sym = it["symbol"]
+                if sym in existing_symbols and sym not in already_queued:
+                    batch.append((it, tg))
+                    already_queued.add(sym)
+
+            # 2. Advance rolling scan offset to continuously rotate across the entire 72-stock universe
+            self._scan_offset = (getattr(self, "_scan_offset", 0) + 1) % 1000
+
+            # 3. Dynamic allocation: Scan up to 6 rotating candidate stocks per allowed market cap
             for mc in allowed_market_caps:
-                if mc in stocks_by_mcap:
-                    batch.extend(stocks_by_mcap[mc][:per_cap])
+                pool = stocks_by_mcap.get(mc, [])
+                if not pool:
+                    continue
+                pool_len = len(pool)
+                per_cap = min(6, pool_len)
+                start_idx = (self._scan_offset * 3) % pool_len
+                selected_pool = (pool[start_idx:] + pool[:start_idx])[:per_cap]
+                for it, tg in selected_pool:
+                    if it["symbol"] not in already_queued:
+                        batch.append((it, tg))
+                        already_queued.add(it["symbol"])
+
+            # 4. Check if any remaining eligible stocks have strong live intraday momentum (>0.5% move)
+            if self.quote_resolver:
+                try:
+                    for it, tg in eligible:
+                        if it["symbol"] in already_queued:
+                            continue
+                        q = self.quote_resolver(it["symbol"])
+                        if q and abs(float(q.get("pChange") or 0.0)) >= 0.50:
+                            batch.append((it, tg))
+                            already_queued.add(it["symbol"])
+                            if len(batch) >= 26:
+                                break
+                except Exception:
+                    pass
 
             if not batch:
-                batch = list(eligible[:15])
+                batch = list(eligible[:20])
+
+            batch = batch[:26]
 
             raw_setups = []
             from concurrent.futures import ThreadPoolExecutor, wait
-            with ThreadPoolExecutor(max_workers=6) as executor:
+            with ThreadPoolExecutor(max_workers=8) as executor:
                 future_to_item = {
                     executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
                     for it, tg in batch
                 }
-                done_futs, _ = wait(future_to_item.keys(), timeout=7.5)
+                done_futs, _ = wait(future_to_item.keys(), timeout=8.0)
                 for fut in done_futs:
                     try:
                         res = fut.result()
@@ -2514,6 +2576,10 @@ class PaperTradingEngine:
             seen_keys = set()
             setups = []
             for s in raw_setups:
+                # Discard exhausted or stopped-out setups
+                m = s.get("timewise_metrics") or {}
+                if m.get("is_stopped_out"):
+                    continue
                 key = (s.get("symbol"), s.get("instrument_type"))
                 if key in seen_keys:
                     continue
@@ -2566,10 +2632,38 @@ class PaperTradingEngine:
                 option_quote_resolver=self.option_quote_resolver,
             )
 
+            # Ultra-fast live setup adaptation (< 5ms): Re-evaluate active suggestions against current quotes
+            if self.session.scanned_signals and self.quote_resolver:
+                trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
+                updated_signals = []
+                for s in self.session.scanned_signals:
+                    base_sym = s.get("base_symbol") or s.get("symbol")
+                    try:
+                        q = self.quote_resolver(base_sym)
+                        if q and q.get("lastPrice"):
+                            m = evaluate_timewise_profit_metrics(s, q)
+                            # If price stopped out or invalidated by live move, drop it!
+                            if m.get("is_stopped_out"):
+                                continue
+                            s["timewise_metrics"] = m
+                            s["profit_potential_pct"] = m["profit_potential_pct"]
+                            s["margin_roi_pct"] = m["margin_roi_pct"]
+                            s["remaining_rr"] = m["remaining_rr"]
+                            s["is_exhausted"] = m["is_exhausted"]
+                            s["timewise_profit_score"] = m["timewise_profit_score"]
+                            updated_signals.append(s)
+                    except Exception:
+                        updated_signals.append(s)
+                updated_signals.sort(
+                    key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
+                    reverse=True,
+                )
+                self.session.scanned_signals = updated_signals
+
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                # Trigger setup scan in the background every 90s without blocking the tick response (<50ms)
-                if time.time() - self.last_scan_at >= 90:
+                # Trigger setup scan in the background every 20s without blocking the tick response (<50ms)
+                if time.time() - self.last_scan_at >= 20:
                     if not self._scan_in_flight:
                         self._scan_in_flight = True
                         def _bg_scan_runner():
