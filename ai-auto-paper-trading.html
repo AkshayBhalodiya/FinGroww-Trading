@@ -1911,6 +1911,9 @@ button[disabled],
     </div>
 
     <div class="profile-hud-right">
+      <button type="button" class="btn btn-sm btn-primary" onclick="openManualOrderModal()" style="background:linear-gradient(135deg, #10b981, #059669);border:none;font-weight:700;" title="Execute manual option trade with custom strike & mandatory SL">
+        <i class="fa-solid fa-hand-holding-dollar"></i> Manual Trade
+      </button>
       <button type="button" class="btn btn-sm btn-outline-cyan" onclick="openCreateProfileModal()" title="Create New Trader Profile">
         <i class="fa-solid fa-user-plus"></i> New Profile
       </button>
@@ -2404,7 +2407,7 @@ button[disabled],
 
   <!-- 3. Active Open Paper Trades Section -->
   <section class="panel-card" style="margin-bottom:35px;">
-    <div class="panel-header">
+    <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div class="panel-title">
         <i class="fa-solid fa-crosshairs" style="color:var(--accent-green);"></i>
         <span>Active Paper Positions</span>
@@ -2412,8 +2415,13 @@ button[disabled],
           0 Open
         </span>
       </div>
-      <div style="font-size:12px;color:var(--text-dim);">
-        Live NSE prices during market hours; last quote retained while closed
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-primary" onclick="openManualOrderModal()" style="background:linear-gradient(135deg, #10b981, #059669);border:none;font-weight:700;font-size:12px;padding:5px 12px;" title="Execute manual option trade">
+          <i class="fa-solid fa-plus"></i> Place Manual Trade
+        </button>
+        <span style="font-size:12px;color:var(--text-dim);">
+          Live NSE prices during market hours; last quote retained while closed
+        </span>
       </div>
     </div>
 
@@ -2534,6 +2542,8 @@ button[disabled],
     <div class="filter-tabs-bar">
       <div class="filter-tabs-group">
         <button type="button" class="filter-tab-pill active" onclick="setHistoryFilter('ALL', this)">All Closed</button>
+        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('AUTO_ONLY', this)"><i class="fa-solid fa-robot"></i> AI Auto</button>
+        <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('MANUAL_ONLY', this)"><i class="fa-solid fa-hand-holding-dollar"></i> Manual Only</button>
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('WIN', this)">Profitable (Wins)</button>
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('LOSS', this)">Losses</button>
         <button type="button" class="filter-tab-pill" onclick="setHistoryFilter('EQUITY', this)">Equities</button>
@@ -2608,6 +2618,20 @@ button[disabled],
         <span class="db-sync-badge"><i class="fa-solid fa-database"></i> MongoDB Atlas Persisted</span>
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <!-- 3-Way Execution Mode Filter: Mix, Only AI Auto, Manual Only -->
+        <div style="display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;padding:3px;gap:3px;" title="Filter leaderboard by trade execution type">
+          <button type="button" id="btnLbModeMix" class="btn btn-sm" onclick="setLeaderboardMode('mix')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(56,189,248,0.2);color:var(--accent-blue);font-weight:700;border:none;cursor:pointer;">
+            <i class="fa-solid fa-layer-group" style="margin-right:4px;"></i>Mix (AI + Manual)
+          </button>
+          <button type="button" id="btnLbModeAi" class="btn btn-sm" onclick="setLeaderboardMode('ai_only')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.85;cursor:pointer;">
+            <i class="fa-solid fa-robot" style="margin-right:4px;"></i>Only AI Auto
+          </button>
+          <button type="button" id="btnLbModeManual" class="btn btn-sm" onclick="setLeaderboardMode('manual_only')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.85;cursor:pointer;">
+            <i class="fa-solid fa-hand-holding-dollar" style="margin-right:4px;"></i>Manual Only
+          </button>
+        </div>
+
+        <!-- Status Filter: Active Only vs All Profiles -->
         <div style="display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;padding:3px;gap:3px;">
           <button type="button" id="btnLbFilterActive" class="btn btn-sm" onclick="setLeaderboardFilter('active')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(16,185,129,0.2);color:var(--accent-green);font-weight:700;border:none;cursor:pointer;">
             <i class="fa-solid fa-bolt" style="margin-right:4px;"></i>Active Only
@@ -2906,6 +2930,210 @@ button[disabled],
         <i class="fa-solid fa-play"></i> Run Simulation
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Manual Option Order Modal -->
+<div id="modalManualOrder" class="modal-overlay">
+  <div class="modal-box" style="max-width: 620px; max-height: 90vh; overflow-y: auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="modal-title" style="margin-bottom:0;">
+        <i class="fa-solid fa-hand-holding-dollar" style="color:var(--accent-green);"></i>
+        <span>Place Manual Option Trade</span>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalManualOrder')" style="padding:4px 8px;border:none;color:var(--text-dim);font-size:16px;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-desc" style="margin-bottom:16px;">
+      Direct user execution with live NSE quotes and portfolio margin tracking. <strong>Stop-Loss is strictly mandatory.</strong> Target price can be custom or automatically calculated by FinGroww's 1.8R quantitative algorithm.
+    </div>
+
+    <form id="manualOrderForm" onsubmit="event.preventDefault(); submitManualOrder();">
+      <!-- Row 1: Underlying Index/Stock + Option Type -->
+      <div style="display:grid;grid-template-columns: 1.5fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>Underlying Index / Stock</span>
+            <span id="manualSpotBadge" style="font-size:10.5px;color:var(--accent-blue);font-weight:700;">CMP: --</span>
+          </label>
+          <select id="manualOrderSymbol" class="custom-select" onchange="onManualSymbolChange()" style="width:100%;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-main);font-weight:600;">
+            <optgroup label="Benchmark Indices">
+              <option value="NIFTY 50" selected>NIFTY 50 (Index)</option>
+              <option value="BANK NIFTY">BANK NIFTY (Index)</option>
+              <option value="FINNIFTY">FINNIFTY (Fin Services)</option>
+              <option value="MIDCPNIFTY">MIDCPNIFTY (Midcap)</option>
+              <option value="SENSEX">SENSEX (BSE)</option>
+            </optgroup>
+            <optgroup label="Flagship F&O Equities">
+              <option value="RELIANCE">RELIANCE (Reliance Ind)</option>
+              <option value="HDFCBANK">HDFCBANK (HDFC Bank)</option>
+              <option value="TCS">TCS (Tata Consultancy)</option>
+              <option value="INFY">INFY (Infosys)</option>
+              <option value="ICICIBANK">ICICIBANK (ICICI Bank)</option>
+              <option value="SBIN">SBIN (State Bank of India)</option>
+              <option value="TATAMOTORS">TATAMOTORS (Tata Motors)</option>
+              <option value="BHARTIARTL">BHARTIARTL (Airtel)</option>
+              <option value="LT">LT (Larsen &amp; Toubro)</option>
+              <option value="AXISBANK">AXISBANK (Axis Bank)</option>
+              <option value="BAJFINANCE">BAJFINANCE (Bajaj Finance)</option>
+              <option value="MARUTI">MARUTI (Maruti Suzuki)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Option Contract Type</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" id="btnManualTypeCe" class="btn btn-sm" onclick="setManualOptionType('CE')" style="padding:8px 10px;font-size:12px;border-radius:6px;background:rgba(16,185,129,0.25);color:var(--accent-green);font-weight:800;border:1px solid rgba(16,185,129,0.5);cursor:pointer;">
+              <i class="fa-solid fa-arrow-trend-up"></i> CALL (CE)
+            </button>
+            <button type="button" id="btnManualTypePe" class="btn btn-sm" onclick="setManualOptionType('PE')" style="padding:8px 10px;font-size:12px;border-radius:6px;background:transparent;color:var(--text-muted);font-weight:600;border:1px solid var(--border-subtle);cursor:pointer;">
+              <i class="fa-solid fa-arrow-trend-down"></i> PUT (PE)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Strike Price + Step Controls -->
+      <div style="margin-bottom:14px;">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Strike Price</span>
+          <span style="font-size:11px;color:var(--text-dim);" id="manualStrikeStepHint">Step: 50 pts</span>
+        </label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="adjustManualStrike(-1)" style="padding:7px 12px;" title="Previous Strike">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <input type="number" id="manualOrderStrike" step="50" placeholder="e.g. 24500" required oninput="debounceManualQuoteFetch()" style="flex:1;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-main);font-family:var(--font-mono);font-size:14px;font-weight:700;text-align:center;">
+          <button type="button" class="btn btn-sm btn-outline" onclick="adjustManualStrike(1)" style="padding:7px 12px;" title="Next Strike">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button type="button" class="btn btn-sm" onclick="setManualStrikeToAtm()" style="padding:7px 12px;background:rgba(59,130,246,0.18);color:var(--accent-blue);border:1px solid rgba(59,130,246,0.3);font-weight:700;" title="Select At-The-Money Strike">
+            ATM
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Contract Details Banner -->
+      <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:8px;padding:12px 14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:11.5px;">
+          <span style="font-weight:700;color:var(--text-muted);" id="manualContractTitle">NIFTY 50 24500 CE</span>
+          <span id="manualExpiryBadge" style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(168,85,247,0.18);color:var(--accent-purple);font-weight:700;">Upcoming Expiry</span>
+        </div>
+        <div style="display:grid;grid-template-columns: repeat(4, 1fr); gap:8px; text-align:center;">
+          <div>
+            <div style="font-size:10.5px;color:var(--text-dim);">Live LTP</div>
+            <div id="manualLtpDisplay" style="font-size:15px;font-weight:800;color:var(--accent-green);font-family:var(--font-mono);">₹0.00</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-dim);">Lot Size</div>
+            <div id="manualLotSizeDisplay" style="font-size:15px;font-weight:800;color:var(--text-main);font-family:var(--font-mono);">25</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-dim);">1 Lot Margin</div>
+            <div id="manualLotMarginDisplay" style="font-size:15px;font-weight:800;color:var(--accent-gold);font-family:var(--font-mono);">₹0.00</div>
+          </div>
+          <div>
+            <div style="font-size:10.5px;color:var(--text-dim);">Available Balance</div>
+            <div id="manualAvailBalDisplay" style="font-size:15px;font-weight:800;color:var(--accent-blue);font-family:var(--font-mono);">₹0.00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Lots / Quantity Selection -->
+      <div style="margin-bottom:14px;">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Number of Lots</span>
+          <span id="manualTotalQtyBadge" style="font-size:11px;color:var(--text-muted);font-weight:600;">Total Qty: 25</span>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="manualOrderLots" value="1" min="1" max="50" required oninput="updateManualOrderSummary()" style="width:120px;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-main);font-weight:700;font-family:var(--font-mono);font-size:14px;">
+          <div style="display:flex;gap:4px;">
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualLots(1)" style="padding:4px 8px;font-size:11px;">1L</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualLots(2)" style="padding:4px 8px;font-size:11px;">2L</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualLots(4)" style="padding:4px 8px;font-size:11px;">4L</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualLots(10)" style="padding:4px 8px;font-size:11px;">10L</button>
+          </div>
+          <div style="flex:1;text-align:right;">
+            <span style="font-size:11px;color:var(--text-dim);">Total Required:</span>
+            <span id="manualTotalReqMargin" style="font-weight:800;color:var(--accent-gold);margin-left:4px;font-family:var(--font-mono);">₹0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: Stop-Loss (MANDATORY) -->
+      <div style="margin-bottom:14px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="form-label" style="color:var(--accent-red);font-weight:800;margin-bottom:0;display:flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Stop-Loss (SL) Price (₹)</span>
+            <span style="font-size:9.5px;padding:1px 6px;border-radius:4px;background:rgba(239,68,68,0.2);color:var(--accent-red);font-weight:900;">MANDATORY *</span>
+          </label>
+          <span id="manualRiskPerShare" style="font-size:11px;color:var(--accent-red);font-weight:700;">Risk: -₹0.00</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <div class="input-with-symbol" style="flex:1;">
+            <span class="sym-icon" style="color:var(--accent-red);">₹</span>
+            <input type="number" id="manualOrderSl" step="0.05" placeholder="Strictly required, e.g. 110.00" required oninput="onManualSlInput()" style="padding-left:32px;font-weight:800;color:var(--accent-red);font-family:var(--font-mono);">
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualSlPercentage(10)" style="padding:4px 7px;font-size:11px;color:var(--accent-red);border-color:rgba(239,68,68,0.3);">-10%</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualSlPercentage(15)" style="padding:4px 7px;font-size:11px;color:var(--accent-red);border-color:rgba(239,68,68,0.3);">-15%</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualSlPercentage(20)" style="padding:4px 7px;font-size:11px;color:var(--accent-red);border-color:rgba(239,68,68,0.3);">-20%</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="setManualSlPercentage(25)" style="padding:4px 7px;font-size:11px;color:var(--accent-red);border-color:rgba(239,68,68,0.3);">-25%</button>
+          </div>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-dim);">
+          Stop-Loss is mandatory to guarantee downside capital protection and position sizing safety.
+        </div>
+      </div>
+
+      <!-- Row 5: Target Price (Flexible: Algo vs Custom) -->
+      <div style="margin-bottom:16px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label class="form-label" style="color:var(--accent-green);font-weight:800;margin-bottom:0;display:flex;align-items:center;gap:6px;">
+            <i class="fa-solid fa-bullseye"></i>
+            <span>Target Price (₹)</span>
+            <span id="manualRrBadge" style="font-size:9.5px;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.2);color:var(--accent-green);font-weight:800;">1.80R Algo</span>
+          </label>
+          <span id="manualRewardPerShare" style="font-size:11px;color:var(--accent-green);font-weight:700;">Gain: +₹0.00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-main);cursor:pointer;">
+            <input type="checkbox" id="manualUseAlgoTarget" checked onchange="toggleManualAlgoTarget()">
+            <span style="font-weight:700;">🎯 Auto-calculate with FinGroww 1.8R Algorithmic Target</span>
+          </label>
+        </div>
+        <div class="input-with-symbol">
+          <span class="sym-icon" style="color:var(--accent-green);">₹</span>
+          <input type="number" id="manualOrderTarget" step="0.05" placeholder="Auto-calculated or enter custom target" oninput="updateManualOrderSummary()" style="padding-left:32px;font-weight:800;color:var(--accent-green);font-family:var(--font-mono);">
+        </div>
+      </div>
+
+      <!-- Order Summary Bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;margin-bottom:16px;font-size:11.5px;">
+        <div>
+          <span style="color:var(--text-dim);">Max Loss:</span>
+          <strong id="manualSummaryLoss" style="color:var(--accent-red);margin-left:4px;">-₹0.00</strong>
+        </div>
+        <div>
+          <span style="color:var(--text-dim);">Potential Gain:</span>
+          <strong id="manualSummaryGain" style="color:var(--accent-green);margin-left:4px;">+₹0.00</strong>
+        </div>
+        <div>
+          <span style="color:var(--text-dim);">Risk-Reward:</span>
+          <strong id="manualSummaryRr" style="color:var(--accent-blue);margin-left:4px;">1.80:1</strong>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalManualOrder')">Cancel</button>
+        <button type="submit" id="btnSubmitManualOrder" class="btn btn-sm btn-primary" style="background:linear-gradient(135deg, #10b981, #059669);border:none;font-weight:800;padding:8px 18px;">
+          <i class="fa-solid fa-paper-plane"></i> Place Manual Paper Trade
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -3468,6 +3696,376 @@ function closeModal(id) {
 }
 
 // -------------------------------------------------------------------------
+// MANUAL OPTION ORDER SYSTEM (MANDATORY SL & FLEXIBLE TARGET)
+// -------------------------------------------------------------------------
+
+let currentManualOptType = "CE";
+let lastManualQuote = null;
+let manualQuoteDebounceTimer = null;
+
+function getManualStrikeStep(sym) {
+  const s = (sym || "").toUpperCase();
+  if (s.includes("BANK")) return 100;
+  if (s.includes("SENSEX")) return 100;
+  if (s.includes("MIDCPNIFTY")) return 25;
+  if (s.includes("NIFTY") || s.includes("FINNIFTY")) return 50;
+  if (s === "RELIANCE" || s === "TCS" || s === "LT") return 20;
+  return 50;
+}
+
+function openManualOrderModal() {
+  const modal = document.getElementById("modalManualOrder");
+  if (!modal) return;
+  modal.classList.add("active");
+
+  // Populate available balance from sessionState
+  const avail = sessionState && (sessionState.available_balance ?? sessionState.account?.available_balance);
+  const availEl = document.getElementById("manualAvailBalDisplay");
+  if (availEl) {
+    availEl.textContent = formatInr(avail !== undefined ? avail : 100000);
+  }
+
+  // Update step hint
+  const symEl = document.getElementById("manualOrderSymbol");
+  const sym = symEl ? symEl.value : "NIFTY 50";
+  const step = getManualStrikeStep(sym);
+  const hintEl = document.getElementById("manualStrikeStepHint");
+  if (hintEl) hintEl.textContent = `Step: ${step} pts`;
+
+  // Fetch initial quote
+  fetchManualOptionQuote();
+}
+
+function setManualOptionType(type) {
+  currentManualOptType = type === "PE" ? "PE" : "CE";
+  const btnCe = document.getElementById("btnManualTypeCe");
+  const btnPe = document.getElementById("btnManualTypePe");
+
+  if (currentManualOptType === "CE") {
+    if (btnCe) {
+      btnCe.style.background = "rgba(16,185,129,0.25)";
+      btnCe.style.color = "var(--accent-green)";
+      btnCe.style.borderColor = "rgba(16,185,129,0.5)";
+      btnCe.style.fontWeight = "800";
+    }
+    if (btnPe) {
+      btnPe.style.background = "transparent";
+      btnPe.style.color = "var(--text-muted)";
+      btnPe.style.borderColor = "var(--border-subtle)";
+      btnPe.style.fontWeight = "600";
+    }
+  } else {
+    if (btnPe) {
+      btnPe.style.background = "rgba(244,63,94,0.25)";
+      btnPe.style.color = "var(--accent-red)";
+      btnPe.style.borderColor = "rgba(244,63,94,0.5)";
+      btnPe.style.fontWeight = "800";
+    }
+    if (btnCe) {
+      btnCe.style.background = "transparent";
+      btnCe.style.color = "var(--text-muted)";
+      btnCe.style.borderColor = "var(--border-subtle)";
+      btnCe.style.fontWeight = "600";
+    }
+  }
+  fetchManualOptionQuote();
+}
+
+function onManualSymbolChange() {
+  const symEl = document.getElementById("manualOrderSymbol");
+  const sym = symEl ? symEl.value : "NIFTY 50";
+  const step = getManualStrikeStep(sym);
+  const hintEl = document.getElementById("manualStrikeStepHint");
+  if (hintEl) hintEl.textContent = `Step: ${step} pts`;
+
+  const strikeInp = document.getElementById("manualOrderStrike");
+  if (strikeInp) {
+    strikeInp.step = step;
+    strikeInp.value = ""; // Clear to auto-detect ATM
+  }
+  fetchManualOptionQuote();
+}
+
+function adjustManualStrike(stepDelta) {
+  const symEl = document.getElementById("manualOrderSymbol");
+  const sym = symEl ? symEl.value : "NIFTY 50";
+  const step = getManualStrikeStep(sym);
+  const strikeInp = document.getElementById("manualOrderStrike");
+  if (!strikeInp) return;
+
+  let currentVal = parseFloat(strikeInp.value);
+  if (isNaN(currentVal) || currentVal <= 0) {
+    currentVal = lastManualQuote ? lastManualQuote.strike : 24500;
+  }
+  strikeInp.value = Math.max(step, currentVal + (stepDelta * step));
+  fetchManualOptionQuote();
+}
+
+function setManualStrikeToAtm() {
+  if (lastManualQuote && lastManualQuote.spot_price) {
+    const symEl = document.getElementById("manualOrderSymbol");
+    const sym = symEl ? symEl.value : "NIFTY 50";
+    const step = getManualStrikeStep(sym);
+    const atm = Math.round(lastManualQuote.spot_price / step) * step;
+    const strikeInp = document.getElementById("manualOrderStrike");
+    if (strikeInp) {
+      strikeInp.value = atm;
+      fetchManualOptionQuote();
+    }
+  }
+}
+
+function debounceManualQuoteFetch() {
+  clearTimeout(manualQuoteDebounceTimer);
+  manualQuoteDebounceTimer = setTimeout(() => {
+    fetchManualOptionQuote();
+  }, 350);
+}
+
+async function fetchManualOptionQuote() {
+  const symEl = document.getElementById("manualOrderSymbol");
+  const sym = symEl ? symEl.value : "NIFTY 50";
+  const strikeInp = document.getElementById("manualOrderStrike");
+  const strike = strikeInp ? strikeInp.value : "";
+  const optType = currentManualOptType || "CE";
+
+  const url = `/api/paper/option-quote?symbol=${encodeURIComponent(sym)}&strike=${encodeURIComponent(strike)}&option_type=${encodeURIComponent(optType)}`;
+  const data = await fetchPaperApi(url);
+  if (!data || !data.ok) return;
+
+  lastManualQuote = data;
+
+  // Spot badge
+  const spotBadge = document.getElementById("manualSpotBadge");
+  if (spotBadge) spotBadge.textContent = `CMP: ₹${Number(data.spot_price || 0).toFixed(2)}`;
+
+  // Strike input if empty
+  if (strikeInp && (!strikeInp.value || strikeInp.value === "0")) {
+    strikeInp.value = data.strike;
+  }
+
+  // Contract title & details
+  const titleEl = document.getElementById("manualContractTitle");
+  if (titleEl) titleEl.textContent = `${data.base_symbol} ${data.strike} ${data.option_type}`;
+
+  const expEl = document.getElementById("manualExpiryBadge");
+  if (expEl) expEl.textContent = data.expiry_label || "Upcoming Expiry";
+
+  const ltpEl = document.getElementById("manualLtpDisplay");
+  if (ltpEl) ltpEl.textContent = `₹${(Number(data.premium) || 0).toFixed(2)}`;
+
+  const lotEl = document.getElementById("manualLotSizeDisplay");
+  if (lotEl) lotEl.textContent = data.lot_size;
+
+  const lotMarginEl = document.getElementById("manualLotMarginDisplay");
+  if (lotMarginEl) lotMarginEl.textContent = `₹${formatInr(data.margin_1_lot)}`;
+
+  // Set default SL and Target if inputs are untouched
+  const slInp = document.getElementById("manualOrderSl");
+  if (slInp && (!slInp.value || parseFloat(slInp.value) <= 0 || parseFloat(slInp.value) >= data.premium)) {
+    slInp.value = (Number(data.suggested_sl) || (data.premium * 0.8)).toFixed(2);
+  }
+
+  const algoChk = document.getElementById("manualUseAlgoTarget");
+  const targetInp = document.getElementById("manualOrderTarget");
+  if (algoChk && algoChk.checked && targetInp) {
+    targetInp.value = (Number(data.suggested_target) || (data.premium * 1.36)).toFixed(2);
+  }
+
+  updateManualOrderSummary();
+}
+
+function setManualLots(num) {
+  const lotsInp = document.getElementById("manualOrderLots");
+  if (lotsInp) {
+    lotsInp.value = Math.max(1, parseInt(num) || 1);
+    updateManualOrderSummary();
+  }
+}
+
+function setManualSlPercentage(pct) {
+  if (!lastManualQuote || !lastManualQuote.premium) return;
+  const prem = Number(lastManualQuote.premium);
+  const factor = 1 - (pct / 100);
+  const slVal = Math.max(0.05, Math.round(prem * factor * 100) / 100);
+  const slInp = document.getElementById("manualOrderSl");
+  if (slInp) {
+    slInp.value = slVal.toFixed(2);
+    onManualSlInput();
+  }
+}
+
+function onManualSlInput() {
+  const algoChk = document.getElementById("manualUseAlgoTarget");
+  if (algoChk && algoChk.checked && lastManualQuote && lastManualQuote.premium) {
+    const prem = Number(lastManualQuote.premium);
+    const slInp = document.getElementById("manualOrderSl");
+    const sl = parseFloat(slInp ? slInp.value : 0) || 0;
+    if (sl > 0 && sl < prem) {
+      const risk = prem - sl;
+      const target = prem + (risk * 1.80);
+      const targetInp = document.getElementById("manualOrderTarget");
+      if (targetInp) targetInp.value = target.toFixed(2);
+    }
+  }
+  updateManualOrderSummary();
+}
+
+function toggleManualAlgoTarget() {
+  const algoChk = document.getElementById("manualUseAlgoTarget");
+  const targetInp = document.getElementById("manualOrderTarget");
+  const rrBadge = document.getElementById("manualRrBadge");
+
+  if (algoChk && algoChk.checked) {
+    if (targetInp) targetInp.readOnly = true;
+    if (rrBadge) {
+      rrBadge.textContent = "1.80R Algo";
+      rrBadge.style.background = "rgba(16,185,129,0.2)";
+      rrBadge.style.color = "var(--accent-green)";
+    }
+    onManualSlInput();
+  } else {
+    if (targetInp) {
+      targetInp.readOnly = false;
+      targetInp.focus();
+    }
+    if (rrBadge) {
+      rrBadge.textContent = "Custom Target";
+      rrBadge.style.background = "rgba(56,189,248,0.2)";
+      rrBadge.style.color = "var(--accent-blue)";
+    }
+    updateManualOrderSummary();
+  }
+}
+
+function updateManualOrderSummary() {
+  if (!lastManualQuote) return;
+  const prem = Number(lastManualQuote.premium) || 0;
+  const lotSize = Number(lastManualQuote.lot_size) || 25;
+  const lotsInp = document.getElementById("manualOrderLots");
+  const lots = Math.max(1, parseInt(lotsInp ? lotsInp.value : 1) || 1);
+  const totalQty = lots * lotSize;
+
+  const totalQtyBadge = document.getElementById("manualTotalQtyBadge");
+  if (totalQtyBadge) totalQtyBadge.textContent = `Total Qty: ${totalQty} (${lots} lots × ${lotSize})`;
+
+  const reqMargin = (totalQty * prem) + 40.0;
+  const reqMarginEl = document.getElementById("manualTotalReqMargin");
+  if (reqMarginEl) reqMarginEl.textContent = formatInr(reqMargin);
+
+  const slInp = document.getElementById("manualOrderSl");
+  const sl = parseFloat(slInp ? slInp.value : 0) || 0;
+  const riskPerShare = Math.max(0, prem - sl);
+  const totalRisk = riskPerShare * totalQty;
+
+  const riskEl = document.getElementById("manualRiskPerShare");
+  if (riskEl) riskEl.textContent = `Risk: -₹${riskPerShare.toFixed(2)}/sh`;
+
+  const lossEl = document.getElementById("manualSummaryLoss");
+  if (lossEl) lossEl.textContent = `-₹${totalRisk.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const targetInp = document.getElementById("manualOrderTarget");
+  const target = parseFloat(targetInp ? targetInp.value : 0) || 0;
+  const rewardPerShare = Math.max(0, target - prem);
+  const totalReward = rewardPerShare * totalQty;
+
+  const rewardEl = document.getElementById("manualRewardPerShare");
+  if (rewardEl) rewardEl.textContent = `Gain: +₹${rewardPerShare.toFixed(2)}/sh`;
+
+  const gainEl = document.getElementById("manualSummaryGain");
+  if (gainEl) gainEl.textContent = `+₹${totalReward.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const rrEl = document.getElementById("manualSummaryRr");
+  if (rrEl) {
+    if (riskPerShare > 0 && rewardPerShare > 0) {
+      const rr = (rewardPerShare / riskPerShare).toFixed(2);
+      rrEl.textContent = `${rr}:1`;
+    } else {
+      rrEl.textContent = "--";
+    }
+  }
+}
+
+async function submitManualOrder() {
+  const symEl = document.getElementById("manualOrderSymbol");
+  const sym = symEl ? symEl.value : "NIFTY 50";
+  const strikeInp = document.getElementById("manualOrderStrike");
+  const strike = strikeInp ? parseFloat(strikeInp.value) : 0;
+  const optType = currentManualOptType || "CE";
+
+  if (!strike || strike <= 0) {
+    showToast("Please enter a valid numeric strike price.", "error");
+    return;
+  }
+
+  const slInp = document.getElementById("manualOrderSl");
+  const sl = parseFloat(slInp ? slInp.value : 0) || 0;
+  const prem = lastManualQuote ? Number(lastManualQuote.premium) : 0;
+
+  if (!sl || sl <= 0) {
+    showToast("Stop-Loss (SL) is strictly mandatory. Please set an SL price.", "error");
+    if (slInp) slInp.focus();
+    return;
+  }
+
+  if (prem > 0 && sl >= prem) {
+    showToast(`Stop-Loss (₹${sl.toFixed(2)}) must be strictly less than the entry premium (₹${prem.toFixed(2)}).`, "error");
+    if (slInp) slInp.focus();
+    return;
+  }
+
+  const algoChk = document.getElementById("manualUseAlgoTarget");
+  const isAlgo = algoChk ? algoChk.checked : true;
+  const targetInp = document.getElementById("manualOrderTarget");
+  const target = parseFloat(targetInp ? targetInp.value : 0) || 0;
+
+  if (!isAlgo && (!target || target <= prem)) {
+    showToast(`Custom target price (₹${target.toFixed(2)}) must be greater than current premium (₹${prem.toFixed(2)}).`, "error");
+    if (targetInp) targetInp.focus();
+    return;
+  }
+
+  const lotsInp = document.getElementById("manualOrderLots");
+  const lots = Math.max(1, parseInt(lotsInp ? lotsInp.value : 1) || 1);
+
+  const payload = {
+    user_name: currentUserName,
+    base_symbol: sym,
+    strike: strike,
+    option_type: optType,
+    stop_loss: sl,
+    target_price: target,
+    algo_target: isAlgo,
+    lots: lots,
+    holding_duration_mins: 1440
+  };
+
+  const btn = document.getElementById("btnSubmitManualOrder");
+  return withActionLock("submit_manual_order", async () => {
+    const res = await fetchPaperApi("/api/paper/manual-order", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+
+    if (res && res.ok) {
+      closeModal("modalManualOrder");
+      showToast(`🎯 Manual trade filled: ${sym} ${strike} ${optType} (SL: ₹${sl.toFixed(2)})`, "success");
+      if (res.state) {
+        updateUiWithState(res.state);
+      }
+      if (typeof tickPaperEngine === "function") {
+        await tickPaperEngine(true);
+      }
+      await refreshLeaderboard();
+      await fetchAndRenderAnalytics();
+    } else {
+      const err = res && res.error ? res.error : "Failed to place manual order. Please check inputs and virtual balance.";
+      showToast(err, "error");
+    }
+  }, btn, "Executing...");
+}
+
+// -------------------------------------------------------------------------
 // PROFILE MANAGEMENT & MULTI-USER LOGIC (MONGODB ATLAS)
 // -------------------------------------------------------------------------
 
@@ -3693,9 +4291,46 @@ function syncConfigFormWithState(state) {
 // -------------------------------------------------------------------------
 
 let currentLbFilter = "active";
+let currentLbMode = "mix";
 let currentLeaderboardPage = 1;
 const LEADERBOARD_PER_PAGE = 10;
 let cachedLeaderboardList = [];
+
+function setLeaderboardMode(mode) {
+  currentLbMode = mode || "mix";
+  currentLeaderboardPage = 1;
+  const btnMix = document.getElementById("btnLbModeMix");
+  const btnAi = document.getElementById("btnLbModeAi");
+  const btnMan = document.getElementById("btnLbModeManual");
+
+  const resetBtn = (b) => {
+    if (b) {
+      b.style.background = "transparent";
+      b.style.color = "var(--text-muted, #94a3b8)";
+      b.style.fontWeight = "500";
+      b.style.opacity = "0.85";
+    }
+  };
+  [btnMix, btnAi, btnMan].forEach(resetBtn);
+
+  if (currentLbMode === "mix" && btnMix) {
+    btnMix.style.background = "rgba(56, 189, 248, 0.2)";
+    btnMix.style.color = "var(--accent-blue, #38bdf8)";
+    btnMix.style.fontWeight = "700";
+    btnMix.style.opacity = "1";
+  } else if (currentLbMode === "ai_only" && btnAi) {
+    btnAi.style.background = "rgba(16, 185, 129, 0.2)";
+    btnAi.style.color = "var(--accent-green, #10b981)";
+    btnAi.style.fontWeight = "700";
+    btnAi.style.opacity = "1";
+  } else if (currentLbMode === "manual_only" && btnMan) {
+    btnMan.style.background = "rgba(245, 158, 11, 0.2)";
+    btnMan.style.color = "var(--accent-gold, #f59e0b)";
+    btnMan.style.fontWeight = "700";
+    btnMan.style.opacity = "1";
+  }
+  refreshLeaderboard();
+}
 
 function setLeaderboardFilter(mode) {
   currentLbFilter = mode;
@@ -3729,7 +4364,8 @@ function setLeaderboardFilter(mode) {
 async function refreshLeaderboard(btnEl = null) {
   const btn = btnEl || document.getElementById("btnRefreshLeaderboard");
   return withActionLock("refresh_leaderboard", async () => {
-    const url = currentLbFilter === "active" ? "/api/paper/leaderboard?active_only=true" : "/api/paper/leaderboard";
+    const activeQuery = currentLbFilter === "active" ? "active_only=true&" : "";
+    const url = `/api/paper/leaderboard?${activeQuery}mode=${encodeURIComponent(currentLbMode)}`;
     const data = await fetchPaperApi(url);
     if (!data || !data.leaderboard) return;
 
@@ -3875,6 +4511,11 @@ function renderLeaderboardCurrentPage() {
           ${isCurrent ? '<span style="font-size:10px;padding:1px 6px;border-radius:999px;background:var(--accent-blue-dim);color:var(--accent-blue);font-weight:800;">YOU</span>' : ''}
         </div>
         <div style="font-size:11px;color:var(--text-dim);">${p.badge || 'Trader'}</div>
+        <div style="display:flex;gap:5px;align-items:center;margin-top:2px;font-size:10px;">
+          <span style="color:#38bdf8;font-weight:700;" title="AI Algorithmic Auto Trades"><i class="fa-solid fa-robot"></i> ${p.total_ai_trades ?? p.ai_trades_count ?? 0}</span>
+          <span style="color:var(--text-dim);">|</span>
+          <span style="color:#f59e0b;font-weight:700;" title="User Initiated Manual Trades"><i class="fa-solid fa-hand-holding-dollar"></i> ${p.total_manual_trades ?? p.manual_trades_count ?? 0}</span>
+        </div>
       </td>
       <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${instBadges || 'All'}</div></td>
       <td style="font-size:12px;font-weight:700;color:var(--accent-blue);">${p.trading_style || 'HIGH_WINRATE'}</td>
@@ -4197,9 +4838,12 @@ function renderActivePositions(positions) {
       <tr>
         <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-muted);">${pos.trade_id}</td>
         <td>
-          <div style="font-weight:800;color:var(--text-main);">
-            ${pos.symbol}
+          <div style="font-weight:800;color:var(--text-main);display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
+            <span>${pos.symbol}</span>
             ${renderExpiryBadgeHtml(pos)}
+            ${pos.execution_type === 'MANUAL'
+              ? '<span style="font-size:9.5px;padding:1px 5px;border-radius:4px;background:rgba(245,158,11,0.2);color:#f59e0b;font-weight:800;"><i class="fa-solid fa-user"></i> Manual</span>'
+              : '<span style="font-size:9.5px;padding:1px 5px;border-radius:4px;background:rgba(56,189,248,0.2);color:#38bdf8;font-weight:800;"><i class="fa-solid fa-robot"></i> AI Auto</span>'}
           </div>
           <div style="font-size:11px;color:var(--text-dim);">${pos.name}</div>
           <div title="${pos.signal_rationale || ''}" style="font-size:10px;color:var(--accent-blue);">${pos.strategy || 'Paper trade'}</div>
@@ -4412,6 +5056,8 @@ function renderHistoryTable(trades) {
 
   if (currentHistoryFilter === "WIN") filtered = filtered.filter(t => t.is_win);
   else if (currentHistoryFilter === "LOSS") filtered = filtered.filter(t => !t.is_win);
+  else if (currentHistoryFilter === "AUTO_ONLY") filtered = filtered.filter(t => (t.execution_type || 'AUTO') === 'AUTO');
+  else if (currentHistoryFilter === "MANUAL_ONLY") filtered = filtered.filter(t => t.execution_type === 'MANUAL');
   else if (currentHistoryFilter === "OPTIONS") filtered = filtered.filter(t => (t.instrument_type || "").includes("OPTION"));
   else if (currentHistoryFilter === "FUTURES") filtered = filtered.filter(t => (t.instrument_type || "").includes("FUTURE"));
   else if (currentHistoryFilter !== "ALL") filtered = filtered.filter(t => t.instrument_type === currentHistoryFilter);
@@ -4488,12 +5134,19 @@ function renderHistoryCurrentPage() {
     const pnlClass = isWin ? "val-green" : "val-red";
     const sign = pnl > 0 ? "+" : "";
     const histUsedAmt = Number(t.allocated_margin ?? t.used_amount) || (Number(t.entry_price) * Number(t.quantity)) || 0;
+    const isManual = t.execution_type === 'MANUAL';
+    const execBadge = isManual
+      ? `<span style="font-size:9.5px;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,0.2);color:#f59e0b;font-weight:800;margin-left:4px;"><i class="fa-solid fa-user"></i> Manual</span>`
+      : `<span style="font-size:9.5px;padding:1px 5px;border-radius:3px;background:rgba(56,189,248,0.2);color:#38bdf8;font-weight:800;margin-left:4px;"><i class="fa-solid fa-robot"></i> AI</span>`;
 
     return `
       <tr>
         <td style="font-size:11.5px;color:var(--text-dim);">${t.exit_time || t.closed_at}</td>
         <td style="font-weight:800;color:var(--text-main);">
-          ${t.symbol}
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:2px;">
+            <span>${t.symbol}</span>
+            ${execBadge}
+          </div>
           ${formatExpiryBadgeText(t) ? `<div style="margin-top:2px;">${renderExpiryBadgeHtml(t, "0px")}</div>` : ''}
         </td>
         <td><span style="font-size:11px;padding:2px 6px;border-radius:3px;background:var(--bg-surface);border:1px solid var(--border-subtle);">${t.instrument_type}</span></td>
