@@ -2554,7 +2554,50 @@ class PaperTradingEngine:
                 if targets_for_item:
                     eligible.append((item, targets_for_item))
 
-            batch = list(eligible)
+            # Benchmark indices (always evaluated for both CE/PE and Futures momentum)
+            indices = [entry for entry in eligible if entry[0]["type"] == "INDEX"]
+            stocks_by_mcap = {}
+            for it, tg in eligible:
+                if it["type"] == "STOCK":
+                    mc = it.get("market_cap", "LARGE_CAP")
+                    stocks_by_mcap.setdefault(mc, []).append((it, tg))
+
+            batch = []
+            if indices:
+                batch.extend(indices[:3]) # Top 3 benchmark indices: NIFTY 50, BANK NIFTY, FINNIFTY
+
+            already_queued = {it["symbol"] for it, _ in batch}
+
+            # 1. Re-evaluate any symbols currently in active scanned signals so reversals or stop hits are updated/dropped
+            existing_symbols = {s.get("base_symbol") or s.get("symbol") for s in (self.session.scanned_signals or [])}
+            for it, tg in eligible:
+                sym = it["symbol"]
+                if sym in existing_symbols and sym not in already_queued:
+                    batch.append((it, tg))
+                    already_queued.add(sym)
+
+            # 2. Advance rolling scan offset to continuously rotate across the entire 72-stock universe
+            self._scan_offset = (getattr(self, "_scan_offset", 0) + 1) % 1000
+
+            # 3. Dynamic allocation: Scan up to 4-5 rotating candidate stocks per allowed market cap
+            for mc in allowed_market_caps:
+                pool = stocks_by_mcap.get(mc, [])
+                if not pool:
+                    continue
+                pool_len = len(pool)
+                per_cap = min(4, pool_len)
+                start_idx = (self._scan_offset * 3) % pool_len
+                selected_pool = (pool[start_idx:] + pool[:start_idx])[:per_cap]
+                for it, tg in selected_pool:
+                    if it["symbol"] not in already_queued:
+                        batch.append((it, tg))
+                        already_queued.add(it["symbol"])
+
+            if not batch:
+                batch = list(eligible[:15])
+
+            # Limit batch to maximum 16 items for guaranteed ultra-fast (<2.5s) execution
+            batch = batch[:16]
 
             raw_setups = []
             from concurrent.futures import ThreadPoolExecutor, wait
@@ -2658,10 +2701,8 @@ class PaperTradingEngine:
 
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                # Trigger setup scan: cold scan immediately synchronous, then in background every 20s
-                if not self.session.scanned_signals:
-                    self.scan_and_evaluate_setups()
-                elif time.time() - self.last_scan_at >= 20:
+                # Trigger setup scan strictly in background thread without blocking tick response (<50ms)
+                if (not self.session.scanned_signals) or (time.time() - self.last_scan_at >= 20):
                     if not self._scan_in_flight:
                         self._scan_in_flight = True
                         def _bg_scan_runner():

@@ -3072,10 +3072,10 @@ async function fetchPaperApi(path, options = {}) {
     candidateHosts = [activePaperApiHost, ...candidateHosts.filter(h => h !== activePaperApiHost)];
   }
 
-  // Fast response timeout (12s normal, 30s for heavy scans/backtests)
-  let timeoutMs = 12000;
+  // Generous response timeout (25s normal, 60s for heavy scans/backtests) to prevent premature AbortController cancel on cloud servers
+  let timeoutMs = 25000;
   if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 30000;
+    timeoutMs = 60000;
   }
 
   for (const host of candidateHosts) {

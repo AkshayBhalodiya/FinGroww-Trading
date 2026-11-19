@@ -179,27 +179,38 @@ def add_cors(resp):
     return resp
 
 
+_last_nse_fail = 0
+
+
 def init_nse(force=False):
-    global last_init
+    global last_init, _last_nse_fail
+    now = time.time()
+    if now - _last_nse_fail < 60:
+        return
     with lock:
-        if not force and time.time() - last_init < 60:
+        if not force and now - last_init < 60:
             return
-        last_init = time.time()
+        last_init = now
         try:
-            session.get(
+            r = session.get(
                 NSE + "/option-chain",
                 headers={
                     **HEADERS,
                     "Accept": "text/html,application/xhtml+xml",
                     "Referer": NSE + "/",
                 },
-                timeout=3.0,
+                timeout=2.0,
             )
+            if r.status_code in (401, 403):
+                _last_nse_fail = time.time()
         except Exception:
-            pass
+            _last_nse_fail = time.time()
 
 
-def nse_get(path, params=None, referer=None, timeout=2.5):
+def nse_get(path, params=None, referer=None, timeout=2.0):
+    global _last_nse_fail
+    if time.time() - _last_nse_fail < 60:
+        return None
     try:
         init_nse()
         r = session.get(
@@ -213,21 +224,12 @@ def nse_get(path, params=None, referer=None, timeout=2.5):
             timeout=timeout,
         )
         if r.status_code in (401, 403):
-            init_nse(force=True)
-            r = session.get(
-                NSE + path,
-                headers={
-                    **HEADERS,
-                    "Accept": "application/json, text/javascript, */*; q=0.01",
-                    "Referer": referer or (NSE + "/market-data/live-market-indices"),
-                },
-                params=params,
-                timeout=timeout,
-            )
+            _last_nse_fail = time.time()
+            return None
         if r.status_code == 200:
             return r.json()
     except Exception:
-        pass
+        _last_nse_fail = time.time()
     return None
 
 
@@ -584,7 +586,7 @@ def paper_chart_resolver(symbol, interval="15m", range_="5d"):
 
 
 def get_nse_market_status():
-    """Uses the exchange's own Capital Market status and fails closed if unavailable."""
+    """Uses the exchange's own Capital Market status and falls back to regular IST session if unavailable."""
     now = time.time()
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
@@ -610,20 +612,23 @@ def get_nse_market_status():
         ),
         None,
     )
-    exchange_open = bool(
-        capital_market
-        and str(capital_market.get("marketStatus") or "").strip().lower() == "open"
-    )
+    if capital_market:
+        exchange_open = bool(str(capital_market.get("marketStatus") or "").strip().lower() == "open")
+        source = "NSE official market status"
+    else:
+        # Fallback to IST regular trading session schedule (Mon-Fri 09:15 - 15:30 IST) when NSE direct API is unreachable from cloud IPs
+        exchange_open = regular_session
+        source = "IST Market Hours Schedule (Fallback)"
+
     is_open = exchange_open and regular_session
     status = {
         "is_trading_hours": is_open,
         "market_status": "OPEN" if is_open else "CLOSED",
-        "source": "NSE official market status" if capital_market else "Unavailable (fail-closed)",
-        "trade_date": (capital_market or {}).get("tradeDate"),
+        "source": source,
+        "trade_date": (capital_market or {}).get("tradeDate") or ist.strftime("%d-%b-%Y"),
         "reason": (
             None if is_open else
-            "NSE regular trading session is closed." if capital_market else
-            "Could not confirm NSE market status."
+            "NSE regular trading session is closed."
         ),
     }
     paper_market_cache.update({"at": now, "status": status})
