@@ -1736,6 +1736,56 @@ button[disabled],
     font-size: 12px;
   }
 }
+
+/* Master Environment Switcher Pill Bar */
+.env-switcher-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+}
+.env-pill-group {
+  display: inline-flex;
+  background: rgba(3, 7, 18, 0.9);
+  border: 1px solid var(--border-subtle, #1e293b);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+.env-pill {
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #94a3b8);
+  transition: all 0.2s;
+}
+.env-pill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.env-pill.active-paper {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 800;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.env-pill.active-real {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-weight: 900;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
 </style>
 </head>
 <body>
@@ -1784,6 +1834,7 @@ button[disabled],
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
       <li><a href="ai-auto-paper-trading.html" class="active"><i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Auto Paper</a></li>
+      <li><a href="ai-auto-real-trading.html" style="color:#ef4444;font-weight:900;"><i class="fa-solid fa-fire" style="font-size:11px;"></i> 🔴 AI Real Trading</a></li>
       <li><a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 📊 5Y Backtest</a></li>
       <li><a href="today-options.html" style="color:var(--accent-gold);"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options</a></li>
       <li><a href="options.html" style="color:var(--accent-purple);"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Intel</a></li>
@@ -1811,6 +1862,7 @@ button[disabled],
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
     <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> AI Auto Paper</a>
+    <a href="ai-auto-real-trading.html" style="color:#ef4444;font-weight:900"><i class="fa-solid fa-fire"></i> 🔴 AI Real Trading</a>
     <a href="today-options.html" style="color:var(--accent-gold)"><i class="fa-solid fa-bolt"></i> Today's Options</a>
     <a href="options.html" style="color:var(--accent-purple)"><i class="fa-solid fa-layer-group"></i> Options Intel</a>
     <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Trades</a>
@@ -1827,6 +1879,27 @@ button[disabled],
 </div>
 
 <main class="container paper-dashboard">
+
+  <!-- Master Environment Switcher Pill Bar (Seamless Flip between Paper and Real) -->
+  <div class="env-switcher-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12.5px;color:var(--text-muted,#94a3b8);font-weight:700;">Trading Arena:</span>
+      <div class="env-pill-group">
+        <a href="ai-auto-paper-trading.html" class="env-pill active-paper" title="Currently on Virtual Paper Trading Simulation">
+          <i class="fa-solid fa-flask"></i> 🧪 Paper Trading (Virtual ₹1,00,000)
+        </a>
+        <a href="ai-auto-real-trading.html" class="env-pill" title="Switch to Live Upstox Real Trading Terminal">
+          <i class="fa-solid fa-fire"></i> 🔴 Real Trading (Upstox Live API)
+        </a>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text-muted,#94a3b8);display:flex;align-items:center;gap:8px;">
+      <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(16,185,129,0.18);color:#10b981;font-weight:800;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#10b981;"></span> Zero Risk Virtual Sandbox
+      </span>
+    </div>
+  </div>
 
   <!-- Top Hero & Status -->
   <section class="paper-hero">

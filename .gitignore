@@ -6,3 +6,4 @@ data/
 .env
 .DS_Store
 paper_datastore.json
+real_trading_datastore.json

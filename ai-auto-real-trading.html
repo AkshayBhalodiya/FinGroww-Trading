@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Real Trading (Upstox API v2) — FinGroww Institutional Intelligence</title>
+<meta name="description" content="Production-grade AI Algorithmic & Manual Real Trading Terminal integrated with Upstox API v2 for Indian Equities, Futures, and Options with mandatory Stop-Loss protection and live margin tracking.">
+
+<!-- CDNs: Font Awesome & AOS Animation -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+<link rel="stylesheet" href="theme.css">
+
+<!-- Chart.js for Interactive Visualizations -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* Page-Specific Styling for AI Real Trading Terminal */
+:root {
+  --real-red: #ef4444;
+  --real-red-dim: rgba(239, 68, 68, 0.15);
+  --real-green: #10b981;
+  --real-green-dim: rgba(16, 185, 129, 0.15);
+  --real-gold: #f59e0b;
+  --real-gold-dim: rgba(245, 158, 11, 0.15);
+  --real-blue: #38bdf8;
+  --real-blue-dim: rgba(56, 189, 248, 0.15);
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: var(--header-bg, rgba(3, 7, 18, 0.85));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-subtle, #1e293b);
+}
+.nav-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  gap: 16px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--text-main, #f8fafc);
+}
+.brand-logo span.highlight {
+  color: #ef4444;
+}
+.brand-tag {
+  font-size: 10.5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-links a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #94a3b8);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.nav-links a:hover, .nav-links a.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.nav-links a.active {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+  font-weight: 800;
+}
+
+/* Master Environment Switcher Pill Bar */
+.env-switcher-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 20px;
+}
+.env-pill-group {
+  display: inline-flex;
+  background: rgba(3, 7, 18, 0.9);
+  border: 1px solid var(--border-subtle, #1e293b);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 4px;
+}
+.env-pill {
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #94a3b8);
+  transition: all 0.2s;
+}
+.env-pill.active-paper {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-weight: 800;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.env-pill.active-real {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  font-weight: 900;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Broker Connectivity HUD */
+.broker-hud-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,27,75,0.7));
+  border: 1px solid #312e81;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+.broker-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+.broker-connected {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+.broker-disconnected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.mode-toggle-group {
+  display: inline-flex;
+  background: #030712;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+}
+.mode-toggle-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #94a3b8;
+  transition: all 0.2s;
+}
+.mode-toggle-btn.active-live {
+  background: rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  font-weight: 900;
+}
+.mode-toggle-btn.active-dry {
+  background: rgba(245, 158, 11, 0.25);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  font-weight: 900;
+}
+
+/* 7 KPI Cards Grid (Matches ai-auto-paper-trading.html) */
+.account-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.acc-card {
+  background: var(--bg-surface, #0f172a);
+  border: 1px solid var(--border-card, #1e293b);
+  border-radius: 10px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.acc-card:hover {
+  border-color: #334155;
+}
+.acc-lbl {
+  font-size: 11.5px;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.acc-val {
+  font-size: 21px;
+  font-weight: 900;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text-main, #f8fafc);
+}
+.acc-sub {
+  font-size: 11px;
+  color: var(--text-dim, #64748b);
+  margin-top: 4px;
+}
+.acc-card.hero-pnl {
+  background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,27,75,0.7));
+  border: 1px solid #4338ca;
+  grid-column: span 1;
+}
+.val-green { color: #10b981 !important; }
+.val-red { color: #ef4444 !important; }
+.val-gold { color: #f59e0b !important; }
+.val-blue { color: #38bdf8 !important; }
+
+/* Control Console Bar */
+.control-console {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: var(--bg-surface, #0f172a);
+  border: 1px solid var(--border-card, #1e293b);
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.btn-primary-green {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+}
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid #334155;
+  color: var(--text-muted, #94a3b8);
+}
+.btn-outline:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+/* Radar Setups Cards Grid */
+.radar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.radar-card {
+  background: var(--bg-surface, #0f172a);
+  border: 1px solid var(--border-card, #1e293b);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: transform 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.radar-card:hover {
+  transform: translateY(-2px);
+  border-color: #38bdf8;
+}
+.radar-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+/* Panels & Tables */
+.panel {
+  background: var(--bg-surface, #0f172a);
+  border: 1px solid var(--border-card, #1e293b);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle, #1e293b);
+}
+.panel-title {
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-main, #f8fafc);
+}
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+.paper-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.paper-table th {
+  background: rgba(3, 7, 18, 0.6);
+  color: var(--text-muted, #94a3b8);
+  font-weight: 700;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle, #1e293b);
+}
+.paper-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-subtle, #1e293b);
+  color: var(--text-main, #f8fafc);
+}
+.paper-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Target vs SL Progress Bar */
+.progress-tp-sl {
+  width: 100%;
+  height: 6px;
+  background: #1e293b;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s;
+}
+
+/* Modals */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal-box {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease;
+}
+.toast.success { background: #064e3b; border-color: #10b981; }
+.toast.error { background: #7f1d1d; border-color: #ef4444; }
+.toast.info { background: #1e3a8a; border-color: #3b82f6; }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="brand-logo">
+      <i class="fa-solid fa-chart-line" style="color:#ef4444;"></i>
+      <span>Fin<span class="highlight">Groww</span></span>
+      <span class="brand-tag"><i class="fa-solid fa-bolt"></i> REAL UPSTOX</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="today-options.html">🔥 Today's Options</a></li>
+      <li><a href="options.html">🎯 Options Intel</a></li>
+      <li><a href="backtest.html">📊 5Y Backtest</a></li>
+      <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper</a></li>
+      <li><a href="ai-auto-real-trading.html" class="active"><i class="fa-solid fa-fire"></i> 🔴 AI Real Trading</a></li>
+    </ul>
+  </div>
+</header>
+
+<main class="app-container" style="max-width:1440px;margin:0 auto;padding:20px;">
+
+  <!-- Master Environment Switcher Pill Bar (Seamless Flip between Paper and Real) -->
+  <div class="env-switcher-bar">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12.5px;color:var(--text-muted,#94a3b8);font-weight:700;">Trading Arena:</span>
+      <div class="env-pill-group">
+        <a href="ai-auto-paper-trading.html" class="env-pill" title="Switch to Virtual Paper Trading Simulation">
+          <i class="fa-solid fa-flask"></i> 🧪 Paper Trading (Virtual ₹1,00,000)
+        </a>
+        <a href="ai-auto-real-trading.html" class="env-pill active-real" title="Currently on Live Upstox Real Trading Terminal">
+          <i class="fa-solid fa-fire"></i> 🔴 Real Trading (Upstox Live API)
+        </a>
+      </div>
+    </div>
+
+    <div style="font-size:12px;color:var(--text-muted,#94a3b8);display:flex;align-items:center;gap:8px;">
+      <span id="marketStatusPill" style="display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(56,189,248,0.18);color:#38bdf8;font-weight:800;">
+        <span style="width:6px;height:6px;border-radius:50%;background:#38bdf8;"></span> NSE Live
+      </span>
+      <span id="headerClock">--:--:-- IST</span>
+    </div>
+  </div>
+
+  <!-- 1. Upstox Broker Connectivity HUD Card -->
+  <section class="broker-hud-card">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div id="brokerStatusBadge" class="broker-status-pill broker-disconnected">
+        <i class="fa-solid fa-circle-dot"></i>
+        <span id="brokerStatusText">Connecting Upstox...</span>
+      </div>
+
+      <div style="font-size:12.5px;color:#94a3b8;">
+        <span>Client: <strong id="hudClientId" style="color:#f8fafc;">54B3JD</strong></span>
+        <span style="margin:0 8px;">•</span>
+        <span>Account: <strong id="hudUserName" style="color:#f8fafc;">--</strong></span>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <!-- Mode Toggle: Live Real Capital vs Dry-Run Simulation -->
+      <div class="mode-toggle-group" title="Select between live real money execution and safe simulation">
+        <button type="button" id="btnModeDry" class="mode-toggle-btn active-dry" onclick="setTradingMode('DRY_RUN')">
+          <i class="fa-solid fa-shield"></i> DRY-RUN (Safe)
+        </button>
+        <button type="button" id="btnModeLive" class="mode-toggle-btn" onclick="setTradingMode('LIVE')">
+          <i class="fa-solid fa-fire"></i> LIVE CAPITAL (Real)
+        </button>
+      </div>
+
+      <button type="button" class="btn btn-outline" onclick="openUpstoxAuthModal()" title="Configure Upstox Token / OAuth">
+        <i class="fa-solid fa-key"></i> Upstox Login
+      </button>
+
+      <!-- Emergency Kill Switch -->
+      <button type="button" class="btn btn-danger" onclick="triggerEmergencyKillSwitch()" title="Emergency: Square off all open positions instantly">
+        <i class="fa-solid fa-skull-crossbones"></i> Kill Switch (Exit All)
+      </button>
+    </div>
+  </section>
+
+  <!-- 2. Account Overview Grid (7 Metric Cards matching ai-auto-paper-trading.html) -->
+  <section class="account-overview-grid">
+    <div class="acc-card">
+      <div class="acc-lbl">Starting Available Funds <i class="fa-solid fa-wallet"></i></div>
+      <div class="acc-val" id="metricInitialCap">₹1,00,000</div>
+      <div class="acc-sub">Base allocated capital</div>
+    </div>
+
+    <div class="acc-card">
+      <div class="acc-lbl">Available Trading Margin <i class="fa-solid fa-coins"></i></div>
+      <div class="acc-val val-blue" id="metricAvailableBal">₹0.00</div>
+      <div class="acc-sub" id="metricAvailableSub">Live Upstox Equity Margin</div>
+    </div>
+
+    <div class="acc-card">
+      <div class="acc-lbl">Allocated Margin <i class="fa-solid fa-chart-pie"></i></div>
+      <div class="acc-val val-gold" id="metricAllocatedMargin">₹0.00</div>
+      <div class="acc-sub" id="metricActiveCount">0 Active Positions</div>
+    </div>
+
+    <div class="acc-card">
+      <div class="acc-lbl">Realized Today P&amp;L <i class="fa-solid fa-receipt"></i></div>
+      <div class="acc-val" id="metricRealizedPnl">₹0.00</div>
+      <div class="acc-sub">Closed real trades</div>
+    </div>
+
+    <div class="acc-card">
+      <div class="acc-lbl">Floating Unrealized P&amp;L <i class="fa-solid fa-chart-line"></i></div>
+      <div class="acc-val" id="metricUnrealizedPnl">₹0.00</div>
+      <div class="acc-sub">Live mark-to-market</div>
+    </div>
+
+    <div class="acc-card hero-pnl">
+      <div class="acc-lbl">Net Total Day P&amp;L <i class="fa-solid fa-trophy"></i></div>
+      <div class="acc-val" id="metricTotalPnl">₹0.00</div>
+      <div class="acc-sub" id="metricReturnPct">+0.00% Overall Return</div>
+    </div>
+
+    <div class="acc-card">
+      <div class="acc-lbl">Active Real Positions <i class="fa-solid fa-crosshairs"></i></div>
+      <div class="acc-val val-gold" id="metricOpenCount">0</div>
+      <div class="acc-sub" id="metricMaxPosSub">Max Allowed: 3</div>
+    </div>
+  </section>
+
+  <!-- 3. Real Algo Engine Control Bar -->
+  <section class="control-console">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button type="button" id="btnToggleEngine" class="btn btn-primary-green" onclick="toggleAlgoEngine()">
+        <i class="fa-solid fa-play"></i> Start Real Algo Engine
+      </button>
+      <button type="button" class="btn btn-outline" onclick="openManualOrderModal()" style="border-color:#10b981;color:#10b981;font-weight:700;">
+        <i class="fa-solid fa-hand-holding-dollar"></i> Place Manual Real Trade
+      </button>
+      <button type="button" class="btn btn-outline" onclick="openRiskConfigModal()">
+        <i class="fa-solid fa-sliders"></i> Risk Guardrails
+      </button>
+      <button type="button" class="btn btn-outline" onclick="refreshAllRealData()">
+        <i class="fa-solid fa-rotate"></i> Refresh
+      </button>
+    </div>
+
+    <div style="font-size:12px;color:#94a3b8;display:flex;align-items:center;gap:8px;">
+      <span id="engineStatusIndicator" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;"></span>
+      <span id="engineStatusText">Auto-Algo Engine Paused</span>
+      <span style="margin: 0 4px;">•</span>
+      <span id="serverTimeText">--:-- IST</span>
+    </div>
+  </section>
+
+  <!-- 4. Confirmed 15-Minute Setups Radar (Live Stream matching ai-auto-paper-trading.html) -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="fa-solid fa-radar" style="color:#38bdf8;"></i>
+        <span>Confirmed 15–Minute Setups</span>
+        <span id="radarCountBadge" style="font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(56,189,248,0.2);color:#38bdf8;font-weight:800;">Scanning...</span>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;">
+        Live algorithmic trade setups confirmed across technical trend, VWAP, momentum, and ATR risk metrics
+      </div>
+    </div>
+
+    <div class="radar-grid" id="radarSetupsContainer">
+      <div style="grid-column: 1 / -1; text-align:center; padding: 24px; color:#64748b;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size:20px;margin-bottom:8px;display:block;"></i>
+        Scanning live NSE universe for confirmed high win-rate setups...
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Active Real Positions Section (With countdown timers & Target/SL progress) -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="fa-solid fa-crosshairs" style="color:#ef4444;"></i>
+        <span>Active Real Positions</span>
+        <span id="activePositionsBadge" style="font-size:11.5px;padding:2px 8px;border-radius:999px;background:rgba(239,68,68,0.2);color:#ef4444;font-weight:800;">0 Open</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-primary-green" onclick="openManualOrderModal()" style="font-size:12px;padding:5px 12px;">
+          <i class="fa-solid fa-plus"></i> Place Manual Trade
+        </button>
+        <span style="font-size:12px;color:#94a3b8;">
+          Live NSE prices; Stop-Loss and 1.80R target auto-monitored
+        </span>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="paper-table" id="realPositionsTable">
+        <thead>
+          <tr>
+            <th>Trade ID</th>
+            <th>Instrument</th>
+            <th>Type</th>
+            <th>Side</th>
+            <th>Entry Price</th>
+            <th>Live Price</th>
+            <th>Qty / Lots</th>
+            <th>Required Margin</th>
+            <th>Target Price</th>
+            <th>Stop-Loss (Mandatory)</th>
+            <th>Target / SL Progress</th>
+            <th>Unrealized P&amp;L</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="realPositionsBody">
+          <tr>
+            <td colspan="13" style="text-align:center;padding:32px;color:#64748b;">
+              <i class="fa-solid fa-chart-simple" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+              <div>No active real trades currently open.</div>
+              <div style="font-size:11.5px;margin-top:4px;">Click "Start Real Algo Engine" or "Place Manual Real Trade" to initiate trades.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6. Performance Analytics & Charts (Chart.js) -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="fa-solid fa-bullseye" style="color:#f59e0b;"></i>
+        <span>Performance &amp; Quantitative Metrics</span>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;">
+        Calculated strictly from closed real trades on Upstox
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px;margin-bottom:20px;">
+      <div class="acc-card">
+        <div class="acc-lbl">Overall Win Rate <i class="fa-solid fa-percent"></i></div>
+        <div class="acc-val val-green" id="kpiWinRate">0.0%</div>
+        <div class="acc-sub" id="kpiWinLossRatio">0W / 0L</div>
+      </div>
+      <div class="acc-card">
+        <div class="acc-lbl">Profit Factor <i class="fa-solid fa-scale-balanced"></i></div>
+        <div class="acc-val val-blue" id="kpiProfitFactor">0.00</div>
+        <div class="acc-sub">Gross Win / Gross Loss</div>
+      </div>
+      <div class="acc-card">
+        <div class="acc-lbl">Total Real Trades <i class="fa-solid fa-list-check"></i></div>
+        <div class="acc-val" id="kpiTotalTrades">0</div>
+        <div class="acc-sub">All closed orders</div>
+      </div>
+      <div class="acc-card">
+        <div class="acc-lbl">Max Drawdown <i class="fa-solid fa-arrow-trend-down"></i></div>
+        <div class="acc-val val-red" id="kpiMaxDrawdown">0.0%</div>
+        <div class="acc-sub">Peak to trough</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div style="display:grid;grid-template-columns: 2fr 1fr; gap:16px;">
+      <div style="background:#030712;border:1px solid #1e293b;border-radius:10px;padding:16px;">
+        <div style="font-size:13px;font-weight:800;color:#f8fafc;margin-bottom:12px;">Cumulative Net P&amp;L Curve (Real Execution)</div>
+        <div style="height:220px;position:relative;">
+          <canvas id="chartCumulativePnl"></canvas>
+        </div>
+      </div>
+
+      <div style="background:#030712;border:1px solid #1e293b;border-radius:10px;padding:16px;text-align:center;">
+        <div style="font-size:13px;font-weight:800;color:#f8fafc;margin-bottom:12px;">Win vs Loss Distribution</div>
+        <div style="height:220px;position:relative;">
+          <canvas id="chartWinLoss"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Completed Trade History & Upstox Order Book -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="fa-solid fa-list-check" style="color:#38bdf8;"></i>
+        <span>Completed Real Trades &amp; Audit Log</span>
+      </div>
+      <button type="button" class="btn btn-outline" onclick="exportRealTradesCsv()" style="font-size:12px;padding:5px 12px;">
+        <i class="fa-solid fa-file-arrow-down"></i> Export CSV
+      </button>
+    </div>
+
+    <div class="table-responsive">
+      <table class="paper-table" id="realHistoryTable">
+        <thead>
+          <tr>
+            <th>Exit Time</th>
+            <th>Symbol</th>
+            <th>Type</th>
+            <th>Side</th>
+            <th>Entry Price</th>
+            <th>Exit Price</th>
+            <th>Qty</th>
+            <th>Margin Used</th>
+            <th>Charges</th>
+            <th>Net P&amp;L</th>
+            <th>Exit Reason</th>
+            <th>Outcome</th>
+          </tr>
+        </thead>
+        <tbody id="realHistoryBody">
+          <tr>
+            <td colspan="12" style="text-align:center;padding:24px;color:#64748b;">
+              No closed real trades yet today.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 8. Real Trading Terminal Audit Log -->
+  <section class="panel">
+    <div class="panel-header">
+      <div class="panel-title">
+        <i class="fa-solid fa-terminal" style="color:#10b981;"></i>
+        <span>FinGroww Quant Kernel Real-time Log Terminal</span>
+      </div>
+      <span style="font-size:11px;color:#64748b;">Live Upstox API events, order fills, SL modifications</span>
+    </div>
+
+    <div id="auditLogTerminal" style="background:#030712;border:1px solid #1e293b;border-radius:8px;padding:12px 16px;max-height:220px;overflow-y:auto;font-family:ui-monospace, monospace;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <div style="color:#64748b;">[Ready] Real Trading Engine initialized. Awaiting user commands...</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Modal: Upstox Broker Auth -->
+<div id="modalUpstoxAuth" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span><i class="fa-solid fa-key" style="color:#ef4444;"></i> Connect Upstox Broker</span>
+      <button type="button" class="btn btn-outline" onclick="closeModal('modalUpstoxAuth')" style="padding:4px 8px;border:none;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <p style="font-size:12.5px;color:#94a3b8;margin-bottom:16px;">
+      Indian regulations require daily Upstox authentication. Authenticate via 1-click Upstox OAuth or paste your daily access token.
+    </p>
+
+    <!-- Method 1: OAuth -->
+    <div style="background:#030712;border:1px solid #1e293b;border-radius:8px;padding:16px;margin-bottom:16px;">
+      <h4 style="margin:0 0 8px 0;font-size:13.5px;color:#f8fafc;">Method 1: 1-Click Upstox Login (OAuth 2.0)</h4>
+      <p style="font-size:12px;color:#64748b;margin-bottom:12px;">Redirects to official Upstox login dialog and automatically saves token.</p>
+      <button type="button" class="btn btn-primary-green" onclick="redirectToUpstoxLogin()" style="width:100%;justify-content:center;">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Login to Upstox (OAuth)
+      </button>
+    </div>
+
+    <!-- Method 2: Manual Token -->
+    <div style="background:#030712;border:1px solid #1e293b;border-radius:8px;padding:16px;">
+      <h4 style="margin:0 0 8px 0;font-size:13.5px;color:#f8fafc;">Method 2: Paste Daily Access Token</h4>
+      <p style="font-size:12px;color:#64748b;margin-bottom:10px;">Paste the token from Upstox Developer Portal.</p>
+      <textarea id="inpManualToken" placeholder="eyJ0eXAiOiJKV1QiLC..." rows="3" style="width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;padding:8px;font-family:monospace;font-size:11px;margin-bottom:12px;outline:none;"></textarea>
+      <button type="button" class="btn btn-outline" onclick="submitManualToken()" style="width:100%;justify-content:center;">
+        <i class="fa-solid fa-check"></i> Save &amp; Connect Token
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Manual Real Order (MANDATORY STOP-LOSS & 1.8R TARGET) -->
+<div id="modalManualRealOrder" class="modal-overlay">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-title">
+      <span><i class="fa-solid fa-hand-holding-dollar" style="color:#ef4444;"></i> Place Manual Real Option Trade</span>
+      <button type="button" class="btn btn-outline" onclick="closeModal('modalManualRealOrder')" style="padding:4px 8px;border:none;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div style="font-size:12px;color:#94a3b8;margin-bottom:14px;">
+      Live execution on Upstox. <strong>Stop-Loss (SL) is strictly mandatory.</strong> Target price calculated with FinGroww 1.80R algorithm.
+    </div>
+
+    <form id="manualOrderForm" onsubmit="event.preventDefault(); submitRealManualOrder();">
+      <!-- Underlying & CE/PE -->
+      <div style="display:grid;grid-template-columns: 1.5fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="font-size:11.5px;color:#94a3b8;display:block;margin-bottom:6px;">Underlying Symbol</label>
+          <select id="selOrderSymbol" onchange="onSymbolChange()" style="width:100%;padding:8px 12px;background:#030712;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-weight:700;">
+            <option value="NIFTY 50" selected>NIFTY 50 (Index)</option>
+            <option value="BANK NIFTY">BANK NIFTY (Index)</option>
+            <option value="FINNIFTY">FINNIFTY (Index)</option>
+            <option value="SENSEX">SENSEX (BSE)</option>
+            <option value="RELIANCE">RELIANCE</option>
+            <option value="HDFCBANK">HDFCBANK</option>
+            <option value="TCS">TCS</option>
+            <option value="INFY">INFY</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11.5px;color:#94a3b8;display:block;margin-bottom:6px;">Option Type</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" id="btnTypeCe" class="btn" onclick="setOptionType('CE')" style="background:rgba(16,185,129,0.25);color:#10b981;border:1px solid rgba(16,185,129,0.5);justify-content:center;padding:7px;">
+              CALL (CE)
+            </button>
+            <button type="button" id="btnTypePe" class="btn btn-outline" onclick="setOptionType('PE')" style="justify-content:center;padding:7px;">
+              PUT (PE)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strike -->
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11.5px;color:#94a3b8;display:block;margin-bottom:6px;">Strike Price</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button type="button" class="btn btn-outline" onclick="adjustStrike(-1)">-</button>
+          <input type="number" id="inpOrderStrike" value="24500" step="50" oninput="updateOrderSummary()" style="flex:1;padding:8px 12px;background:#030712;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-family:monospace;font-weight:700;text-align:center;">
+          <button type="button" class="btn btn-outline" onclick="adjustStrike(1)">+</button>
+          <button type="button" class="btn btn-outline" onclick="setAtmStrike()" style="color:#38bdf8;">ATM</button>
+        </div>
+      </div>
+
+      <!-- Live Contract Details -->
+      <div style="background:#030712;border:1px solid #1e293b;border-radius:8px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:repeat(3, 1fr);text-align:center;gap:8px;">
+        <div>
+          <div style="font-size:10.5px;color:#94a3b8;">Est. Premium</div>
+          <div id="dispOrderPremium" style="font-size:16px;font-weight:800;color:#10b981;font-family:monospace;">₹200.00</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:#94a3b8;">Lot Size</div>
+          <div id="dispOrderLotSize" style="font-size:16px;font-weight:800;color:#f8fafc;font-family:monospace;">25</div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;color:#94a3b8;">Req. Margin (1 Lot)</div>
+          <div id="dispOrderMargin" style="font-size:16px;font-weight:800;color:#f59e0b;font-family:monospace;">₹5,000.00</div>
+        </div>
+      </div>
+
+      <!-- Stop-Loss (MANDATORY) -->
+      <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px;margin-bottom:14px;">
+        <label style="font-size:12px;color:#ef4444;font-weight:800;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span><i class="fa-solid fa-shield-halved"></i> Stop-Loss (SL) Price (₹) [MANDATORY] *</span>
+          <span id="dispRiskPerShare" style="font-size:11px;">Risk: -₹30.00</span>
+        </label>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+          <input type="number" id="inpOrderSl" step="0.05" placeholder="Strictly required" required oninput="onSlChange()" style="flex:1;padding:8px 12px;background:#030712;border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#ef4444;font-weight:800;font-family:monospace;">
+          <button type="button" class="btn btn-outline" onclick="setSlPct(10)">-10%</button>
+          <button type="button" class="btn btn-outline" onclick="setSlPct(15)">-15%</button>
+          <button type="button" class="btn btn-outline" onclick="setSlPct(20)">-20%</button>
+        </div>
+        <div style="font-size:10.5px;color:#94a3b8;">Trade cannot be placed without Stop-Loss. Protects capital against downside.</div>
+      </div>
+
+      <!-- Target Price -->
+      <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">
+        <label style="font-size:12px;color:#10b981;font-weight:800;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span><i class="fa-solid fa-bullseye"></i> Target Price (₹)</span>
+          <span id="dispRewardPerShare" style="font-size:11px;">Gain: +₹54.00</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <input type="checkbox" id="chkAlgoTarget" checked onchange="toggleAlgoTarget()">
+          <span style="font-size:11.5px;color:#f8fafc;font-weight:700;">🎯 Use FinGroww 1.80R Quantitative Algo Target</span>
+        </div>
+        <input type="number" id="inpOrderTarget" step="0.05" readonly style="width:100%;box-sizing:border-box;padding:8px 12px;background:#030712;border:1px solid rgba(16,185,129,0.5);border-radius:6px;color:#10b981;font-weight:800;font-family:monospace;">
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button type="button" class="btn btn-outline" onclick="closeModal('modalManualRealOrder')">Cancel</button>
+        <button type="submit" id="btnSubmitOrder" class="btn btn-danger" style="font-weight:800;">
+          <i class="fa-solid fa-paper-plane"></i> Place Real Upstox Order
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Risk Guardrails & Config -->
+<div id="modalRiskConfig" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span><i class="fa-solid fa-sliders" style="color:#f59e0b;"></i> Real Trading Risk Guardrails</span>
+      <button type="button" class="btn btn-outline" onclick="closeModal('modalRiskConfig')" style="padding:4px 8px;border:none;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:6px;">Daily Max Loss Limit (₹)</label>
+      <input type="number" id="cfgDailyLoss" value="5000" style="width:100%;box-sizing:border-box;padding:8px 12px;background:#030712;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-family:monospace;">
+      <div style="font-size:10.5px;color:#64748b;margin-top:4px;">Auto-halts real trading if today's net loss exceeds this amount.</div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:6px;">Max Simultaneous Open Positions</label>
+      <input type="number" id="cfgMaxPos" value="3" min="1" max="10" style="width:100%;box-sizing:border-box;padding:8px 12px;background:#030712;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-family:monospace;">
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:6px;">Max Lots Per Trade</label>
+      <input type="number" id="cfgMaxLots" value="1" min="1" max="5" style="width:100%;box-sizing:border-box;padding:8px 12px;background:#030712;border:1px solid #334155;border-radius:6px;color:#f8fafc;font-family:monospace;">
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button type="button" class="btn btn-outline" onclick="closeModal('modalRiskConfig')">Cancel</button>
+      <button type="button" class="btn btn-primary-green" onclick="saveRiskConfig()">
+        <i class="fa-solid fa-floppy-disk"></i> Save Guardrails
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// State
+let currentOptType = "CE";
+let lastSummary = null;
+let currentPremium = 200.0;
+let currentLotSize = 25;
+let pnlChartInstance = null;
+let winLossChartInstance = null;
+
+function showToast(msg, type = "info") {
+  const container = document.getElementById("toastContainer");
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+function formatInr(val) {
+  const n = Number(val) || 0;
+  const sign = n < 0 ? "-" : "";
+  return sign + "₹" + Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function openModal(id) { document.getElementById(id).classList.add("active"); }
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+
+function openUpstoxAuthModal() { openModal("modalUpstoxAuth"); }
+function openManualOrderModal() {
+  openModal("modalManualRealOrder");
+  updateOrderSummary();
+}
+function openRiskConfigModal() { openModal("modalRiskConfig"); }
+
+// OAuth redirect
+async function redirectToUpstoxLogin() {
+  try {
+    const r = await fetch("/api/real-algo/login-url");
+    const d = await r.json();
+    if (d.ok && d.login_url) {
+      window.location.href = d.login_url;
+    } else {
+      showToast("Failed to generate Upstox login URL.", "error");
+    }
+  } catch (e) {
+    showToast("Error: " + e.message, "error");
+  }
+}
+
+// Manual Token
+async function submitManualToken() {
+  const token = document.getElementById("inpManualToken").value.trim();
+  if (!token) {
+    showToast("Please paste a valid access token.", "error");
+    return;
+  }
+  try {
+    const r = await fetch("/api/real-algo/set-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token: token })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      closeModal("modalUpstoxAuth");
+      showToast("Upstox Access Token saved successfully!", "success");
+      await refreshAllRealData();
+    } else {
+      showToast(d.error || "Failed to update token.", "error");
+    }
+  } catch (e) {
+    showToast("Network error: " + e.message, "error");
+  }
+}
+
+// Mode toggle
+async function setTradingMode(mode) {
+  const isDry = mode === "DRY_RUN";
+  try {
+    const r = await fetch("/api/real-algo/update-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dry_run: isDry })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showToast(isDry ? "Switched to DRY-RUN Mode (Simulated Execution)" : "⚠️ LIVE CAPITAL MODE ACTIVATED (Real Money on Upstox)", isDry ? "info" : "error");
+      await refreshAllRealData();
+    }
+  } catch (e) {
+    showToast("Error updating mode: " + e.message, "error");
+  }
+}
+
+// Toggle Engine
+async function toggleAlgoEngine() {
+  try {
+    const r = await fetch("/api/real-algo/toggle-engine", { method: "POST" });
+    const d = await r.json();
+    if (d.ok) {
+      showToast(d.message, "info");
+      await refreshAllRealData();
+    }
+  } catch (e) {
+    showToast("Error toggling engine: " + e.message, "error");
+  }
+}
+
+// Emergency Kill Switch
+async function triggerEmergencyKillSwitch() {
+  if (!confirm("⚠️ EMERGENCY KILL SWITCH: Are you sure you want to SQUARE OFF ALL open positions immediately on Upstox?")) {
+    return;
+  }
+  try {
+    const r = await fetch("/api/real-algo/emergency-exit-all", { method: "POST" });
+    const d = await r.json();
+    if (d.ok) {
+      showToast(`💥 Kill Switch Activated: ${d.closed_count} positions closed.`, "error");
+      await refreshAllRealData();
+    }
+  } catch (e) {
+    showToast("Kill switch error: " + e.message, "error");
+  }
+}
+
+// Save Risk Config
+async function saveRiskConfig() {
+  const dailyLoss = parseFloat(document.getElementById("cfgDailyLoss").value) || 5000;
+  const maxPos = parseInt(document.getElementById("cfgMaxPos").value) || 3;
+  const maxLots = parseInt(document.getElementById("cfgMaxLots").value) || 1;
+
+  try {
+    const r = await fetch("/api/real-algo/update-config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        daily_loss_limit: dailyLoss,
+        max_open_positions: maxPos,
+        max_lots_per_trade: maxLots
+      })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      closeModal("modalRiskConfig");
+      showToast("Risk guardrails saved.", "success");
+      await refreshAllRealData();
+    }
+  } catch (e) {
+    showToast("Error saving config: " + e.message, "error");
+  }
+}
+
+// Manual Order Helpers
+function setOptionType(t) {
+  currentOptType = t;
+  const btnCe = document.getElementById("btnTypeCe");
+  const btnPe = document.getElementById("btnTypePe");
+  if (t === "CE") {
+    btnCe.style.background = "rgba(16,185,129,0.25)";
+    btnCe.style.color = "#10b981";
+    btnCe.style.borderColor = "rgba(16,185,129,0.5)";
+    btnPe.style.background = "transparent";
+    btnPe.style.color = "#94a3b8";
+    btnPe.style.borderColor = "#334155";
+  } else {
+    btnPe.style.background = "rgba(239,68,68,0.25)";
+    btnPe.style.color = "#ef4444";
+    btnPe.style.borderColor = "rgba(239,68,68,0.5)";
+    btnCe.style.background = "transparent";
+    btnCe.style.color = "#94a3b8";
+    btnCe.style.borderColor = "#334155";
+  }
+  updateOrderSummary();
+}
+
+function onSymbolChange() {
+  const sym = document.getElementById("selOrderSymbol").value;
+  const inpStrike = document.getElementById("inpOrderStrike");
+  if (sym.includes("BANK")) {
+    inpStrike.step = 100;
+    inpStrike.value = 52000;
+    currentLotSize = 15;
+  } else if (sym.includes("SENSEX")) {
+    inpStrike.step = 100;
+    inpStrike.value = 80000;
+    currentLotSize = 10;
+  } else if (sym === "RELIANCE") {
+    inpStrike.step = 20;
+    inpStrike.value = 2600;
+    currentLotSize = 250;
+  } else {
+    inpStrike.step = 50;
+    inpStrike.value = 24500;
+    currentLotSize = 25;
+  }
+  updateOrderSummary();
+}
+
+function adjustStrike(delta) {
+  const inp = document.getElementById("inpOrderStrike");
+  const step = parseFloat(inp.step) || 50;
+  inp.value = Math.max(step, parseFloat(inp.value) + (delta * step));
+  updateOrderSummary();
+}
+
+function setAtmStrike() { onSymbolChange(); }
+
+function setSlPct(pct) {
+  const sl = Math.max(0.05, Math.round(currentPremium * (1 - pct/100) * 100) / 100);
+  document.getElementById("inpOrderSl").value = sl.toFixed(2);
+  onSlChange();
+}
+
+function onSlChange() {
+  const sl = parseFloat(document.getElementById("inpOrderSl").value) || 0;
+  const risk = Math.max(0, currentPremium - sl);
+  document.getElementById("dispRiskPerShare").textContent = `Risk: -₹${risk.toFixed(2)}`;
+
+  const isAlgo = document.getElementById("chkAlgoTarget").checked;
+  if (isAlgo && risk > 0) {
+    const tp = currentPremium + (risk * 1.80);
+    document.getElementById("inpOrderTarget").value = tp.toFixed(2);
+    document.getElementById("dispRewardPerShare").textContent = `Gain: +₹${(tp - currentPremium).toFixed(2)}`;
+  }
+}
+
+function toggleAlgoTarget() {
+  const isAlgo = document.getElementById("chkAlgoTarget").checked;
+  const inpTp = document.getElementById("inpOrderTarget");
+  inpTp.readOnly = isAlgo;
+  if (isAlgo) onSlChange();
+}
+
+async function updateOrderSummary() {
+  const sym = document.getElementById("selOrderSymbol").value;
+  const strike = document.getElementById("inpOrderStrike").value;
+
+  try {
+    const r = await fetch(`/api/paper/option-quote?symbol=${encodeURIComponent(sym)}&strike=${encodeURIComponent(strike)}&option_type=${encodeURIComponent(currentOptType)}`);
+    const d = await r.json();
+    if (d && d.ok) {
+      currentPremium = Number(d.premium) || 200.0;
+      currentLotSize = Number(d.lot_size) || 25;
+    } else {
+      currentLotSize = sym.includes("BANK") ? 15 : (sym.includes("SENSEX") ? 10 : (sym === "RELIANCE" ? 250 : 25));
+      currentPremium = sym.includes("BANK") ? 320.0 : 200.0;
+    }
+  } catch (e) {
+    currentLotSize = 25;
+    currentPremium = 200.0;
+  }
+
+  document.getElementById("dispOrderPremium").textContent = `₹${currentPremium.toFixed(2)}`;
+  document.getElementById("dispOrderLotSize").textContent = currentLotSize;
+  const req = currentLotSize * currentPremium;
+  document.getElementById("dispOrderMargin").textContent = formatInr(req);
+
+  const inpSl = document.getElementById("inpOrderSl");
+  if (!inpSl.value) {
+    setSlPct(15);
+  } else {
+    onSlChange();
+  }
+}
+
+// Pre-fill setup from radar card
+function prefillRadarSetup(sym, strike, optType, ltp, sl, tp) {
+  openManualOrderModal();
+  const selSym = document.getElementById("selOrderSymbol");
+  if (selSym) {
+    const found = Array.from(selSym.options).some(o => o.value === sym);
+    if (found) selSym.value = sym;
+  }
+  setOptionType(optType || "CE");
+  if (strike) document.getElementById("inpOrderStrike").value = strike;
+  if (sl) document.getElementById("inpOrderSl").value = sl;
+  if (tp) document.getElementById("inpOrderTarget").value = tp;
+  updateOrderSummary();
+}
+
+// Submit Real Manual Order
+async function submitRealManualOrder() {
+  const sym = document.getElementById("selOrderSymbol").value;
+  const strike = parseFloat(document.getElementById("inpOrderStrike").value);
+  const sl = parseFloat(document.getElementById("inpOrderSl").value);
+  const tp = parseFloat(document.getElementById("inpOrderTarget").value);
+  const isAlgo = document.getElementById("chkAlgoTarget").checked;
+
+  if (!sl || sl <= 0) {
+    showToast("Stop-Loss (SL) is strictly mandatory for real execution.", "error");
+    return;
+  }
+  if (sl >= currentPremium) {
+    showToast(`Stop-Loss (₹${sl.toFixed(2)}) must be below entry premium (₹${currentPremium.toFixed(2)}).`, "error");
+    return;
+  }
+
+  const btn = document.getElementById("btnSubmitOrder");
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Executing on Upstox...`;
+
+  try {
+    const payload = {
+      base_symbol: sym,
+      strike: strike,
+      option_type: currentOptType,
+      stop_loss: sl,
+      target_price: tp,
+      algo_target: isAlgo,
+      lots: 1
+    };
+
+    const r = await fetch("/api/real-algo/manual-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+
+    if (d.ok) {
+      closeModal("modalManualRealOrder");
+      showToast(`🎯 Real trade executed: ${d.position.symbol} (SL: ₹${sl.toFixed(2)})`, "success");
+      await refreshAllRealData();
+    } else {
+      showToast(d.error || "Order failed.", "error");
+    }
+  } catch (e) {
+    showToast("Network error: " + e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Place Real Upstox Order`;
+  }
+}
+
+// Close single position
+async function closePosition(tradeId) {
+  if (!confirm(`Are you sure you want to square off position ${tradeId}?`)) return;
+  try {
+    const r = await fetch("/api/real-algo/close-position", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trade_id: tradeId })
+    });
+    const d = await r.json();
+    if (d.ok) {
+      showToast(d.message, "success");
+      await refreshAllRealData();
+    } else {
+      showToast(d.error || "Failed to exit position.", "error");
+    }
+  } catch (e) {
+    showToast("Exit error: " + e.message, "error");
+  }
+}
+
+// Fetch 15m Confirmed Radar Setups
+async function fetchRadarSetups() {
+  try {
+    const r = await fetch("/api/paper/session/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_name: "Akshay" })
+    });
+    const d = await r.json();
+    const container = document.getElementById("radarSetupsContainer");
+    const setups = d.setups || [];
+    document.getElementById("radarCountBadge").textContent = `${setups.length} detected`;
+
+    if (!setups.length) {
+      container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:#64748b;">No high-confidence 15m setups active right now. Scanning continues...</div>`;
+      return;
+    }
+
+    container.innerHTML = setups.slice(0, 6).map((s, idx) => {
+      const isBuy = s.side === "BUY";
+      const optType = isBuy ? "CE" : "PE";
+      const spot = floatVal(s.entry_price || 24500);
+      const step = s.symbol.includes("BANK") ? 100 : 50;
+      const strike = Math.round(spot / step) * step;
+      const ltp = floatVal(s.option_ltp || 180);
+      const sl = round2(ltp * 0.85);
+      const tp = round2(ltp + ((ltp - sl) * 1.80));
+
+      return `
+        <div class="radar-card" onclick="prefillRadarSetup('${s.symbol}', ${strike}, '${optType}', ${ltp}, ${sl}, ${tp})">
+          <div class="radar-card-header">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${idx === 0 ? 'rgba(56,189,248,0.2)' : 'rgba(255,255,255,0.06)'};color:${idx === 0 ? '#38bdf8' : '#94a3b8'};font-weight:800;">
+                ${idx === 0 ? '#1 Priority' : `#${idx + 1}`}
+              </span>
+              <span style="font-size:10.5px;padding:2px 6px;border-radius:4px;background:${isBuy ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'};color:${isBuy ? '#10b981' : '#ef4444'};font-weight:800;">
+                ${s.side} ${optType}
+              </span>
+              <strong style="color:#f8fafc;font-size:13px;">${s.symbol} ${strike} ${optType}</strong>
+            </div>
+            <span style="font-size:11px;color:#f59e0b;font-weight:700;">R:R 1.80:1</span>
+          </div>
+
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:8px;">
+            ${s.strategy || 'Smart Money VWAP & EMA20 Pullback'}
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-family:monospace;margin-top:6px;padding-top:6px;border-top:1px solid #1e293b;">
+            <span>LTP: <strong style="color:#10b981;">₹${ltp.toFixed(2)}</strong></span>
+            <span>SL: <strong style="color:#ef4444;">₹${sl.toFixed(2)}</strong></span>
+            <span>Target: <strong style="color:#38bdf8;">₹${tp.toFixed(2)}</strong></span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (e) {
+    console.error("Radar error:", e);
+  }
+}
+
+function floatVal(v) { return parseFloat(v) || 0.0; }
+function round2(v) { return Math.round(v * 100) / 100; }
+
+// Render Chart.js Analytics
+function renderAnalyticsCharts(analytics) {
+  if (!analytics) return;
+
+  document.getElementById("kpiWinRate").textContent = `${analytics.win_rate || 0.0}%`;
+  document.getElementById("kpiWinLossRatio").textContent = `${analytics.winning_trades || 0}W / ${analytics.losing_trades || 0}L`;
+  document.getElementById("kpiProfitFactor").textContent = (analytics.profit_factor || 0.0).toFixed(2);
+  document.getElementById("kpiTotalTrades").textContent = analytics.total_trades || 0;
+  document.getElementById("kpiMaxDrawdown").textContent = `${analytics.max_drawdown_pct || 0.0}%`;
+
+  // 1. Cumulative Curve
+  const ctxPnl = document.getElementById("chartCumulativePnl");
+  if (ctxPnl) {
+    const curve = analytics.equity_curve || [{ time: "Start", pnl: 0 }];
+    const labels = curve.map(c => c.time);
+    const data = curve.map(c => c.pnl);
+
+    if (pnlChartInstance) pnlChartInstance.destroy();
+    pnlChartInstance = new Chart(ctxPnl, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [{
+          label: "Cumulative Net P&L (₹)",
+          data: data,
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { display: false },
+          y: { grid: { color: "rgba(255,255,255,0.05)" }, ticks: { color: "#94a3b8", font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // 2. Win / Loss Doughnut
+  const ctxWin = document.getElementById("chartWinLoss");
+  if (ctxWin) {
+    const wins = analytics.winning_trades || 0;
+    const losses = analytics.losing_trades || 0;
+
+    if (winLossChartInstance) winLossChartInstance.destroy();
+    winLossChartInstance = new Chart(ctxWin, {
+      type: "doughnut",
+      data: {
+        labels: ["Winning Trades", "Losing Trades"],
+        datasets: [{
+          data: [wins, losses],
+          backgroundColor: ["#10b981", "#ef4444"],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#cbd5e1", font: { size: 11 } } }
+        }
+      }
+    });
+  }
+}
+
+// Export CSV
+function exportRealTradesCsv() {
+  window.location.href = "/api/paper/export-csv";
+}
+
+// Main Refresh Data
+async function refreshAllRealData() {
+  try {
+    const r = await fetch("/api/real-algo/status");
+    const d = await r.json();
+    if (!d || !d.ok) return;
+
+    lastSummary = d;
+
+    // Broker Status HUD
+    const badge = document.getElementById("brokerStatusBadge");
+    const text = document.getElementById("brokerStatusText");
+    if (d.is_broker_connected) {
+      badge.className = "broker-status-pill broker-connected";
+      text.textContent = "Upstox Live Connected";
+    } else {
+      badge.className = "broker-status-pill broker-disconnected";
+      text.textContent = "Upstox Disconnected";
+    }
+
+    if (d.broker_profile) {
+      document.getElementById("hudClientId").textContent = d.broker_profile.user_id || "54B3JD";
+      document.getElementById("hudUserName").textContent = d.broker_profile.user_name || "Akshay";
+    }
+
+    // Mode Buttons
+    const btnDry = document.getElementById("btnModeDry");
+    const btnLive = document.getElementById("btnModeLive");
+    if (d.dry_run) {
+      btnDry.className = "mode-toggle-btn active-dry";
+      btnLive.className = "mode-toggle-btn";
+    } else {
+      btnDry.className = "mode-toggle-btn";
+      btnLive.className = "mode-toggle-btn active-live";
+    }
+
+    // Engine status
+    const ind = document.getElementById("engineStatusIndicator");
+    const engText = document.getElementById("engineStatusText");
+    const btnToggle = document.getElementById("btnToggleEngine");
+    if (d.is_running) {
+      ind.style.background = "#10b981";
+      engText.textContent = `Auto-Algo Running (${d.dry_run ? 'DRY-RUN' : 'LIVE CAPITAL'})`;
+      btnToggle.className = "btn btn-outline";
+      btnToggle.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Real Algo`;
+    } else {
+      ind.style.background = "#ef4444";
+      engText.textContent = "Auto-Algo Engine Paused";
+      btnToggle.className = "btn btn-primary-green";
+      btnToggle.innerHTML = `<i class="fa-solid fa-play"></i> Start Real Algo Engine`;
+    }
+
+    document.getElementById("serverTimeText").textContent = d.server_time || "--:-- IST";
+    document.getElementById("headerClock").textContent = (d.server_time || "").split(" ")[1] || "--:--";
+
+    // 7 Metrics (Matches ai-auto-paper-trading.html)
+    document.getElementById("metricAvailableBal").textContent = formatInr(d.available_margin);
+    document.getElementById("metricAllocatedMargin").textContent = formatInr(d.used_margin);
+    document.getElementById("metricActiveCount").textContent = `${d.open_positions_count} Active Positions`;
+
+    const realEl = document.getElementById("metricRealizedPnl");
+    realEl.textContent = (d.realized_daily_pnl >= 0 ? "+" : "") + formatInr(d.realized_daily_pnl);
+    realEl.className = "acc-val " + (d.realized_daily_pnl >= 0 ? "val-green" : "val-red");
+
+    const floatEl = document.getElementById("metricUnrealizedPnl");
+    floatEl.textContent = (d.unrealized_floating_pnl >= 0 ? "+" : "") + formatInr(d.unrealized_floating_pnl);
+    floatEl.className = "acc-val " + (d.unrealized_floating_pnl >= 0 ? "val-green" : "val-red");
+
+    const netEl = document.getElementById("metricTotalPnl");
+    netEl.textContent = (d.net_daily_pnl >= 0 ? "+" : "") + formatInr(d.net_daily_pnl);
+    netEl.className = "acc-val " + (d.net_daily_pnl >= 0 ? "val-green" : "val-red");
+
+    const retPct = ((d.net_daily_pnl / 100000.0) * 100).toFixed(2);
+    document.getElementById("metricReturnPct").textContent = `${retPct >= 0 ? '+' : ''}${retPct}% Overall Return`;
+
+    document.getElementById("metricOpenCount").textContent = d.open_positions_count;
+    document.getElementById("activePositionsBadge").textContent = `${d.open_positions_count} Open`;
+
+    if (d.config) {
+      document.getElementById("metricMaxPosSub").textContent = `Max Allowed: ${d.config.max_open_positions || 3}`;
+      document.getElementById("cfgDailyLoss").value = d.config.daily_loss_limit || 5000;
+      document.getElementById("cfgMaxPos").value = d.config.max_open_positions || 3;
+      document.getElementById("cfgMaxLots").value = d.config.max_lots_per_trade || 1;
+    }
+
+    // Active Positions Table
+    const tbody = document.getElementById("realPositionsBody");
+    const positions = d.positions || [];
+    if (!positions.length) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="13" style="text-align:center;padding:32px;color:#64748b;">
+            <i class="fa-solid fa-chart-simple" style="font-size:24px;margin-bottom:8px;display:block;"></i>
+            <div>No active real trades currently open.</div>
+            <div style="font-size:11.5px;margin-top:4px;">Click "Start Real Algo Engine" or "Place Manual Real Trade" to initiate trades.</div>
+          </td>
+        </tr>`;
+    } else {
+      tbody.innerHTML = positions.map(p => {
+        const pnl = p.unrealized_pnl || 0;
+        const pnlClass = pnl >= 0 ? "val-green" : "val-red";
+        const entry = p.entry_price || 1;
+        const curr = p.current_price || entry;
+        const target = p.target_price || (entry * 1.36);
+        const sl = p.stop_loss || (entry * 0.85);
+
+        let progress = 50;
+        if (target > sl) {
+          progress = Math.min(100, Math.max(0, Math.round(((curr - sl) / (target - sl)) * 100)));
+        }
+
+        return `
+          <tr>
+            <td style="font-family:monospace;font-weight:700;color:#94a3b8;">${p.trade_id}</td>
+            <td>
+              <div style="font-weight:800;color:#f8fafc;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+                <span>${p.symbol}</span>
+                <span style="font-size:9.5px;padding:1px 5px;border-radius:4px;background:${p.execution_type === 'AUTO' ? 'rgba(56,189,248,0.2)' : 'rgba(245,158,11,0.2)'};color:${p.execution_type === 'AUTO' ? '#38bdf8' : '#f59e0b'};font-weight:800;">
+                  ${p.execution_type === 'AUTO' ? '🤖 AI Auto' : '👤 Manual'}
+                </span>
+                <span style="font-size:9.5px;padding:1px 5px;border-radius:4px;background:${p.execution_mode === 'LIVE_UPSTOX' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'};color:${p.execution_mode === 'LIVE_UPSTOX' ? '#ef4444' : '#f59e0b'};font-weight:800;">
+                  ${p.execution_mode === 'LIVE_UPSTOX' ? 'LIVE UPSTOX' : 'DRY RUN'}
+                </span>
+              </div>
+              <div style="font-size:10.5px;color:#64748b;">${p.strategy || 'Options Algo'}</div>
+            </td>
+            <td><span style="font-size:11px;padding:2px 6px;border-radius:3px;background:#030712;border:1px solid #1e293b;">MIS</span></td>
+            <td><span style="color:#10b981;font-weight:800;">BUY</span></td>
+            <td style="font-family:monospace;">₹${(Number(p.entry_price) || 0).toFixed(2)}</td>
+            <td style="font-family:monospace;font-weight:800;">₹${(Number(p.current_price) || 0).toFixed(2)}</td>
+            <td style="font-family:monospace;">${p.quantity} (${p.lots}L)</td>
+            <td style="font-family:monospace;color:#f59e0b;font-weight:700;">${formatInr(p.required_margin)}</td>
+            <td style="font-family:monospace;color:#10b981;font-weight:700;">
+              ₹${(Number(p.target_price) || 0).toFixed(2)}
+              <div style="font-size:9.5px;color:#38bdf8;font-weight:800;">1.80R Algo</div>
+            </td>
+            <td style="font-family:monospace;color:#ef4444;font-weight:700;">
+              ₹${(Number(p.stop_loss) || 0).toFixed(2)}
+              ${p.trailing_label ? `<div style="font-size:9.5px;color:#10b981;font-weight:800;">${p.trailing_label}</div>` : ''}
+            </td>
+            <td>
+              <div class="progress-tp-sl" title="Progress: ${progress}%">
+                <div class="progress-fill" style="width:${progress}%;background:${progress >= 50 ? '#10b981' : '#ef4444'};"></div>
+              </div>
+              <div style="font-size:9.5px;color:#64748b;margin-top:2px;text-align:right;">${progress}% to Target</div>
+            </td>
+            <td style="font-family:monospace;font-weight:900;" class="${pnlClass}">
+              ${(pnl >= 0 ? '+' : '') + formatInr(pnl)}
+              <div style="font-size:10px;">(${p.pnl_pct >= 0 ? '+' : ''}${(p.pnl_pct || 0).toFixed(2)}%)</div>
+            </td>
+            <td>
+              <button type="button" class="btn btn-outline" onclick="closePosition('${p.trade_id}')" style="padding:4px 8px;font-size:11px;color:#ef4444;border-color:rgba(239,68,68,0.4);">
+                <i class="fa-solid fa-xmark"></i> Exit
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // Closed Trades History Table
+    const histBody = document.getElementById("realHistoryBody");
+    const closed = d.recent_closed_trades || [];
+    if (!closed.length) {
+      histBody.innerHTML = `<tr><td colspan="12" style="text-align:center;padding:24px;color:#64748b;">No closed real trades yet today.</td></tr>`;
+    } else {
+      histBody.innerHTML = closed.map(t => {
+        const isWin = t.is_win;
+        const pnl = t.net_pnl || 0;
+        return `
+          <tr>
+            <td style="font-size:11.5px;color:#64748b;">${t.closed_at || '--'}</td>
+            <td style="font-weight:800;color:#f8fafc;">${t.symbol}</td>
+            <td><span style="font-size:10.5px;padding:2px 6px;border-radius:3px;background:#030712;border:1px solid #1e293b;">${t.product || 'MIS'}</span></td>
+            <td><span style="color:#10b981;font-weight:800;">${t.side}</span></td>
+            <td style="font-family:monospace;">₹${(Number(t.entry_price) || 0).toFixed(2)}</td>
+            <td style="font-family:monospace;font-weight:700;">₹${(Number(t.exit_price) || 0).toFixed(2)}</td>
+            <td style="font-family:monospace;">${t.quantity}</td>
+            <td style="font-family:monospace;color:#f59e0b;">${formatInr(t.required_margin)}</td>
+            <td style="font-family:monospace;color:#f59e0b;">₹${(Number(t.charges) || 40).toFixed(2)}</td>
+            <td style="font-family:monospace;font-weight:900;" class="${isWin ? 'val-green' : 'val-red'}">
+              ${(pnl >= 0 ? '+' : '') + formatInr(pnl)}
+            </td>
+            <td style="font-size:11.5px;color:#94a3b8;">${t.exit_reason || 'NORMAL'}</td>
+            <td>
+              <span style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:4px;background:${isWin ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'};color:${isWin ? '#10b981' : '#ef4444'};">
+                ${isWin ? 'WIN 🎯' : 'LOSS 🔻'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // Render Analytics & Charts
+    renderAnalyticsCharts(d.analytics);
+
+    // Audit Log Terminal
+    const term = document.getElementById("auditLogTerminal");
+    const logs = d.audit_log || [];
+    if (logs.length) {
+      term.innerHTML = logs.map(l => `
+        <div>
+          <span style="color:#64748b;">[${l.timestamp}]</span>
+          <span style="color:${l.event_type.includes('ERROR') || l.event_type.includes('KILL') ? '#ef4444' : (l.event_type.includes('FILLED') ? '#10b981' : '#38bdf8')};font-weight:700;">[${l.event_type}]</span>
+          <span>${l.message}</span>
+        </div>
+      `).join("");
+    }
+
+  } catch (e) {
+    console.error("Refresh error:", e);
+  }
+}
+
+// Initial Boot
+window.addEventListener("DOMContentLoaded", async () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("connected") === "1") {
+    showToast("🎉 Successfully authenticated with Upstox Broker via OAuth 2.0!", "success");
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else if (params.get("connected") === "0") {
+    showToast("⚠️ Broker connection warning: " + (params.get("error") || "Authentication incomplete"), "error");
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  await refreshAllRealData();
+  await fetchRadarSetups();
+  setInterval(refreshAllRealData, 4000);
+  setInterval(fetchRadarSetups, 15000);
+});
+</script>
+
+</body>
+</html>

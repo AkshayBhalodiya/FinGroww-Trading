@@ -255,6 +255,9 @@ UNIVERSE = [
     {"symbol": "MOTHERSON", "name": "Samvardhana Motherson International", "type": "STOCK", "market_cap": "SMALL_CAP", "default_price": 175.0},
 ]
 
+DEFAULT_SPOTS = {u["symbol"]: float(u.get("default_price", 1000.0)) for u in UNIVERSE}
+
+
 
 def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
     """
@@ -1127,6 +1130,7 @@ class PaperTradingSession:
             "name": setup.get("name", sym),
             "instrument_type": inst_type,
             "product_type": product_type if inst_type == "EQUITY" else ("OPT" if "OPTION" in inst_type else "FUT"),
+            "execution_type": "AUTO",
             "market_cap": setup.get("market_cap", "LARGE_CAP"),
             "is_delivery": is_delivery,
             "is_long_term": is_long_term if inst_type == "EQUITY" else False,
@@ -1181,6 +1185,247 @@ class PaperTradingSession:
         self.positions.append(position)
         tp_str = f"₹{tp:,.2f}" if (tp is not None and tp > 0) else "None (Open)"
         self.log_event("ORDER_FILLED", f"Filled {side} {actual_qty} {sym} ({inst_type}) @ ₹{exec_price:,.2f}. Target: {tp_str}, SL: ₹{sl:,.2f}")
+        self._recalculate_equity()
+        self.save_to_db()
+        return position, "Success"
+
+    @_session_locked
+    def execute_manual_trade(
+        self,
+        base_symbol,
+        strike,
+        option_type="CE",
+        stop_loss=None,
+        stop_loss_pct=None,
+        target_price=None,
+        algo_target=False,
+        lots=1,
+        holding_duration_mins=1440,
+        quote_resolver=None,
+        option_quote_resolver=None,
+        market_is_open=True,
+    ):
+        """
+        Executes a manual option trade directly initiated by the user.
+        - Instrument / Index selection (NIFTY, BANK NIFTY, FINNIFTY, SENSEX, F&O stocks)
+        - Custom strike selection
+        - MANDATORY Stop-Loss validation
+        - Custom Target OR FinGroww 1.8R Algorithmic Target
+        - Realistic slippage, STT/charges, and margin allocation.
+        """
+        raw_sym = (base_symbol or "NIFTY 50").strip().upper()
+        if raw_sym == "NIFTY":
+            base_sym = "NIFTY 50"
+        elif raw_sym in ("BANKNIFTY", "NIFTY BANK"):
+            base_sym = "BANK NIFTY"
+        else:
+            base_sym = raw_sym
+
+        opt_type = "PE" if str(option_type).upper().strip() == "PE" else "CE"
+        try:
+            strike_num = float(strike)
+            strike_val = int(strike_num) if strike_num == int(strike_num) else round(strike_num, 2)
+        except (TypeError, ValueError):
+            return None, "A valid numeric strike price is required."
+
+        sym = f"{base_sym} {strike_val} {opt_type}"
+        is_index = base_sym in ("NIFTY 50", "BANK NIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX")
+        inst_type = "INDEX_OPTIONS" if is_index else "STOCK_OPTIONS"
+
+        # Check duplicate open trade
+        for p in self.positions:
+            if p.get("symbol") == sym and p.get("side") == "BUY":
+                return None, f"A position is already active for {sym}."
+
+        # Lot size
+        lot_size = LOT_SIZES.get(base_sym.upper())
+        if not lot_size:
+            for k, v in LOT_SIZES.items():
+                if k in base_sym.upper():
+                    lot_size = v
+                    break
+        lot_size = lot_size or (25 if "NIFTY" in base_sym else (15 if "BANK" in base_sym else 1))
+        num_lots = max(1, int(lots or 1))
+        actual_qty = num_lots * lot_size
+
+        # Resolve live / fair-value option entry price
+        raw_entry = None
+        expiry_date = None
+        expiry_kind = None
+        expiry_label = None
+        spot_price = None
+        opt_pcr = None
+        opt_oi = None
+
+        if option_quote_resolver:
+            try:
+                opt_q = option_quote_resolver(base_sym, strike_val, opt_type)
+                if opt_q and float(opt_q.get("lastPrice") or 0) > 0:
+                    raw_entry = float(opt_q["lastPrice"])
+                    expiry_date = opt_q.get("expiry")
+                    expiry_kind = opt_q.get("expiry_kind")
+                    expiry_label = opt_q.get("expiry_label")
+                    spot_price = opt_q.get("spotPrice")
+                    opt_pcr = opt_q.get("pcr")
+                    opt_oi = opt_q.get("oi")
+            except Exception as exc:
+                logger.warning("Manual order quote resolver failed for %s: %s", sym, exc)
+
+        if not raw_entry or raw_entry <= 0:
+            if quote_resolver:
+                try:
+                    q = quote_resolver(base_sym)
+                    if q and q.get("lastPrice"):
+                        spot_price = float(q["lastPrice"])
+                except Exception:
+                    pass
+            if not spot_price or spot_price <= 0:
+                spot_price = DEFAULT_SPOTS.get(base_sym, 24500.0 if "NIFTY" in base_sym else 1000.0)
+
+            # Synthetic option pricing based on moneyness
+            dist_pct = (strike_val - spot_price) / max(spot_price, 1.0)
+            if opt_type == "CE":
+                intrinsic = max(0.0, spot_price - strike_val)
+            else:
+                intrinsic = max(0.0, strike_val - spot_price)
+            time_val = spot_price * 0.015 * max(0.2, 1.0 - abs(dist_pct) * 5)
+            raw_entry = max(1.0, round(intrinsic + time_val, 2))
+
+        exec_price = PaperTradeCostModel.apply_slippage(raw_entry, "BUY", inst_type)
+        slippage_amt = round(abs(exec_price - raw_entry), 2)
+
+        # MANDATORY STOP LOSS VALIDATION
+        has_sl = (stop_loss is not None and str(stop_loss).strip() != "" and float(stop_loss) > 0)
+        has_sl_pct = (stop_loss_pct is not None and str(stop_loss_pct).strip() != "" and float(stop_loss_pct) > 0)
+        if not has_sl and not has_sl_pct:
+            return None, "Stop-Loss is strictly mandatory for all manual trades to protect your capital."
+
+        if has_sl_pct:
+            sl_pct_val = float(stop_loss_pct)
+            sl = max(0.05, round(exec_price * (1.0 - (sl_pct_val / 100.0)), 2))
+        else:
+            sl = round(float(stop_loss), 2)
+
+        if sl >= exec_price:
+            return None, f"Stop-Loss (₹{sl:,.2f}) must be strictly less than the entry price (₹{exec_price:,.2f})."
+        if sl <= 0:
+            return None, "Stop-Loss must be greater than zero."
+
+        risk_distance = round(exec_price - sl, 2)
+
+        # TARGET PRICE (Algo Target vs Custom)
+        has_custom_tp = (target_price is not None and str(target_price).strip() != "" and float(target_price) > 0)
+        if algo_target or not has_custom_tp:
+            min_rr = float(self.config.get("min_rr", 1.8))
+            tp = round(exec_price + (risk_distance * min_rr), 2)
+            strat_name = "🎯 Manual (FinGroww 1.8R Algo Target)"
+            is_algo_tp = True
+        else:
+            tp = round(float(target_price), 2)
+            if tp <= exec_price:
+                return None, f"Target Price (₹{tp:,.2f}) must be strictly greater than the entry price (₹{exec_price:,.2f})."
+            strat_name = "👤 Manual Trade (Custom Target)"
+            is_algo_tp = False
+
+        # Margin and charges
+        premium = exec_price
+        allocated_capital = round(actual_qty * premium, 2)
+        entry_costs = PaperTradeCostModel.calculate_charges(inst_type, "BUY", exec_price, actual_qty, is_delivery=False)
+        required_balance = round(allocated_capital + entry_costs["total"], 2)
+
+        if required_balance > self.available_balance:
+            return None, (
+                f"Insufficient virtual balance. Required ₹{required_balance:,.2f} "
+                f"(Margin: ₹{allocated_capital:,.2f} + Charges: ₹{entry_costs['total']:,.2f}), "
+                f"available ₹{self.available_balance:,.2f}."
+            )
+
+        # Deduct balance & apply costs
+        self.available_balance = round(self.available_balance - required_balance, 2)
+        self.allocated_margin += allocated_capital
+        self.total_charges += entry_costs["total"]
+        self.total_slippage += (slippage_amt * actual_qty)
+
+        now_ist = get_ist_now()
+        hold_mins = float(holding_duration_mins or 1440)
+        if hold_mins > 0:
+            target_exit_dt = now_ist + timedelta(seconds=int(hold_mins * 60))
+            target_exit_str = target_exit_dt.strftime("%Y-%m-%d %H:%M:%S")
+            target_exit_ts = time.time() + (hold_mins * 60)
+            dur_display = format_duration_display(int(hold_mins * 60))
+        else:
+            target_exit_str = "OPEN"
+            target_exit_ts = 0.0
+            dur_display = "Until Target/SL"
+
+        trade_id = f"PT-{now_ist.strftime('%m%d')}-M{uuid.uuid4().hex[:7].upper()}"
+        position = {
+            "trade_id": trade_id,
+            "symbol": sym,
+            "base_symbol": base_sym,
+            "name": f"{base_sym} {strike_val} {opt_type}",
+            "instrument_type": inst_type,
+            "product_type": "OPT",
+            "execution_type": "MANUAL",
+            "market_cap": "LARGE_CAP" if is_index else "MID_CAP",
+            "is_delivery": False,
+            "is_long_term": False,
+            "side": "BUY",
+            "entry_time": now_ist.strftime("%Y-%m-%d %H:%M:%S"),
+            "entry_timestamp": time.time(),
+            "target_exit_time": target_exit_str,
+            "target_exit_timestamp": target_exit_ts,
+            "holding_duration_mins": hold_mins,
+            "holding_duration_display": dur_display,
+            "is_intraday": hold_mins <= 375,
+            "entry_price": exec_price,
+            "original_entry_price": raw_entry,
+            "current_price": exec_price,
+            "underlying_entry_price": spot_price,
+            "option_type": opt_type,
+            "strike": strike_val,
+            "expiry_date": expiry_date,
+            "expiry_kind": expiry_kind or "Monthly",
+            "expiry_label": expiry_label or f"Monthly ({expiry_date or 'Current'})",
+            "delta": 0.50,
+            "quantity": actual_qty,
+            "lots": num_lots,
+            "lot_size": lot_size,
+            "allocated_margin": allocated_capital,
+            "used_amount": allocated_capital,
+            "target_price": tp,
+            "stop_loss": sl,
+            "initial_stop_loss": sl,
+            "stop_loss_pct": float(stop_loss_pct) if has_sl_pct else round(abs(exec_price - sl) / exec_price * 100, 2),
+            "target_pct": round(abs(tp - exec_price) / exec_price * 100, 2),
+            "trailing_state": "INITIAL",
+            "trailing_label": "Standard SL Active",
+            "risk_reward": round(abs(tp - exec_price) / max(risk_distance, 0.01), 2),
+            "max_risk_inr": round(actual_qty * risk_distance, 2),
+            "strategy": strat_name,
+            "is_algo_target": is_algo_tp,
+            "confidence_score": 92,
+            "signal_rationale": f"Manual Option Order: {sym} | Entry: ₹{exec_price:,.2f} | Mandatory SL: ₹{sl:,.2f} | Target: ₹{tp:,.2f} ({'Algo 1.8R' if is_algo_tp else 'Custom'})",
+            "signal_indicators": {
+                "spot_price": spot_price,
+                "strike": strike_val,
+                "pcr": opt_pcr,
+                "oi": opt_oi,
+            },
+            "market_data_source": "NSE",
+            "market_data_timestamp": int(time.time()),
+            "risk_distance": risk_distance,
+            "status": "OPEN",
+            "unrealized_pnl": 0.0,
+            "pnl_pct": 0.0,
+            "entry_charges": entry_costs["total"],
+            "total_charges": entry_costs["total"],
+            "slippage": round(slippage_amt * actual_qty, 2),
+            "last_updated": get_ist_str(),
+        }
+
+        self.positions.append(position)
+        self.log_event("MANUAL_ORDER_FILLED", f"👤 Manual Order Filled: BUY {actual_qty} {sym} @ ₹{exec_price:,.2f}. SL: ₹{sl:,.2f} (Mandatory), Target: ₹{tp:,.2f} ({'1.8R Algo' if is_algo_tp else 'Custom'}).")
         self._recalculate_equity()
         self.save_to_db()
         return position, "Success"
@@ -1430,6 +1675,8 @@ class PaperTradingSession:
             "charges": total_charges,
             "slippage": pos["slippage"],
             "exit_reason": reason,
+            "execution_type": pos.get("execution_type", "AUTO"),
+            "is_algo_target": pos.get("is_algo_target", False),
             "trailing_state": pos.get("trailing_state", "INITIAL"),
             "strategy": pos["strategy"],
             "signal_rationale": pos.get("signal_rationale"),
@@ -1673,30 +1920,45 @@ class PaperTradingSession:
         }
 
     @_session_locked
-    def get_performance_analytics(self):
+    def get_performance_analytics(self, execution_type=None):
         """Calculates win rate, profit factor, strategy and instrument breakdowns."""
-        total = len(self.closed_trades)
+        all_closed = self.closed_trades
+        if execution_type:
+            et_clean = str(execution_type).upper().strip()
+            if et_clean in ("MANUAL", "MANUAL_ONLY"):
+                target_trades = [t for t in all_closed if t.get("execution_type") == "MANUAL"]
+                unrealized = sum(p.get("unrealized_pnl", 0.0) for p in self.positions if p.get("execution_type") == "MANUAL")
+            else:
+                target_trades = [t for t in all_closed if t.get("execution_type") != "MANUAL"]
+                unrealized = sum(p.get("unrealized_pnl", 0.0) for p in self.positions if p.get("execution_type") != "MANUAL")
+        else:
+            target_trades = all_closed
+            unrealized = self.unrealized_pnl
+
+        total = len(target_trades)
+        realized = sum(t.get("net_pnl", 0.0) for t in target_trades)
+        net_total_pnl = round(realized + unrealized, 2)
         if total == 0:
             return {
                 "total_trades": 0,
                 "winning_trades": 0,
                 "losing_trades": 0,
                 "win_rate": 0.0,
-                "net_pnl": round(self.realized_pnl, 2),
+                "net_pnl": net_total_pnl,
                 "profit_factor": 0.0,
                 "gross_profit": 0.0,
                 "gross_loss": 0.0,
                 "avg_win": 0.0,
                 "avg_loss": 0.0,
-                "max_drawdown_inr": self.max_drawdown_inr,
-                "max_drawdown_pct": self.max_drawdown_pct,
+                "max_drawdown_inr": self.max_drawdown_inr if not execution_type else 0.0,
+                "max_drawdown_pct": self.max_drawdown_pct if not execution_type else 0.0,
                 "avg_holding_duration_secs": 0,
                 "strategy_performance": {},
                 "instrument_performance": {},
             }
 
-        wins = [t for t in self.closed_trades if t.get("is_win")]
-        losses = [t for t in self.closed_trades if not t.get("is_win")]
+        wins = [t for t in target_trades if t.get("is_win")]
+        losses = [t for t in target_trades if not t.get("is_win")]
 
         gross_profit = sum(t["gross_pnl"] for t in wins)
         gross_loss = abs(sum(t["gross_pnl"] for t in losses))
@@ -1705,11 +1967,11 @@ class PaperTradingSession:
         profit_factor = round(gross_profit / gross_loss, 2) if gross_loss > 0 else (99.0 if gross_profit > 0 else 1.0)
         avg_win = round(gross_profit / len(wins), 2) if wins else 0.0
         avg_loss = round(gross_loss / len(losses), 2) if losses else 0.0
-        avg_holding = int(sum(t.get("holding_seconds", 0) for t in self.closed_trades) / total)
+        avg_holding = int(sum(t.get("holding_seconds", 0) for t in target_trades) / total)
 
         # Strategy Breakdown
         strat_map = {}
-        for t in self.closed_trades:
+        for t in target_trades:
             s = t.get("strategy", "Quantitative Momentum")
             if s not in strat_map:
                 strat_map[s] = {"trades": 0, "wins": 0, "pnl": 0.0}
@@ -1723,7 +1985,7 @@ class PaperTradingSession:
 
         # Instrument Breakdown
         inst_map = {}
-        for t in self.closed_trades:
+        for t in target_trades:
             it = t.get("instrument_type", "EQUITY")
             if it not in inst_map:
                 inst_map[it] = {"trades": 0, "wins": 0, "pnl": 0.0}
@@ -1740,14 +2002,14 @@ class PaperTradingSession:
             "winning_trades": len(wins),
             "losing_trades": len(losses),
             "win_rate": win_rate,
-            "net_pnl": round(self.realized_pnl, 2),
+            "net_pnl": net_total_pnl,
             "profit_factor": profit_factor,
             "gross_profit": round(gross_profit, 2),
             "gross_loss": round(gross_loss, 2),
             "avg_win": avg_win,
             "avg_loss": avg_loss,
-            "max_drawdown_inr": self.max_drawdown_inr,
-            "max_drawdown_pct": self.max_drawdown_pct,
+            "max_drawdown_inr": self.max_drawdown_inr if not execution_type else 0.0,
+            "max_drawdown_pct": self.max_drawdown_pct if not execution_type else 0.0,
             "avg_holding_duration_secs": avg_holding,
             "strategy_performance": strat_map,
             "instrument_performance": inst_map,
@@ -2568,6 +2830,13 @@ class PaperTradingEngine:
 
             already_queued = {it["symbol"] for it, _ in batch}
 
+            # Always ensure flagship benchmark stocks (RELIANCE, HDFCBANK, TCS, INFY) are checked if eligible
+            core_symbols = ("RELIANCE", "HDFCBANK", "TCS", "INFY")
+            for it, tg in eligible:
+                if it["symbol"] in core_symbols and it["symbol"] not in already_queued:
+                    batch.append((it, tg))
+                    already_queued.add(it["symbol"])
+
             # 1. Re-evaluate any symbols currently in active scanned signals so reversals or stop hits are updated/dropped
             existing_symbols = {s.get("base_symbol") or s.get("symbol") for s in (self.session.scanned_signals or [])}
             for it, tg in eligible:
@@ -2601,12 +2870,13 @@ class PaperTradingEngine:
 
             raw_setups = []
             from concurrent.futures import ThreadPoolExecutor, wait
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            executor = ThreadPoolExecutor(max_workers=8)
+            try:
                 future_to_item = {
                     executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
                     for it, tg in batch
                 }
-                done_futs, _ = wait(future_to_item.keys(), timeout=8.0)
+                done_futs, _ = wait(future_to_item.keys(), timeout=4.5)
                 for fut in done_futs:
                     try:
                         res = fut.result()
@@ -2614,6 +2884,8 @@ class PaperTradingEngine:
                             raw_setups.extend(res)
                     except Exception:
                         pass
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
 
             seen_keys = set()
             setups = []
@@ -2701,8 +2973,10 @@ class PaperTradingEngine:
 
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                # Trigger setup scan strictly in background thread without blocking tick response (<50ms)
-                if (not self.session.scanned_signals) or (time.time() - self.last_scan_at >= 20):
+                # Cold scan synchronously on first boot so setups are populated immediately; periodic refreshes in background thread
+                if not self.session.scanned_signals:
+                    self.scan_and_evaluate_setups()
+                elif time.time() - self.last_scan_at >= 20:
                     if not self._scan_in_flight:
                         self._scan_in_flight = True
                         def _bg_scan_runner():
@@ -3323,6 +3597,8 @@ class MultiUserPaperSessionManager:
         for uname, sess in session_snapshot:
             ret_pct = round((sess.total_pnl / sess.initial_capital) * 100, 2) if sess.initial_capital > 0 else 0.0
             analytics = sess.get_performance_analytics()
+            ai_analytics = sess.get_performance_analytics(execution_type="AUTO")
+            man_analytics = sess.get_performance_analytics(execution_type="MANUAL")
             open_syms = [p.get("symbol") for p in sess.positions]
             prof_map[uname] = {
                 "user_name": sess.user_name,
@@ -3341,6 +3617,12 @@ class MultiUserPaperSessionManager:
                 "winning_trades": analytics.get("winning_trades", 0),
                 "losing_trades": analytics.get("losing_trades", 0),
                 "profit_factor": analytics.get("profit_factor", 0.0),
+                "ai_net_pnl": ai_analytics.get("net_pnl", 0.0),
+                "ai_win_rate": ai_analytics.get("win_rate", 0.0),
+                "ai_trades_count": ai_analytics.get("total_trades", 0),
+                "manual_net_pnl": man_analytics.get("net_pnl", 0.0),
+                "manual_win_rate": man_analytics.get("win_rate", 0.0),
+                "manual_trades_count": man_analytics.get("total_trades", 0),
                 "max_drawdown_pct": sess.max_drawdown_pct,
                 "open_positions_count": len(sess.positions),
                 "active_stocks": open_syms,
@@ -3359,11 +3641,61 @@ class MultiUserPaperSessionManager:
         self._profiles_cache_at = time.time()
         return res
 
-    def get_leaderboard(self, only_active=False):
-        """Returns sorted, universally consistent leaderboard ranking users by Net PnL and Return %."""
-        profiles = self.list_profiles()
+    def get_leaderboard(self, only_active=False, mode="mix"):
+        """
+        Returns sorted, universally consistent leaderboard ranking users by Net PnL and Return %.
+        Supports 3 filter modes:
+          1) 'mix': Combined (AI Auto Trades + Manual Trades)
+          2) 'ai_only': Only AI Auto Trades performance
+          3) 'manual_only': Only Manual Trades performance
+        """
+        profiles = [dict(p) for p in self.list_profiles()]
         if only_active:
             profiles = [p for p in profiles if p.get("status") in ("RUNNING", "STOPPED_NEW_TRADES")]
+
+        clean_mode = str(mode or "mix").strip().lower()
+        if clean_mode in ("ai", "ai_only", "auto", "auto_only", "only_ai"):
+            clean_mode = "ai_only"
+        elif clean_mode in ("manual", "manual_only", "only_manual"):
+            clean_mode = "manual_only"
+        else:
+            clean_mode = "mix"
+
+        for p in profiles:
+            uname = p.get("user_name")
+            sess = self.sessions.get(uname)
+            if sess:
+                ai_ana = sess.get_performance_analytics(execution_type="AUTO")
+                man_ana = sess.get_performance_analytics(execution_type="MANUAL")
+                p["total_ai_trades"] = ai_ana.get("total_trades", 0)
+                p["total_manual_trades"] = man_ana.get("total_trades", 0)
+                p["ai_net_pnl"] = ai_ana.get("net_pnl", 0.0)
+                p["manual_net_pnl"] = man_ana.get("net_pnl", 0.0)
+
+                init_cap = max(sess.initial_capital, 1.0)
+                if clean_mode == "ai_only":
+                    p["net_pnl"] = ai_ana.get("net_pnl", 0.0)
+                    p["return_pct"] = round((p["net_pnl"] / init_cap) * 100, 2)
+                    p["win_rate"] = ai_ana.get("win_rate", 0.0)
+                    p["total_trades"] = ai_ana.get("total_trades", 0)
+                    p["winning_trades"] = ai_ana.get("winning_trades", 0)
+                    p["losing_trades"] = ai_ana.get("losing_trades", 0)
+                    p["profit_factor"] = ai_ana.get("profit_factor", 0.0)
+                    p["mode_filter"] = "AI_ONLY"
+                elif clean_mode == "manual_only":
+                    p["net_pnl"] = man_ana.get("net_pnl", 0.0)
+                    p["return_pct"] = round((p["net_pnl"] / init_cap) * 100, 2)
+                    p["win_rate"] = man_ana.get("win_rate", 0.0)
+                    p["total_trades"] = man_ana.get("total_trades", 0)
+                    p["winning_trades"] = man_ana.get("winning_trades", 0)
+                    p["losing_trades"] = man_ana.get("losing_trades", 0)
+                    p["profit_factor"] = man_ana.get("profit_factor", 0.0)
+                    p["mode_filter"] = "MANUAL_ONLY"
+                else:
+                    p["mode_filter"] = "MIX"
+            else:
+                p["mode_filter"] = clean_mode.upper()
+
         # Sort by Net PnL (descending), Return % (descending), Win Rate (descending)
         profiles.sort(key=lambda x: (x.get("net_pnl", 0.0), x.get("return_pct", 0.0), x.get("win_rate", 0.0)), reverse=True)
         for idx, p in enumerate(profiles):

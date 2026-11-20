@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, Response
+from flask import Flask, jsonify, request, send_from_directory, Response, redirect
 import requests
 import time
 import threading
@@ -2012,6 +2012,7 @@ from fingroww_paper_engine import (
     get_ist_now,
     get_ist_str,
 )
+from fingroww_upstox_engine import upstox_client, real_supervisor
 
 paper_manager = MultiUserPaperSessionManager(
     db=mongo_db,
@@ -2024,24 +2025,34 @@ paper_manager = MultiUserPaperSessionManager(
 # Retain default session & engine for backward compatibility
 paper_session, paper_engine = paper_manager.get_session("Akshay")
 
-_last_bg_radar_scan_at = 0.0
+_last_bg_radar_scan_at = time.time()
 
 def paper_background_worker():
     """Autonomous background supervisor to evaluate active user sessions and pre-compute radar setups in background."""
     global _last_mongo_retry_at, _last_bg_radar_scan_at
     while True:
         try:
-            if mongo_db is None and raw_mongo_url and "<db_username>" not in raw_mongo_url and (time.time() - _last_mongo_retry_at >= 60.0):
-                _last_mongo_retry_at = time.time()
+            now_ts = time.time()
+            if mongo_db is None and raw_mongo_url and "<db_username>" not in raw_mongo_url and (now_ts - _last_mongo_retry_at >= 60.0):
+                _last_mongo_retry_at = now_ts
                 reconnected_db = _init_mongo_connection()
                 if reconnected_db is not None:
                     paper_manager.set_db(reconnected_db)
             paper_manager.tick_all_running()
 
-            # Pre-compute and refresh 15m radar setups asynchronously in background so frontend /scan responds in <1ms
-            now_ts = time.time()
             st = get_nse_market_status()
             market_is_open = bool(st and st.get("is_trading_hours"))
+
+            # Tick Real Algo Trading supervisor if active
+            try:
+                if real_supervisor.is_running:
+                    real_supervisor.tick_supervisor(
+                        quote_resolver=resolve_option_quote,
+                        radar_scanner=paper_engine.scan_and_evaluate_setups,
+                        market_is_open=market_is_open,
+                    )
+            except Exception:
+                pass
             scan_interval = 35.0 if market_is_open else 90.0
             if now_ts - _last_bg_radar_scan_at >= scan_interval:
                 _last_bg_radar_scan_at = now_ts
@@ -2100,11 +2111,15 @@ def paper_session_state():
     return jsonify(u_sess.get_state())
 
 
-@app.post("/api/paper/session/config")
+@app.route("/api/paper/session/config", methods=["GET", "POST"])
+@app.route("/api/paper/config", methods=["GET", "POST"])
 def paper_update_config():
     """Validates and updates paper trading session configuration for a user."""
-    data = request.get_json(silent=True) or {}
     u_sess, u_eng = get_user_session_and_engine(request)
+    if request.method == "GET":
+        return jsonify({"ok": True, "config": u_sess.config, "state": u_sess.get_state()})
+
+    data = request.get_json(silent=True) or {}
     
     # Input validation
     if "initial_capital" in data:
@@ -2262,6 +2277,8 @@ def paper_session_control():
 
 
 @app.post("/api/paper/session/tick")
+@app.route("/api/paper/session/tick", methods=["GET", "POST"])
+@app.route("/api/paper/engine/tick", methods=["GET", "POST"])
 def paper_session_tick():
     """Triggers one evaluation cycle for a user session."""
     u_sess, u_eng = get_user_session_and_engine(request)
@@ -2269,10 +2286,11 @@ def paper_session_tick():
     return jsonify({"ok": True, "state": state})
 
 
-@app.post("/api/paper/session/scan")
+@app.route("/api/paper/session/scan", methods=["GET", "POST"])
+@app.route("/api/paper/scan", methods=["GET", "POST"])
 def paper_session_scan():
     """Read-only 15-minute setup radar scan matching user's active configuration (never auto-executes)."""
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True) or {} if request.method == "POST" else {}
     u_sess, u_eng = get_user_session_and_engine(request)
 
     scan_patch = {}
@@ -2282,15 +2300,26 @@ def paper_session_scan():
     if scan_patch:
         u_sess.update_config(scan_patch)
 
-    force = bool(data.get("force", False))
-    setups = u_eng.scan_and_evaluate_setups(force=force)
+    force = bool(data.get("force", False) or request.args.get("force") in ("true", "1"))
+    if force:
+        # Non-blocking async background scan so HTTP returns in <10ms!
+        def _bg_forced_scan():
+            try:
+                u_eng.scan_and_evaluate_setups(force=True)
+            except Exception:
+                pass
+        threading.Thread(target=_bg_forced_scan, daemon=True).start()
+    else:
+        # Fast non-blocking cached/shared retrieval
+        u_eng.scan_and_evaluate_setups(force=False)
+
     market_status = get_nse_market_status()
 
     # Optional pagination support for API callers
     page = int(request.args.get("page") or data.get("page") or 1)
     limit = int(request.args.get("limit") or data.get("limit") or 0)
 
-    signals = list(u_sess.scanned_signals or [])
+    signals = list(u_sess.scanned_signals or getattr(paper_engine.session, "scanned_signals", []) or [])
     total_count = len(signals)
     if limit > 0:
         start_idx = max(0, (page - 1) * limit)
@@ -2570,6 +2599,185 @@ def paper_run_backtest():
         years=years,
     )
     return jsonify(results)
+
+
+# -------------------------------------------------------------------------
+# REAL / LIVE TRADING REST API (UPSTOX API v2)
+# -------------------------------------------------------------------------
+
+@app.get("/api/real-algo/status")
+def real_algo_status():
+    """Returns live summary of real trading engine, broker connection, and funds."""
+    summary = real_supervisor.get_summary()
+    return jsonify(summary)
+
+
+@app.get("/api/real-algo/login-url")
+def real_algo_login_url():
+    """Generates the Upstox OAuth 2.0 authorization URL for broker login."""
+    req_redirect = request.args.get("redirect_uri")
+    url = upstox_client.get_auth_dialog_url(redirect_uri=req_redirect)
+    return jsonify({"ok": True, "login_url": url})
+
+
+@app.get("/api/real-algo/upstox/callback")
+def real_algo_upstox_callback():
+    """
+    OAuth 2.0 redirect target from Upstox.
+    Exchanges code for access token, persists to .env, and redirects to dashboard.
+    """
+    code = request.args.get("code")
+    error = request.args.get("error")
+    if error:
+        logger.error("Upstox OAuth error query: %s", error)
+        return redirect(f"/ai-auto-real-trading.html?connected=0&error={requests.utils.quote(str(error))}")
+
+    if not code:
+        return redirect("/ai-auto-real-trading.html?connected=0&error=Missing+auth+code")
+
+    ok, payload = upstox_client.exchange_code_for_token(code)
+    if ok:
+        real_supervisor.log_audit("BROKER_CONNECTED", f"Upstox user {payload.get('user_id', '')} connected via OAuth.")
+        return redirect("/ai-auto-real-trading.html?connected=1&auth=success")
+    else:
+        err_msg = payload.get("error", "Token exchange failed")
+        return redirect(f"/ai-auto-real-trading.html?connected=0&error={requests.utils.quote(str(err_msg))}")
+
+
+@app.post("/api/real-algo/set-token")
+def real_algo_set_token():
+    """Allows manual update of Upstox access token from UI."""
+    data = request.get_json(silent=True) or {}
+    token = data.get("access_token") or data.get("token") or ""
+    if not token.strip():
+        return jsonify({"ok": False, "error": "Access token is required."}), 400
+
+    ok = upstox_client.set_manual_token(token)
+    if ok:
+        connected = upstox_client.is_connected()
+        prof = upstox_client.get_profile(force=True)
+        user_id = ((prof or {}).get("data") or {}).get("user_id", "Connected")
+        real_supervisor.log_audit("TOKEN_UPDATED", f"Manual Upstox token saved. User: {user_id}")
+        return jsonify({
+            "ok": True,
+            "connected": connected,
+            "profile": (prof or {}).get("data") if prof else None,
+            "message": "Access token updated successfully.",
+        })
+    return jsonify({"ok": False, "error": "Failed to update access token in .env"}), 500
+
+
+@app.get("/api/real-algo/funds")
+def real_algo_funds():
+    """Fetches live trading margin and cash balance from Upstox."""
+    funds = upstox_client.get_funds_and_margin()
+    return jsonify(funds)
+
+
+@app.get("/api/real-algo/positions")
+def real_algo_positions():
+    """Returns both live Upstox broker positions and FinGroww monitored positions."""
+    broker_pos = upstox_client.get_positions()
+    return jsonify({
+        "ok": True,
+        "algo_positions": [p for p in real_supervisor.positions if p.get("status") == "OPEN"],
+        "broker_positions": broker_pos,
+        "recent_closed": real_supervisor.closed_trades[:25],
+    })
+
+
+@app.get("/api/real-algo/orders")
+def real_algo_orders():
+    """Returns today's order book from Upstox."""
+    orders = upstox_client.get_orders()
+    return jsonify({"ok": True, "orders": orders})
+
+
+@app.post("/api/real-algo/toggle-engine")
+def real_algo_toggle_engine():
+    """Starts or stops the autonomous real algo supervisor."""
+    if real_supervisor.is_running:
+        _, msg = real_supervisor.stop_engine()
+    else:
+        _, msg = real_supervisor.start_engine()
+    return jsonify({
+        "ok": True,
+        "is_running": real_supervisor.is_running,
+        "dry_run": real_supervisor.dry_run,
+        "message": msg,
+    })
+
+
+@app.post("/api/real-algo/manual-order")
+def real_algo_manual_order():
+    """Executes a manual real option order on Upstox with mandatory SL."""
+    data = request.get_json(silent=True) or {}
+    base_sym = data.get("base_symbol") or data.get("symbol") or "NIFTY 50"
+    strike = data.get("strike")
+    opt_type = data.get("option_type", "CE")
+    stop_loss = data.get("stop_loss")
+    target_price = data.get("target_price")
+    algo_target = bool(data.get("algo_target", True))
+    lots = int(data.get("lots") or 1)
+
+    pos, err = real_supervisor.execute_manual_real_trade(
+        base_symbol=base_sym,
+        strike=strike,
+        option_type=opt_type,
+        stop_loss=stop_loss,
+        target_price=target_price,
+        algo_target=algo_target,
+        lots=lots,
+        quote_resolver=resolve_option_quote,
+    )
+
+    if not pos:
+        return jsonify({"ok": False, "error": err}), 400
+
+    return jsonify({
+        "ok": True,
+        "message": f"Real order executed for {pos['symbol']}",
+        "position": pos,
+        "summary": real_supervisor.get_summary(),
+    })
+
+
+@app.post("/api/real-algo/close-position")
+def real_algo_close_position():
+    """Manually exits an open position on Upstox."""
+    data = request.get_json(silent=True) or {}
+    trade_id = data.get("trade_id")
+    if not trade_id:
+        return jsonify({"ok": False, "error": "Trade ID is required."}), 400
+
+    ok, msg = real_supervisor.close_real_position(trade_id, exit_reason="USER_MANUAL_EXIT")
+    if not ok:
+        return jsonify({"ok": False, "error": msg}), 400
+    return jsonify({"ok": True, "message": msg, "summary": real_supervisor.get_summary()})
+
+
+@app.post("/api/real-algo/emergency-exit-all")
+def real_algo_emergency_exit_all():
+    """Emergency Kill Switch to square off all open positions immediately."""
+    count, msg = real_supervisor.square_off_all_positions()
+    return jsonify({"ok": True, "closed_count": count, "message": msg, "summary": real_supervisor.get_summary()})
+
+
+@app.post("/api/real-algo/update-config")
+def real_algo_update_config():
+    """Updates real trading risk parameters and toggles Dry-Run vs Live Money."""
+    data = request.get_json(silent=True) or {}
+    real_supervisor.update_config(data)
+    real_supervisor.log_audit("CONFIG_UPDATED", f"Real trading config updated (Dry Run: {real_supervisor.dry_run})")
+    return jsonify({"ok": True, "config": real_supervisor.config, "dry_run": real_supervisor.dry_run})
+
+
+@app.get("/ai-auto-real-trading.html")
+@app.get("/ai-auto-real-trading")
+@app.get("/real-trading")
+@app.get("/ai-real-trading")
+def serve_real_trading_page():
+    return send_from_directory(".", "ai-auto-real-trading.html")
 
 
 @app.get("/backtest.html")
