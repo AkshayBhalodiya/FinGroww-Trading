@@ -77,7 +77,8 @@ class SwarmOrchestrator:
             }
         )
 
-        self.start_background_worker()
+        # Background worker remains dormant/idle until explicitly activated
+        # self.start_background_worker()
 
     def set_resolvers(self, quote_resolver: Callable, option_quote_resolver: Optional[Callable] = None):
         self.quote_resolver = quote_resolver

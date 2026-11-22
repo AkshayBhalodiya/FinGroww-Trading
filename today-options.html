@@ -1491,14 +1491,12 @@
 <script>
 // Multi-Host Local & Production Endpoints
 const isLocalEnv = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
-const BACKEND_HOSTS = isLocalEnv ? [
-  "http://127.0.0.1:8787",
+const BACKEND_HOSTS = [
+  "https://fingroww-trading-y3na.onrender.com",
+  isLocalEnv ? "http://127.0.0.1:8787" : "",
   "https://api.fingroww.tech",
   "https://fingroww-trading.onrender.com"
-] : [
-  "https://api.fingroww.tech",
-  "https://fingroww-trading.onrender.com"
-];
+].filter(Boolean);
 
 // Exact Real Market Spec Registry
 const CONTRACT_SPECS = [

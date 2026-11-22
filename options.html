@@ -879,6 +879,7 @@ table.chain-table tbody tr:hover {
 
 <script>
 const CLOUD_API = "https://api.fingroww.tech";
+const PRIMARY_RENDER_API = "https://fingroww-trading-y3na.onrender.com";
 const FALLBACK_CLOUD_API = "https://fingroww-trading.onrender.com";
 const LOCAL_API = "http://127.0.0.1:8787";
 
@@ -939,9 +940,7 @@ async function fetchApi(path, options = {}) {
                       window.location.hostname === "localhost" || 
                       window.location.protocol === "file:" || 
                       !window.location.hostname;
-  const hosts = isLocalHost 
-    ? [LOCAL_API, CLOUD_API, FALLBACK_CLOUD_API] 
-    : [CLOUD_API, FALLBACK_CLOUD_API];
+  const hosts = [PRIMARY_RENDER_API, isLocalHost ? LOCAL_API : "", CLOUD_API, FALLBACK_CLOUD_API].filter(Boolean);
 
   for (const host of hosts) {
     try {

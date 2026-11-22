@@ -52,7 +52,12 @@
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#030712">
-<script src="/static/js/lightweight-charts.standalone.production.js"></script>
+<script src="static/js/lightweight-charts.standalone.production.js"></script>
+<script>
+if (typeof LightweightCharts === "undefined") {
+  document.write('<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"><\/script>');
+}
+</script>
 
 <!-- CDNs: Font Awesome & AOS Animation -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -2186,8 +2191,8 @@ button[disabled],
 
 <main class="container paper-dashboard">
 
-  <!-- Dedicated AI Multi-Agent Swarm Hub Banner -->
-  <div style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(99, 102, 241, 0.12)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+  <!-- Dedicated AI Multi-Agent Swarm Hub Banner (Hidden as requested) -->
+  <div style="display: none !important; margin-bottom: 24px; background: linear-gradient(135deg, rgba(2, 132, 199, 0.12), rgba(99, 102, 241, 0.12)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 16px 20px; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
     <div style="display: flex; align-items: center; gap: 12px;">
       <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #6366f1); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px;">
         <i class="fa-solid fa-network-wired"></i>
@@ -3511,8 +3516,9 @@ function showToast(message, type = "info") {
 
 // Active API host cache to eliminate redundant/failed requests (persisted per tab)
 const API_URL = "https://api.fingroww.tech";
+const PRIMARY_RENDER_URL = "https://fingroww-trading-y3na.onrender.com";
 const FALLBACK_API_URL = "https://fingroww-trading.onrender.com";
-const RENDER_BACKEND_URL = API_URL;
+const RENDER_BACKEND_URL = PRIMARY_RENDER_URL;
 let activePaperApiHost = (function() {
   try {
     const cached = sessionStorage.getItem("fingroww_active_api_host");
@@ -3532,23 +3538,19 @@ async function fetchPaperApi(path, options = {}) {
   const isRenderServed = hostname.includes("onrender.com") || hostname.includes("api.fingroww.tech");
   const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
-  let candidateHosts = [];
+  let candidateHosts = [PRIMARY_RENDER_URL];
   if (isLocalBackendServed) {
-    // 1. If page is served directly by local Flask backend on port 8787
     candidateHosts.push("");
     candidateHosts.push("http://127.0.0.1:8787");
   } else if (isRenderServed) {
-    // 2. If page is served on Render / custom API domain
     candidateHosts.push("");
     candidateHosts.push(API_URL);
     candidateHosts.push(FALLBACK_API_URL);
   } else if (isLocalDev) {
-    // 3. Local dev preview (file:/// or Live Server port 5500) -> check local 8787 first, fallback to live Render
     candidateHosts.push("http://127.0.0.1:8787");
     candidateHosts.push(API_URL);
     candidateHosts.push(FALLBACK_API_URL);
   } else {
-    // 4. Live static hosting (Hostinger: fingroww.tech, Vercel, Netlify)
     candidateHosts.push(API_URL);
     candidateHosts.push(FALLBACK_API_URL);
   }
@@ -5277,8 +5279,7 @@ async function openCandlestickChart(symbol, entryPrice, targetPrice, stopLoss, s
   }
 
   try {
-    const res = await fetch(`/api/live?symbol=${encodeURIComponent(baseSym)}&interval=15m`);
-    const data = await res.json();
+    const data = await fetchPaperApi(`/api/live?symbol=${encodeURIComponent(baseSym)}&interval=15m`);
     const rawCandles = (data && data.series && data.series.length) ? data.series : 
                        ((data && data.candles && data.candles.length) ? data.candles : 
                        ((data && data.chart && data.chart.candles) ? data.chart.candles : []));
@@ -5422,21 +5423,18 @@ async function openCandlestickChart(symbol, entryPrice, targetPrice, stopLoss, s
     if (loading) loading.innerHTML = `<span style="color:#ef4444;">Could not load candles: ${err.message}</span>`;
   }
 }
-}
 
 async function resetCircuitBreaker() {
   try {
-    const res = await fetch("/api/paper/circuit-breaker/reset", {
+    const data = await fetchPaperApi("/api/paper/circuit-breaker/reset", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user: currentUserName })
     });
-    const data = await res.json();
-    if (data.ok) {
+    if (data && data.ok) {
       showToast("Circuit Breaker reset. Trading resumed!");
       if (data.state) updateUiWithState(data.state);
     } else {
-      alert(data.error || "Could not reset circuit breaker");
+      alert((data && data.error) || "Could not reset circuit breaker");
     }
   } catch(e) {
     alert("Error resetting circuit breaker: " + e.message);

@@ -2239,6 +2239,7 @@ function renderBacktestPanel(bt){
 }
 
 const CLOUD_API="https://api.fingroww.tech";
+const PRIMARY_RENDER_API="https://fingroww-trading-y3na.onrender.com";
 const FALLBACK_CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
@@ -2267,15 +2268,12 @@ async function fetchApi(path, options = {}) {
   let candidateHosts = [];
   if (activeIntelHost) {
     candidateHosts.push(activeIntelHost);
-  } else if (isLocalHost) {
-    candidateHosts.push("http://127.0.0.1:8787");
-    candidateHosts.push("https://api.fingroww.tech");
-    candidateHosts.push("https://fingroww-trading.onrender.com");
   } else {
-    // Live static hosting (Hostinger, Vercel, Netlify) -> DIRECT TO CUSTOM API DOMAIN!
+    candidateHosts.push("https://fingroww-trading-y3na.onrender.com");
+    if (isLocalHost) candidateHosts.push("http://127.0.0.1:8787");
+    else candidateHosts.push("");
     candidateHosts.push("https://api.fingroww.tech");
     candidateHosts.push("https://fingroww-trading.onrender.com");
-    candidateHosts.push("");
   }
 
   for (const host of candidateHosts) {

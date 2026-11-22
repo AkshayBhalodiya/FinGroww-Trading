@@ -1836,7 +1836,7 @@ async function trigger1ClickTest(symbol, type, entry, sl, t1) {
 
   try {
     const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
-    const hosts = isLocal ? ["http://127.0.0.1:8787", ""] : [""];
+    const hosts = ["https://fingroww-trading-y3na.onrender.com", isLocal ? "http://127.0.0.1:8787" : "", ""].filter(Boolean);
     for (const host of hosts) {
       try {
         const res = await fetch(host + '/api/paper/order/execute', {
@@ -1877,7 +1877,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   (async function syncScan() {
     const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
-    const hosts = isLocal ? ["http://127.0.0.1:8787", ""] : [""];
+    const hosts = ["https://fingroww-trading-y3na.onrender.com", isLocal ? "http://127.0.0.1:8787" : "", ""].filter(Boolean);
     for (const host of hosts) {
       try {
         const res = await fetch(host + '/api/paper/session/scan', { cache: 'no-store' });

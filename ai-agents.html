@@ -56,7 +56,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="theme.css">
-<script src="/static/js/lightweight-charts.standalone.production.js"></script>
+<script src="static/js/lightweight-charts.standalone.production.js"></script>
+<script>
+if (typeof LightweightCharts === "undefined") {
+  document.write('<script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"><\/script>');
+}
+</script>
 
 <style>
 /* Candlestick Chart Modal Styling */
@@ -654,9 +659,34 @@
 // =========================================================================
 let currentPendingSignalId = null;
 
+const isLocalEnv = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:" || !window.location.hostname;
+const PRIMARY_RENDER_URL = "https://fingroww-trading-y3na.onrender.com";
+let activeAgentHost = null;
+
+async function agentFetch(path, options = {}) {
+  const candidateHosts = activeAgentHost ? [activeAgentHost] : [
+    PRIMARY_RENDER_URL,
+    isLocalEnv ? "http://127.0.0.1:8787" : "",
+    "https://api.fingroww.tech",
+    "https://fingroww-trading.onrender.com"
+  ].filter(Boolean);
+
+  for (const host of candidateHosts) {
+    try {
+      const url = host ? (host + path) : path;
+      const res = await fetch(url, options);
+      if (res && (res.ok || (res.status >= 400 && res.status < 500 && res.status !== 404))) {
+        activeAgentHost = host;
+        return res;
+      }
+    } catch (e) {}
+  }
+  return fetch(path, options);
+}
+
 async function fetchSwarmStatus() {
   try {
-    const res = await fetch('/api/agents/status');
+    const res = await agentFetch('/api/agents/status');
     const json = await res.json();
     if (!json.ok || !json.data) return;
     const d = json.data;
@@ -793,7 +823,7 @@ async function fetchSwarmStatus() {
 
     // Live Market Radar Dynamic Feed
     try {
-      const tickRes = await fetch('/api/market/ticker');
+      const tickRes = await agentFetch('/api/market/ticker');
       const tickJson = await tickRes.json();
       if (tickJson.ok && tickJson.data && tickJson.data.length > 0) {
         const radarGrid = document.getElementById('liveMarketRadarGrid');
@@ -829,7 +859,7 @@ async function fetchSwarmStatus() {
 
 async function setSwarmMode(mode) {
   try {
-    await fetch('/api/agents/control', {
+    await agentFetch('/api/agents/control', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: mode })
@@ -843,7 +873,7 @@ async function setSwarmMode(mode) {
 
 async function setSwarmRisk(profile) {
   try {
-    await fetch('/api/agents/control', {
+    await agentFetch('/api/agents/control', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ risk_profile: profile })
@@ -857,7 +887,7 @@ async function setSwarmRisk(profile) {
 
 async function triggerManualSwarmScan() {
   try {
-    const res = await fetch('/api/agents/scan', { method: 'POST' });
+    const res = await agentFetch('/api/agents/scan', { method: 'POST' });
     const json = await res.json();
     if (json.ok) {
       if (window.showToast) window.showToast(`⚡ Swarm Scan Complete: ${json.data.candidates_found} candidates evaluated!`);
@@ -873,7 +903,7 @@ async function approveCurrentCopilotSignal() {
   const btn = document.getElementById('btnCopilotApprove');
   if (btn) btn.disabled = true;
   try {
-    const res = await fetch('/api/agents/approve', {
+    const res = await agentFetch('/api/agents/approve', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ signal_id: currentPendingSignalId })
@@ -894,7 +924,7 @@ async function approveCurrentCopilotSignal() {
 
 async function resetCircuitBreaker() {
   try {
-    const res = await fetch('/api/agents/circuit-breaker/reset', { method: 'POST' });
+    const res = await agentFetch('/api/agents/circuit-breaker/reset', { method: 'POST' });
     const json = await res.json();
     if (json.ok) {
       if (window.showToast) window.showToast(`✔ Circuit Breaker Reset Successfully!`);
@@ -955,7 +985,7 @@ async function openCandlestickChart(symbol, entryPrice, targetPrice, stopLoss, s
   }
 
   try {
-    const res = await fetch(`/api/live?symbol=${encodeURIComponent(baseSym)}&interval=15m`);
+    const res = await agentFetch(`/api/live?symbol=${encodeURIComponent(baseSym)}&interval=15m`);
     const data = await res.json();
     const rawCandles = (data && data.series && data.series.length) ? data.series : 
                        ((data && data.candles && data.candles.length) ? data.candles : 
