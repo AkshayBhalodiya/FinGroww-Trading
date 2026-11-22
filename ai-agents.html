@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030712">
+<title>AI Multi-Agent Autonomous Trading Swarm & Pipeline — FinGroww</title>
+<meta name="description" content="India's premier 5-Agent Autonomous Trading Swarm. Sentinel Scout, Quant Brain, Execution Sniper, Position Guardian, and Chief Risk Supervisor cooperating in real-time for NSE stock and options markets.">
+<meta name="keywords" content="ai multi agent trading swarm, autonomous algorithmic trading india, 15m fibonacci golden zone agents, trailing stop loss ai agent, options trading copilot, nse automated paper execution">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<link rel="canonical" href="https://fingroww.tech/ai-agents.html">
+
+<!-- OpenGraph / Social Tags -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fingroww.tech/ai-agents.html">
+<meta property="og:title" content="AI Multi-Agent Autonomous Trading Swarm & Pipeline — FinGroww">
+<meta property="og:description" content="5 specialized AI micro-agents collaborating in real-time to scan, evaluate, execute, and trail stop-losses for Indian stock and options traders.">
+<meta property="og:image" content="https://fingroww.tech/static/img/og-preview.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI Multi-Agent Autonomous Trading Swarm — FinGroww">
+<meta name="twitter:description" content="5 specialized AI micro-agents cooperating to scan, analyze, execute, and protect capital in Indian markets.">
+<meta name="twitter:image" content="https://fingroww.tech/static/img/og-preview.png">
+
+<!-- JSON-LD Structured Data Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "@id": "https://fingroww.tech/ai-agents.html#webapp",
+      "url": "https://fingroww.tech/ai-agents.html",
+      "name": "FinGroww AI Multi-Agent Autonomous Trading Swarm",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "All modern browsers, Windows, Android, iOS PWA",
+      "description": "Distributed multi-agent pipeline executing automated market scanning, 11-skill confluence evaluation, sub-second execution, and dynamic trailing stop-loss management."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://fingroww.tech/" },
+        { "@type": "ListItem", "position": 2, "name": "AI Paper Trading", "item": "https://fingroww.tech/ai-auto-paper-trading.html" },
+        { "@type": "ListItem", "position": 3, "name": "AI Multi-Agent Swarm Hub", "item": "https://fingroww.tech/ai-agents.html" }
+      ]
+    }
+  ]
+}
+</script>
+
+<!-- CDNs: Font Awesome & Fonts -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<script src="/static/js/lightweight-charts.standalone.production.js"></script>
+
+<style>
+/* Candlestick Chart Modal Styling */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal-box {
+  background: #0b1124;
+  border: 1px solid var(--border-card-hover, rgba(255,255,255,0.15));
+  border-radius: 16px;
+  max-width: 920px;
+  width: 95%;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Swarm Hub Dedicated Styling */
+.swarm-page-hero {
+  padding: 36px 0 24px;
+}
+.agent-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.swarm-glass-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(12px);
+  margin-bottom: 24px;
+}
+.agent-node-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 18px;
+  position: relative;
+  transition: all 0.25s ease;
+}
+.agent-node-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-blue);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+.agent-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.live-stream-box {
+  background: #020617;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+@keyframes pulseDot {
+  0% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(1.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
+</style>
+</head>
+
+<body>
+<div class="bg-ambient-grid"></div>
+
+<!-- Real-time Live Price & Signal Ticker -->
+<div class="global-ticker-bar">
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
+    <!-- Duplicate for infinite ticker -->
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
+  </div>
+</div>
+
+<!-- Clean Site Header -->
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand" title="FinGroww Home">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Trading Intelligence</span>
+        </div>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li>
+        <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
+          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
+          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
+        </a>
+      </li>
+      <li>
+        <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;" title="Today's 15m Options Radar">
+          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
+        </a>
+      </li>
+      <li>
+        <a href="backtest.html" style="color:var(--accent-blue);font-weight:800;" title="5-Year Backtest Engine">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
+        </a>
+      </li>
+      <li><a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper (Free)</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
+    <a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
+    <a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain & Greeks</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
+    </div>
+  </div>
+</div>
+
+<main class="container swarm-page-hero">
+
+  <!-- Header Breadcrumb & Title -->
+  <div style="margin-bottom: 24px;">
+    <div style="display:inline-flex; align-items:center; gap:8px; padding:6px 14px; background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); border-radius:30px; font-size:11.5px; font-weight:800; color:#818cf8; margin-bottom:12px;">
+      <i class="fa-solid fa-network-wired"></i> AUTONOMOUS MULTI-AGENT SWARM · 5 COOPERATING AGENTS · REAL-TIME NSE PIPELINE
+    </div>
+    <h1 style="font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 900; line-height: 1.2; margin-bottom: 10px;">
+      AI Multi-Agent <span style="background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Swarm Command Center</span>
+    </h1>
+    <p style="font-size: 14px; color: var(--text-muted); max-width: 820px; line-height: 1.6;">
+      Instead of relying on a single trading bot, FinGroww separates market responsibilities into 5 specialized micro-agents: Continuous Scanner, Confluence Evaluator, Sub-second Sniper, Dynamic TSL Guardian, and Platform Risk Supervisor.
+    </p>
+  </div>
+
+  <!-- Command & Control Bar -->
+  <div class="swarm-glass-panel" style="padding: 18px 24px; border-color: rgba(59,130,246,0.35);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+      
+      <!-- Swarm Status & User Session -->
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <span id="swarmStatusBadge" class="agent-badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.4);">
+          <span style="width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulseDot 1.5s infinite;"></span> SWARM ONLINE
+        </span>
+        <span class="agent-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.4);">
+          <i class="fa-solid fa-wifi"></i> 100% REAL LIVE NSE DATA BRIDGE
+        </span>
+        <span style="font-size:12px; font-weight:800; color:var(--text-muted);">
+          Trader: <span style="color:var(--text-main);" id="lblSwarmUser">Akshay</span> (₹1,00,000 Virtual Capital)
+        </span>
+      </div>
+
+      <!-- Control Knobs: Mode, Risk Profile, Manual Scan -->
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <!-- Full Auto vs Copilot Switch -->
+        <div style="display:flex; background:rgba(0,0,0,0.35); border:1px solid var(--border-subtle); border-radius:10px; padding:3px;">
+          <button type="button" id="btnModeAuto" onclick="setSwarmMode('FULL_AUTO')" style="padding:7px 14px; border:none; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer; background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; transition:all 0.2s;">
+            🤖 FULL AUTO-PILOT
+          </button>
+          <button type="button" id="btnModeCopilot" onclick="setSwarmMode('COPILOT')" style="padding:7px 14px; border:none; border-radius:8px; font-size:11.5px; font-weight:800; cursor:pointer; background:transparent; color:var(--text-muted); transition:all 0.2s;">
+            ⚡ COPILOT (1-CLICK)
+          </button>
+        </div>
+
+        <!-- Risk Profile -->
+        <select id="selSwarmRisk" onchange="setSwarmRisk(this.value)" style="background:var(--bg-surface); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:10px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;">
+          <option value="CONSERVATIVE">🛡️ Conservative (85+ Confluence)</option>
+          <option value="BALANCED" selected>⚖️ Balanced (75+ Confluence)</option>
+          <option value="AGGRESSIVE">🎯 Aggressive (70+ Confluence)</option>
+        </select>
+
+        <!-- Instant Scan -->
+        <button type="button" onclick="triggerManualSwarmScan()" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; border-radius:10px; padding:8px 16px; font-size:12px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+          <i class="fa-solid fa-arrows-rotate"></i> <span>Scan Universe</span>
+        </button>
+
+        <!-- Circuit Breaker Status / Reset -->
+        <button type="button" id="btnResetCircuit" onclick="resetCircuitBreaker()" style="display:none; background:rgba(244,63,94,0.15); color:#fb7185; border:1px solid rgba(244,63,94,0.4); border-radius:10px; padding:8px 14px; font-size:11.5px; font-weight:800; cursor:pointer;">
+          <i class="fa-solid fa-shield-virus"></i> Reset Cooldown
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- The 5 Interconnected Agent Nodes -->
+  <div class="agent-grid-5">
+    
+    <!-- Agent 1: Sentinel Scout -->
+    <div class="agent-node-card" style="border-color: rgba(16,185,129,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:900; color:#34d399; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-radar fa-spin"></i> AGENT 1: SCOUT
+        </span>
+        <span class="agent-badge" style="background:rgba(16,185,129,0.2); color:#34d399;">SCANNER</span>
+      </div>
+      <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="agent1Activity">Scanning 500+ NSE Stocks</div>
+      <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+        Monitors 15m volume surges (&gt;1.5x) and price entry into 0.50–0.618 Fibonacci Golden Zone.
+      </p>
+      <div style="border-top:1px solid var(--border-subtle); padding-top:10px; display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+        <span style="color:var(--text-dim);">Scans: <strong id="lblA1Scans" style="color:#34d399;">0</strong></span>
+        <span style="color:var(--text-dim);">Found: <strong id="lblA1Found" style="color:var(--text-main);">0 Setups</strong></span>
+      </div>
+    </div>
+
+    <!-- Agent 2: Quant Brain -->
+    <div class="agent-node-card" style="border-color: rgba(245,158,11,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:900; color:#fbbf24; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-brain"></i> AGENT 2: QUANT BRAIN
+        </span>
+        <span class="agent-badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">CONFLUENCE</span>
+      </div>
+      <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="agent2Activity">11-Skill Gatekeeper</div>
+      <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+        Computes 100-pt confluence score across VWAP, Options PCR, Greeks &amp; Golden Zone reaction.
+      </p>
+      <div style="border-top:1px solid var(--border-subtle); padding-top:10px; display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+        <span style="color:var(--text-dim);">Approved: <strong id="lblA2Approved" style="color:#fbbf24;">0</strong></span>
+        <span style="color:var(--text-dim);">Threshold: <strong id="lblA2MinScore" style="color:var(--text-main);">75/100</strong></span>
+      </div>
+    </div>
+
+    <!-- Agent 3: Execution Sniper -->
+    <div class="agent-node-card" style="border-color: rgba(59,130,246,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:900; color:#60a5fa; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-crosshairs"></i> AGENT 3: SNIPER
+        </span>
+        <span class="agent-badge" style="background:rgba(59,130,246,0.2); color:#60a5fa;">EXECUTION</span>
+      </div>
+      <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="agent3Activity">Atomic Order Fill</div>
+      <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+        Validates risk margin, determines exact lot sizing, and routes order with sub-second execution.
+      </p>
+      <div style="border-top:1px solid var(--border-subtle); padding-top:10px; display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+        <span style="color:var(--text-dim);">Filled: <strong id="lblA3Filled" style="color:#60a5fa;">0 Trades</strong></span>
+        <span style="color:var(--text-dim);">Max Alloc: <strong style="color:var(--text-main);">25%</strong></span>
+      </div>
+    </div>
+
+    <!-- Agent 4: Position Guardian -->
+    <div class="agent-node-card" style="border-color: rgba(168,85,247,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:900; color:#c084fc; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-shield-halved"></i> AGENT 4: GUARDIAN
+        </span>
+        <span class="agent-badge" style="background:rgba(168,85,247,0.2); color:#c084fc;">TSL &amp; RISK</span>
+      </div>
+      <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="agent4Activity">Trailing Stop-Loss &amp; Targets</div>
+      <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+        Trails SL to breakeven at +15%, locks 50% partial profit at Target 1, trails peak with ATR.
+      </p>
+      <div style="border-top:1px solid var(--border-subtle); padding-top:10px; display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+        <span style="color:var(--text-dim);">Active: <strong id="lblA4Active" style="color:#c084fc;">0</strong></span>
+        <span style="color:var(--text-dim);">TSL Updates: <strong id="lblA4Trails" style="color:var(--text-main);">0</strong></span>
+      </div>
+    </div>
+
+    <!-- Agent 5: Risk Supervisor -->
+    <div class="agent-node-card" style="border-color: rgba(244,63,94,0.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span style="font-size:12px; font-weight:900; color:#fb7185; display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-shield-virus"></i> AGENT 5: SUPERVISOR
+        </span>
+        <span class="agent-badge" style="background:rgba(244,63,94,0.2); color:#fb7185;">CIRCUIT BREAKER</span>
+      </div>
+      <div style="font-size:14px; font-weight:800; color:var(--text-main); margin-bottom:6px;" id="agent5Activity">Capital Preservation</div>
+      <p style="font-size:11px; color:var(--text-dim); margin-bottom:14px; line-height:1.5;">
+        Monitors max daily drawdown (3%), locks 45-min cooldown after 2 consecutive stop-losses.
+      </p>
+      <div style="border-top:1px solid var(--border-subtle); padding-top:10px; display:flex; justify-content:space-between; font-size:11.5px; font-weight:700;">
+        <span style="color:var(--text-dim);">Daily Loss: <strong id="lblA5Loss" style="color:#fb7185;">₹0.00</strong></span>
+        <span style="color:var(--text-dim);">Max Drawdown: <strong style="color:var(--text-main);">3.0%</strong></span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Copilot Mode Pending Queue Banner -->
+  <div id="copilotPendingBanner" class="swarm-glass-panel" style="display:none; border-color: rgba(245,158,11,0.5); background: rgba(245,158,11,0.08);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; color:#fff; font-size:18px;">
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <div>
+          <div style="font-size:13px; font-weight:900; color:#fbbf24;">COPILOT SIGNAL AWAITING HUMAN AUTHORIZATION</div>
+          <div style="font-size:12px; color:var(--text-main); font-weight:700;" id="copilotSignalDetails">
+            NIFTY 25800 CE @ ₹142.50 | Confluence: 88/100 | Target 1: ₹185.00 | Target 2: ₹228.00 | SL: ₹114.00
+          </div>
+        </div>
+      </div>
+      <button type="button" id="btnCopilotApprove" onclick="approveCurrentCopilotSignal()" style="background:linear-gradient(135deg, #10b981, #059669); color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:13px; font-weight:800; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 14px rgba(16,185,129,0.35);">
+        <i class="fa-solid fa-check"></i> <span>⚡ 1-Click Approve &amp; Route Order</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Real-Time Market Universe Radar (Agent 1 Live NSE/Yahoo Feeds) -->
+  <div class="swarm-glass-panel" style="border-color: rgba(16,185,129,0.35);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-size:1.05rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-satellite-dish" style="color:var(--accent-green);"></i>
+        <span>Live Market Universe Radar (Scanned by Agent 1)</span>
+      </h3>
+      <span class="agent-badge" style="background:rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.4);">
+        <i class="fa-solid fa-circle-check"></i> 100% REAL LIVE NSE DATA BRIDGE
+      </span>
+    </div>
+    <div id="liveMarketRadarGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">NIFTY 50</div>
+        <div style="font-size:16px; font-weight:900; color:#34d399; margin:4px 0;">25,800.60</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +2.27% · NSE Live</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">BANK NIFTY</div>
+        <div style="font-size:16px; font-weight:900; color:#34d399; margin:4px 0;">64,635.20</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +4.19% · NSE Live</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">RELIANCE</div>
+        <div style="font-size:16px; font-weight:900; color:var(--text-main); margin:4px 0;">₹1,377.50</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +0.14% · NSE Live</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">HDFCBANK</div>
+        <div style="font-size:16px; font-weight:900; color:#34d399; margin:4px 0;">₹846.00</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +2.94% · NSE Live</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">INFY</div>
+        <div style="font-size:16px; font-weight:900; color:var(--text-main); margin:4px 0;">₹1,098.00</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +0.56% · NSE Live</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px;">
+        <div style="font-size:11px; color:var(--text-dim); font-weight:700;">TCS</div>
+        <div style="font-size:16px; font-weight:900; color:#34d399; margin:4px 0;">₹2,376.20</div>
+        <div style="font-size:10.5px; color:#34d399; font-weight:700;"><i class="fa-solid fa-arrow-trend-up"></i> +1.43% · NSE Live</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Swarm Managed Positions Table -->
+  <div class="swarm-glass-panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:1.15rem; font-weight:800; margin:0; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-layer-group" style="color:var(--accent-purple);"></i>
+        <span>Active Positions Managed by Agent 4 (Position Guardian)</span>
+      </h3>
+      <span id="activePositionsCountPill" class="agent-badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">
+        0 Active Trades
+      </span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:left;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border-subtle); color:var(--text-dim); font-size:11px; text-transform:uppercase;">
+            <th style="padding:10px;">Symbol</th>
+            <th style="padding:10px;">Side</th>
+            <th style="padding:10px;">Entry</th>
+            <th style="padding:10px;">LTP</th>
+            <th style="padding:10px;">Dynamic SL</th>
+            <th style="padding:10px;">Target 1 / 2</th>
+            <th style="padding:10px;">Unrealized P&amp;L</th>
+            <th style="padding:10px;">Status</th>
+            <th style="padding:10px;">Chart</th>
+          </tr>
+        </thead>
+        <tbody id="swarmPositionsBody">
+          <tr>
+            <td colspan="9" style="text-align:center; padding:32px; color:var(--text-dim);">
+              <i class="fa-solid fa-satellite-dish" style="font-size:24px; color:var(--accent-blue); display:block; margin-bottom:8px;"></i>
+              No open positions. Agent 1 &amp; 2 are actively scanning 500+ NSE universe for confirmed 15m Golden Zone setups...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Microsecond Inter-Agent Live Event Stream Terminal -->
+  <div class="swarm-glass-panel" style="background: #020617; border-color: rgba(255,255,255,0.1);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-terminal" style="color:var(--accent-blue);"></i>
+        <h3 style="font-size:1rem; font-weight:800; margin:0; font-family:'JetBrains Mono', monospace; color:#f8fafc;">
+          INTER-AGENT EVENT STREAM AUDIT
+        </h3>
+      </div>
+      <span class="agent-badge" style="background:rgba(16,185,129,0.15); color:#34d399; font-family:'JetBrains Mono', monospace;">
+        <span style="width:5px; height:5px; border-radius:50%; background:#10b981;"></span> EVENTBUS LIVE
+      </span>
+    </div>
+
+    <div id="swarmAuditStream" class="live-stream-box" style="height:160px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; color:#cbd5e1;">
+      <div style="color:#64748b;">Initializing FinGroww 5-Agent EventBus connection...</div>
+    </div>
+  </div>
+
+  <!-- Educational: Why Multi-Agent Swarm Architecture? -->
+  <div class="swarm-glass-panel">
+    <h3 style="font-size:1.2rem; font-weight:800; margin-bottom:16px;">
+      Why FinGroww Uses an Autonomous Multi-Agent Swarm Architecture?
+    </h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px; font-size:13px; line-height:1.6; color:var(--text-muted);">
+      <div>
+        <h4 style="color:var(--text-main); font-weight:800; margin-bottom:6px;"><i class="fa-solid fa-bolt" style="color:var(--accent-gold); margin-right:6px;"></i> Elimination of Emotion &amp; Hesitation</h4>
+        Retail traders often hesitate when entering good setups or exit profitable trades too early out of fear. Agent 3 executes sub-second upon confirmation, while Agent 4 locks Target 1 and trails mathematically.
+      </div>
+      <div>
+        <h4 style="color:var(--text-main); font-weight:800; margin-bottom:6px;"><i class="fa-solid fa-brain" style="color:var(--accent-blue); margin-right:6px;"></i> 11-Skill Confluence Filtration</h4>
+        Agent 2 never trades single-indicator triggers. Every potential trade must strictly satisfy 15m Fibonacci Golden Zone, VWAP institutional accumulation, options PCR sentiment, and options Greeks before passing to execution.
+      </div>
+      <div>
+        <h4 style="color:var(--text-main); font-weight:800; margin-bottom:6px;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-green); margin-right:6px;"></i> SEBI-Aligned Risk Preservation</h4>
+        As per SEBI's official study on individual traders in Equity F&amp;O, 9 out of 10 traders lose money due to lack of risk discipline. Agent 5 enforces automatic daily drawdown ceilings and anti-revenge trading cooldowns.
+      </div>
+    </div>
+  </div>
+
+  <!-- TradingView Lightweight Candlestick Chart Modal -->
+  <div id="modalCandlestickChart" class="modal-overlay">
+    <div class="modal-box" style="max-width: 920px; width: 95%;">
+      <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-chart-candlestick" style="color:var(--accent-blue);"></i>
+          <span id="tvChartTitle" style="font-size:16px; font-weight:800; color:var(--text-main);">15m Institutional Candlestick Chart</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalCandlestickChart')" style="padding:4px 10px; font-size:12px; cursor:pointer;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-desc" style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:12px; align-items:center; justify-content:space-between;">
+        <div style="display:flex; gap:8px; align-items:center; font-size:12px;">
+          <span style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3); color:#60a5fa; padding:2px 8px; border-radius:6px; font-weight:700;" id="tvChartEntryTag">Entry: ₹0.00</span>
+          <span style="background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; padding:2px 8px; border-radius:6px; font-weight:700;" id="tvChartTargetTag">Target: ₹0.00</span>
+          <span style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#f87171; padding:2px 8px; border-radius:6px; font-weight:700;" id="tvChartSlTag">Stop-Loss: ₹0.00</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-dim);" id="tvChartStrategyTag">15m Quantitative Confluence</div>
+      </div>
+      <div id="tvChartContainer" style="width:100%; height:420px; background:#070d19; border-radius:10px; border:1px solid rgba(255,255,255,0.08); position:relative;">
+        <div id="tvChartLoading" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:13px; font-weight:700; gap:8px;">
+          <i class="fa-solid fa-circle-notch fa-spin"></i> Loading 15-Minute Institutional Candles from NSE/Yahoo Bridge...
+        </div>
+      </div>
+      <div class="modal-actions" style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px; font-size:11px; color:var(--text-dim); align-items:center;">
+          <span><span style="display:inline-block; width:10px; height:3px; background:#06b6d4; margin-right:4px;"></span>EMA 9</span>
+          <span><span style="display:inline-block; width:10px; height:3px; background:#f97316; margin-right:4px;"></span>EMA 21</span>
+          <span style="color:#10b981; font-weight:700; margin-left:8px;"><i class="fa-solid fa-check"></i> 100% Real Live Exchange Bridge</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalCandlestickChart')" style="cursor:pointer; padding:6px 14px; border-radius:8px; font-weight:700;">Close Chart</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Global Master Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand" style="margin-bottom:12px;">
+          <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-meta">
+              <span class="live-feed-dot"></span>
+              <span class="brand-badge">Trading Intelligence</span>
+            </div>
+          </div>
+        </a>
+        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
+          India's leading zero-risk AI paper trading app and 15m Fibonacci Golden Zone options terminal.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h5>Core Tools</h5>
+        <ul>
+          <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
+          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple,#c084fc);"></i> Options Chain & Greeks</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Platform & Support</h5>
+        <ul>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
+          <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI Regulatory Disclosure -->
+    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 18px;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    </div>
+
+    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
+      <div style="display:flex;gap:14px;">
+        <a href="disclaimer.html">Terms & Compliance</a>
+        <a href="contact.html">Support Desk</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Floating WhatsApp Button -->
+<a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<script src="theme.js"></script>
+
+<script>
+// =========================================================================
+// FinGroww Multi-Agent Swarm Hub Real-Time Frontend Controller
+// =========================================================================
+let currentPendingSignalId = null;
+
+async function fetchSwarmStatus() {
+  try {
+    const res = await fetch('/api/agents/status');
+    const json = await res.json();
+    if (!json.ok || !json.data) return;
+    const d = json.data;
+
+    // Mode Buttons
+    const btnAuto = document.getElementById('btnModeAuto');
+    const btnCopilot = document.getElementById('btnModeCopilot');
+    if (btnAuto && btnCopilot) {
+      if (d.mode === 'FULL_AUTO') {
+        btnAuto.style.background = 'linear-gradient(135deg, #0284c7, #2563eb)';
+        btnAuto.style.color = '#fff';
+        btnCopilot.style.background = 'transparent';
+        btnCopilot.style.color = 'var(--text-muted)';
+      } else {
+        btnCopilot.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        btnCopilot.style.color = '#fff';
+        btnAuto.style.background = 'transparent';
+        btnAuto.style.color = 'var(--text-muted)';
+      }
+    }
+
+    // Risk Profile Select
+    const selRisk = document.getElementById('selSwarmRisk');
+    if (selRisk && selRisk.value !== d.risk_profile) {
+      selRisk.value = d.risk_profile;
+    }
+
+    // Agent 1: Scout
+    const a1 = d.agent1_scout || {};
+    const lblA1Scans = document.getElementById('lblA1Scans');
+    const lblA1Found = document.getElementById('lblA1Found');
+    if (lblA1Scans) lblA1Scans.textContent = a1.scans_performed || 0;
+    if (lblA1Found) lblA1Found.textContent = (a1.candidates_found || 0) + ' Setups';
+
+    // Agent 2: Brain
+    const a2 = d.agent2_brain || {};
+    const lblA2Approved = document.getElementById('lblA2Approved');
+    const lblA2MinScore = document.getElementById('lblA2MinScore');
+    if (lblA2Approved) lblA2Approved.textContent = a2.approved_count || 0;
+    if (lblA2MinScore) lblA2MinScore.textContent = (d.min_confluence || 75) + '/100';
+
+    // Copilot Pending Signal Banner
+    const copilotBanner = document.getElementById('copilotPendingBanner');
+    if (copilotBanner) {
+      if (d.mode === 'COPILOT' && a2.pending_approvals && a2.pending_approvals.length > 0) {
+        const topSig = a2.pending_approvals[0];
+        currentPendingSignalId = topSig.signal_id;
+        document.getElementById('copilotSignalDetails').textContent = 
+          topSig.symbol + ' @ ₹' + topSig.entry_price + ' | Confluence: ' + topSig.confluence_score + '/100 | Target 1: ₹' + topSig.target_1 + ' | Target 2: ₹' + topSig.target_2 + ' | SL: ₹' + topSig.stop_loss;
+        copilotBanner.style.display = 'block';
+      } else {
+        copilotBanner.style.display = 'none';
+      }
+    }
+
+    // Agent 3: Sniper
+    const a3 = d.agent3_sniper || {};
+    const lblA3Filled = document.getElementById('lblA3Filled');
+    if (lblA3Filled) lblA3Filled.textContent = (a3.orders_executed || 0) + ' Trades';
+
+    // Agent 4: Guardian
+    const a4 = d.agent4_guardian || {};
+    const lblA4Active = document.getElementById('lblA4Active');
+    const lblA4Trails = document.getElementById('lblA4Trails');
+    if (lblA4Active) lblA4Active.textContent = a4.active_positions_count || 0;
+    if (lblA4Trails) lblA4Trails.textContent = a4.trailing_updates_count || 0;
+
+    // Agent 5: Risk Supervisor
+    const a5 = d.agent5_supervisor || {};
+    const lblA5Loss = document.getElementById('lblA5Loss');
+    const btnResetCircuit = document.getElementById('btnResetCircuit');
+    if (lblA5Loss) lblA5Loss.textContent = '₹' + (a5.daily_realized_loss || 0).toFixed(2);
+    if (btnResetCircuit) {
+      btnResetCircuit.style.display = a5.circuit_breaker_active ? 'inline-block' : 'none';
+    }
+
+    // Active Positions Table
+    const posBody = document.getElementById('swarmPositionsBody');
+    const countPill = document.getElementById('activePositionsCountPill');
+    const positions = a4.active_positions || [];
+    if (countPill) countPill.textContent = positions.length + ' Active Trades';
+
+    if (posBody) {
+      if (positions.length === 0) {
+        posBody.innerHTML = `
+          <tr>
+            <td colspan="8" style="text-align:center; padding:32px; color:var(--text-dim);">
+              <i class="fa-solid fa-satellite-dish" style="font-size:24px; color:var(--accent-blue); display:block; margin-bottom:8px;"></i>
+              No open positions. Agent 1 &amp; 2 are actively scanning 500+ NSE universe for confirmed 15m Golden Zone setups...
+            </td>
+          </tr>
+        `;
+      } else {
+        posBody.innerHTML = positions.map(p => {
+          const pnlVal = p.unrealized_pnl || 0;
+          const pnlColor = pnlVal >= 0 ? '#34d399' : '#fb7185';
+          const pnlSign = pnlVal >= 0 ? '+' : '';
+          const trailBadge = p.tsl_active ? '<span class="agent-badge" style="background:rgba(168,85,247,0.2); color:#c084fc; font-size:9px; margin-left:4px;">TRAILED</span>' : '';
+          return `
+            <tr style="border-bottom:1px solid var(--border-subtle); font-weight:600;">
+              <td style="padding:10px;"><strong style="color:var(--text-main);">${p.symbol}</strong></td>
+              <td style="padding:10px;"><span style="color:#34d399; font-weight:800;">${p.side}</span> (${p.remaining_qty} Qty)</td>
+              <td style="padding:10px;">₹${p.entry_price.toFixed(2)}</td>
+              <td style="padding:10px; font-weight:800; color:var(--accent-gold);">₹${p.current_price.toFixed(2)}</td>
+              <td style="padding:10px;"><span style="color:#fb7185; font-weight:700;">₹${p.stop_loss.toFixed(2)}</span> ${trailBadge}</td>
+              <td style="padding:10px;">₹${p.target_1.toFixed(2)} / ₹${p.target_2.toFixed(2)}</td>
+              <td style="padding:10px; font-weight:800; color:${pnlColor};">${pnlSign}₹${pnlVal.toFixed(2)}</td>
+              <td style="padding:10px;"><span class="agent-badge" style="background:rgba(16,185,129,0.15); color:#34d399;">GUARDED</span></td>
+              <td style="padding:10px;">
+                <button type="button" class="btn btn-sm btn-outline" style="padding:3px 8px; font-size:11px; color:#38bdf8; border:1px solid rgba(56,189,248,0.35); border-radius:6px; cursor:pointer;" onclick="openCandlestickChart('${p.base_symbol || p.symbol}', ${p.entry_price}, ${p.target_1}, ${p.stop_loss}, '${p.symbol}')">
+                  <i class="fa-solid fa-chart-candlestick"></i> 15m Chart
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Audit Stream Terminal
+    const auditBox = document.getElementById('swarmAuditStream');
+    if (auditBox && d.audit_trail && d.audit_trail.length > 0) {
+      auditBox.innerHTML = d.audit_trail.slice(0, 20).map(e => {
+        let col = '#94a3b8';
+        if (e.event_type.includes('FILLED') || e.event_type.includes('APPROVED')) col = '#34d399';
+        if (e.event_type.includes('TRAILED') || e.event_type.includes('PROFIT')) col = '#38bdf8';
+        if (e.event_type.includes('REJECTED') || e.event_type.includes('ALERT')) col = '#fb7185';
+        if (e.event_type.includes('CANDIDATE')) col = '#fbbf24';
+
+        const detail = e.payload ? (e.payload.symbol || e.payload.message || e.payload.reason || '') : '';
+        return `<div><span style="color:#64748b;">[${e.time}]</span> <strong style="color:${col};">[${e.sender_agent}]</strong> ${e.event_type} ${detail ? '→ <span style="color:#e2e8f0">' + detail + '</span>' : ''}</div>`;
+      }).join('');
+    }
+
+    // Live Market Radar Dynamic Feed
+    try {
+      const tickRes = await fetch('/api/market/ticker');
+      const tickJson = await tickRes.json();
+      if (tickJson.ok && tickJson.data && tickJson.data.length > 0) {
+        const radarGrid = document.getElementById('liveMarketRadarGrid');
+        if (radarGrid) {
+          radarGrid.innerHTML = tickJson.data.slice(0, 6).map(item => {
+            const isUp = item.up !== false;
+            const col = isUp ? '#34d399' : '#fb7185';
+            const icon = isUp ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
+            const pricePrefix = item.symbol.includes('NIFTY') ? '' : '₹';
+            return `
+              <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:10px; padding:12px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:11px; color:var(--text-dim); font-weight:700;">${item.symbol}</span>
+                    <button type="button" onclick="openCandlestickChart('${item.symbol}')" style="background:transparent; border:1px solid rgba(56,189,248,0.35); color:#38bdf8; border-radius:6px; padding:2px 7px; font-size:10px; font-weight:700; cursor:pointer;" title="View 15m Institutional Candlestick Chart">
+                      <i class="fa-solid fa-chart-candlestick"></i> Chart
+                    </button>
+                  </div>
+                  <div style="font-size:16px; font-weight:900; color:var(--text-main); margin:4px 0;">${pricePrefix}${item.lastPrice.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2})}</div>
+                </div>
+                <div style="font-size:10.5px; color:${col}; font-weight:700;"><i class="fa-solid ${icon}"></i> ${item.pChangeFormatted || (isUp ? '+' : '') + item.pChange + '%'} · NSE Live</div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    } catch(e) {}
+
+  } catch (err) {
+    console.debug('Swarm status sync:', err);
+  }
+}
+
+async function setSwarmMode(mode) {
+  try {
+    await fetch('/api/agents/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: mode })
+    });
+    fetchSwarmStatus();
+    if (window.showToast) window.showToast(`Swarm Mode updated to ${mode} ✔`);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function setSwarmRisk(profile) {
+  try {
+    await fetch('/api/agents/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ risk_profile: profile })
+    });
+    fetchSwarmStatus();
+    if (window.showToast) window.showToast(`Risk Profile set to ${profile} ✔`);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function triggerManualSwarmScan() {
+  try {
+    const res = await fetch('/api/agents/scan', { method: 'POST' });
+    const json = await res.json();
+    if (json.ok) {
+      if (window.showToast) window.showToast(`⚡ Swarm Scan Complete: ${json.data.candidates_found} candidates evaluated!`);
+      fetchSwarmStatus();
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function approveCurrentCopilotSignal() {
+  if (!currentPendingSignalId) return;
+  const btn = document.getElementById('btnCopilotApprove');
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch('/api/agents/approve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signal_id: currentPendingSignalId })
+    });
+    const json = await res.json();
+    if (json.ok) {
+      if (window.showToast) window.showToast(`✔ Signal Approved! Sent to Execution Sniper.`);
+      currentPendingSignalId = null;
+      document.getElementById('copilotPendingBanner').style.display = 'none';
+      setTimeout(fetchSwarmStatus, 500);
+    }
+  } catch(e) {
+    console.error(e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function resetCircuitBreaker() {
+  try {
+    const res = await fetch('/api/agents/circuit-breaker/reset', { method: 'POST' });
+    const json = await res.json();
+    if (json.ok) {
+      if (window.showToast) window.showToast(`✔ Circuit Breaker Reset Successfully!`);
+      fetchSwarmStatus();
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// =========================================================================
+// 15m Institutional Candlestick Chart Controller (Real NSE Feed)
+// =========================================================================
+let tvChartInstance = null;
+let tvCandleSeries = null;
+let tvEma9Series = null;
+let tvEma21Series = null;
+
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('active');
+}
+
+async function openCandlestickChart(symbol, entryPrice, targetPrice, stopLoss, strategy) {
+  const modal = document.getElementById("modalCandlestickChart");
+  if (!modal) return;
+  modal.classList.add("active");
+
+  let cleanSym = (symbol || "RELIANCE").trim();
+  let baseSym = cleanSym;
+  if (baseSym.startsWith("BANK NIFTY") || baseSym.startsWith("BANKNIFTY")) baseSym = "BANK NIFTY";
+  else if (baseSym.startsWith("NIFTY 50") || baseSym === "NIFTY") baseSym = "NIFTY 50";
+  else if (baseSym.startsWith("FINNIFTY")) baseSym = "FINNIFTY";
+  else if (baseSym.includes(" ")) baseSym = baseSym.split(" ")[0];
+
+  document.getElementById("tvChartTitle").textContent = `${baseSym} · 15m Institutional Candlestick Chart (100% Real Live NSE Feed)`;
+  document.getElementById("tvChartEntryTag").textContent = `Entry: ₹${Number(entryPrice || 0).toFixed(2)}`;
+  document.getElementById("tvChartTargetTag").textContent = `Target: ₹${Number(targetPrice || 0).toFixed(2)}`;
+  document.getElementById("tvChartSlTag").textContent = `Stop-Loss: ₹${Number(stopLoss || 0).toFixed(2)}`;
+  document.getElementById("tvChartStrategyTag").textContent = strategy || `${baseSym} 15m Golden Zone Setup`;
+
+  const container = document.getElementById("tvChartContainer");
+  const loading = document.getElementById("tvChartLoading");
+  if (loading) {
+    loading.style.display = "flex";
+    loading.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Loading 15-Minute Institutional Candles from NSE/Yahoo Bridge...';
+  }
+
+  if (tvChartInstance) {
+    try { tvChartInstance.remove(); } catch(e) {}
+    tvChartInstance = null;
+    tvCandleSeries = null;
+  }
+
+  if (typeof LightweightCharts === "undefined") {
+    if (loading) loading.innerHTML = '<span style="color:#ef4444;">Lightweight Charts library initializing...</span>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/live?symbol=${encodeURIComponent(baseSym)}&interval=15m`);
+    const data = await res.json();
+    const rawCandles = (data && data.series && data.series.length) ? data.series : 
+                       ((data && data.candles && data.candles.length) ? data.candles : 
+                       ((data && data.chart && data.chart.candles) ? data.chart.candles : []));
+
+    if (loading) loading.style.display = "none";
+
+    tvChartInstance = LightweightCharts.createChart(container, {
+      width: container.clientWidth || 800,
+      height: 420,
+      layout: {
+        background: { color: "#070d19" },
+        textColor: "#94a3b8",
+        fontSize: 11,
+      },
+      grid: {
+        vertLines: { color: "rgba(255, 255, 255, 0.05)" },
+        horzLines: { color: "rgba(255, 255, 255, 0.05)" },
+      },
+      crosshair: {
+        mode: LightweightCharts.CrosshairMode.Normal,
+      },
+      rightPriceScale: {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+      },
+      timeScale: {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        timeVisible: true,
+        secondsVisible: false,
+      },
+    });
+
+    tvCandleSeries = tvChartInstance.addCandlestickSeries({
+      upColor: "#10b981",
+      downColor: "#ef4444",
+      borderVisible: false,
+      wickUpColor: "#10b981",
+      wickDownColor: "#ef4444",
+    });
+
+    let formattedCandles = [];
+    if (rawCandles.length > 0) {
+      formattedCandles = rawCandles.map(c => ({
+        time: Math.floor((c.t || c.time || 0) / 1000),
+        open: Number(c.o || c.open),
+        high: Number(c.h || c.high),
+        low: Number(c.l || c.low),
+        close: Number(c.c || c.close),
+      })).filter(c => c.time > 0 && !isNaN(c.close));
+
+      formattedCandles.sort((a, b) => a.time - b.time);
+      const uniqueCandles = [];
+      const seenTimes = new Set();
+      for (const c of formattedCandles) {
+        if (!seenTimes.has(c.time)) {
+          seenTimes.add(c.time);
+          uniqueCandles.push(c);
+        }
+      }
+      formattedCandles = uniqueCandles;
+    }
+
+    if (formattedCandles.length === 0) {
+      if (loading) {
+        loading.style.display = "flex";
+        loading.innerHTML = `<span style="color:#fb7185;"><i class="fa-solid fa-triangle-exclamation"></i> Live candle feed temporarily unavailable for ${baseSym}</span>`;
+      }
+      return;
+    }
+
+    tvCandleSeries.setData(formattedCandles);
+
+    function calcEMA(candles, period) {
+      const k = 2 / (period + 1);
+      let ema = candles[0].close;
+      const res = [];
+      for (let i = 0; i < candles.length; i++) {
+        ema = (candles[i].close * k) + (ema * (1 - k));
+        res.push({ time: candles[i].time, value: Math.round(ema * 100) / 100 });
+      }
+      return res;
+    }
+
+    if (formattedCandles.length >= 9) {
+      tvEma9Series = tvChartInstance.addLineSeries({
+        color: "#06b6d4",
+        lineWidth: 1.5,
+        title: "EMA 9",
+      });
+      tvEma9Series.setData(calcEMA(formattedCandles, 9));
+    }
+
+    if (formattedCandles.length >= 21) {
+      tvEma21Series = tvChartInstance.addLineSeries({
+        color: "#f97316",
+        lineWidth: 1.5,
+        title: "EMA 21",
+      });
+      tvEma21Series.setData(calcEMA(formattedCandles, 21));
+    }
+
+    // Determine if entryPrice is within candlestick price range (to prevent crushing chart scale if trade was on options)
+    const minP = Math.min(...formattedCandles.map(c => c.low));
+    const maxP = Math.max(...formattedCandles.map(c => c.high));
+    const isSpotMatch = (entryPrice >= minP * 0.75 && entryPrice <= maxP * 1.25);
+
+    if (isSpotMatch && entryPrice && entryPrice > 0) {
+      tvCandleSeries.createPriceLine({
+        price: Number(entryPrice),
+        color: "#38bdf8",
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "SPOT ENTRY",
+      });
+    }
+    if (isSpotMatch && targetPrice && targetPrice > 0) {
+      tvCandleSeries.createPriceLine({
+        price: Number(targetPrice),
+        color: "#10b981",
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "SPOT TARGET",
+      });
+    }
+    if (isSpotMatch && stopLoss && stopLoss > 0) {
+      tvCandleSeries.createPriceLine({
+        price: Number(stopLoss),
+        color: "#ef4444",
+        lineWidth: 2,
+        lineStyle: LightweightCharts.LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: "SPOT SL",
+      });
+    }
+
+    tvChartInstance.timeScale().fitContent();
+
+  } catch(err) {
+    console.error("Candlestick chart error:", err);
+    if (loading) loading.innerHTML = `<span style="color:#ef4444;">Could not load candles: ${err.message}</span>`;
+  }
+}
+
+// Periodic Polling
+setInterval(() => {
+  if (document.hidden) return;
+  fetchSwarmStatus();
+}, 3500);
+document.addEventListener('DOMContentLoaded', fetchSwarmStatus);
+</script>
+
+</body>
+</html>

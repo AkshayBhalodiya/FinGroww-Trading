@@ -3,7 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>About FinGroww — Institutional Trading Intelligence</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030712">
+<title>About FinGroww — Mathematical Discipline in Indian Stock Trading</title>
+<meta name="description" content="FinGroww was founded to empower Indian retail traders with institutional-grade quantitative screening, zero-risk AI paper trading, and mathematical discipline.">
+<meta name="keywords" content="about fingroww, quantitative trading tools india, algorithmic options screening, retail trading education india, zero risk paper trading platform">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<link rel="canonical" href="https://fingroww.tech/about.html">
+
+<!-- OpenGraph / Social Tags -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fingroww.tech/about.html">
+<meta property="og:title" content="About FinGroww — Mathematical Discipline in Indian Stock Trading">
+<meta property="og:description" content="Empowering Indian retail traders with institutional-grade quantitative screening, zero-risk AI paper trading, and mathematical discipline.">
+<meta property="og:image" content="https://fingroww.tech/static/img/og-preview.png">
+
+<!-- JSON-LD Structured Data Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "AboutPage",
+      "@id": "https://fingroww.tech/about.html#webpage",
+      "url": "https://fingroww.tech/about.html",
+      "name": "About FinGroww Technologies",
+      "description": "FinGroww empowers retail traders in India with mathematical trading discipline, AI paper trading, and algorithmic screening."
+    }
+  ]
+}
+</script>
 <!-- CDNs: Font Awesome & AOS Animation -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
@@ -70,10 +99,29 @@
 <body>
 <div class="bg-ambient-grid"></div>
 
-<!-- Header / Navigation HUD -->
+<!-- Real-time Live Price & Signal Ticker -->
+<div class="global-ticker-bar">
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
+    <!-- Duplicate for infinite ticker -->
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
+  </div>
+</div>
+
+<!-- Clean Site Header -->
 <header class="site-header">
   <div class="container nav-wrap">
-    <a href="index.html" class="brand">
+    <a href="index.html" class="brand" title="FinGroww Home">
       <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
       <div>
         <div class="brand-name">Fin<span>Groww</span></div>
@@ -86,25 +134,35 @@
 
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-      <li><a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot" style="font-size:11px;"></i> 🤖 AI Auto Paper</a></li>
-      <li><a href="today-options.html" style="color:var(--accent-gold,#f59e0b);font-weight:800"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> 🔥 Today's Options</a></li>
-      <li><a href="options.html" style="color:var(--accent-purple,#a78bfa);font-weight:800"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> 🎯 Options Intel</a></li>
-      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
-      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
-      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
-      <li><a href="about.html" class="active"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
-      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+      <li>
+        <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
+          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
+          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
+        </a>
+      </li>
+      <li>
+        <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;" title="Today's 15m Options Radar">
+          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
+        </a>
+      </li>
+      <li>
+        <a href="backtest.html" style="color:var(--accent-blue);font-weight:800;" title="5-Year Backtest Engine">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
+        </a>
+      </li>
+      <li><a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
     </ul>
 
     <div class="nav-actions">
-      <!-- Light / Dark Mode Toggle Button -->
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
         <span class="theme-icon">☀️</span>
       </button>
 
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Open Real-Time NSE Trading Arena">
-        <i class="fa-solid fa-rocket"></i>
-        <span>Launch Terminal</span>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper (Free)</span>
       </a>
       <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
     </div>
@@ -115,10 +173,11 @@
 <div id="mobileDrawer" class="mobile-drawer">
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="today-options.html" style="color:var(--accent-gold,#f59e0b)"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options</a>
-    <a href="options.html" style="color:var(--accent-purple,#a78bfa)"><i class="fa-solid fa-layer-group"></i> 🎯 Options Intel</a>
-    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
-    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Algo Engine</a>
+    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
+    <a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
+    <a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain & Greeks</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
     <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
     <a href="about.html" class="active"><i class="fa-solid fa-compass"></i> About Us</a>
     <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
@@ -126,9 +185,11 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
         <span class="theme-icon">☀️</span>
       </button>
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="flex:1;text-align:center;">🚀 Launch Live Terminal</a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
     </div>
   </div>
+</div>
+</div>
 </div>
 
 <main class="container">
@@ -140,7 +201,7 @@
       for Indian Retail Traders
     </h1>
     <p class="hero-sub">
-      Institutional hedge funds and proprietary desks trade with algorithmic discipline. We built FinGroww to bring that exact quantitative advantage to individual traders.
+      Institutional proprietary desks and quantitative firms trade with algorithmic discipline. We built FinGroww to bring that exact quantitative advantage to individual traders.
     </p>
   </section>
 
@@ -198,12 +259,12 @@
   </section>
 </main>
 
-<!-- Global Footer -->
+<!-- Global Master Footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="index.html" class="brand" style="margin-bottom:14px;">
+        <a href="index.html" class="brand" style="margin-bottom:12px;">
           <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
             <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
@@ -213,61 +274,51 @@
             </div>
           </div>
         </a>
-        <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted);line-height:1.65;max-width:320px;">
-          Empowering Indian retail traders with institutional-grade algorithmic intelligence, multi-timeframe confluence, and strict risk preservation.
+        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
+          India's leading zero-risk AI paper trading app and 15m Fibonacci Golden Zone options terminal.
         </p>
       </div>
 
       <div class="footer-col">
-        <h5>Trading Intelligence</h5>
+        <h5>Core Tools</h5>
         <ul>
-          <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options</a></li>
-          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Intel</a></li>
-          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+          <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
+          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple,#c084fc);"></i> Options Chain & Greeks</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Platform & Arena</h5>
+        <h5>Platform & Support</h5>
         <ul>
-          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Trading Terminal</a></li>
-          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
-          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
           <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <h5>Compliance & Help</h5>
-        <ul>
-          <li><a href="contact.html"><i class="fa-solid fa-headset" style="color:var(--accent-blue);font-size:12px;"></i> Support Desk</a></li>
-          <li><a href="disclaimer.html"><i class="fa-solid fa-scale-balanced" style="font-size:11px;"></i> SEBI & Legal Compliance</a></li>
-          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="font-size:12px;"></i> support@fingroww.com</a></li>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:12px;"></i> WhatsApp Support</a></li>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
         </ul>
       </div>
     </div>
 
     <!-- Statutory SEBI Regulatory Disclosure -->
-    <div class="sebi-disclaimer-box" style="margin-top:30px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11.5px;color:var(--text-dim);line-height:1.65;">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 18px;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
       Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:20px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
-      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
-      <div style="display:flex;gap:16px;">
+    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
+      <div style="display:flex;gap:14px;">
         <a href="disclaimer.html">Terms & Compliance</a>
-        <a href="contact.html">Support</a>
-        <a href="mailto:support@fingroww.com">Email</a>
+        <a href="contact.html">Support Desk</a>
       </div>
     </div>
   </div>
 </footer>
 
-<!-- Floating WhatsApp Quick Help Button -->
-<a href="https://wa.me/917984116859?text=Hi%20FinGroww%2C%20I%20have%20a%20question%20about%20your%20company%20and%20trading%20algo!" target="_blank" class="floating-whatsapp-btn" title="Chat on WhatsApp">
+<!-- Floating WhatsApp Button -->
+<a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
   <i class="fa-brands fa-whatsapp"></i>
 </a>
 

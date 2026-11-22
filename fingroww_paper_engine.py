@@ -596,6 +596,29 @@ def _connect_paper_db():
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS paper_trades_history (
+            trade_id TEXT PRIMARY KEY,
+            user_name TEXT NOT NULL,
+            symbol TEXT NOT NULL,
+            side TEXT NOT NULL,
+            quantity INTEGER NOT NULL,
+            entry_price REAL NOT NULL,
+            exit_price REAL NOT NULL,
+            gross_pnl REAL NOT NULL,
+            net_pnl REAL NOT NULL,
+            return_pct REAL NOT NULL,
+            entry_time TEXT NOT NULL,
+            exit_time TEXT NOT NULL,
+            exit_reason TEXT NOT NULL,
+            strategy TEXT NOT NULL,
+            instrument_type TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_user ON paper_trades_history(user_name)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_trades_symbol ON paper_trades_history(symbol)")
     return conn
 
 
@@ -630,6 +653,40 @@ def _save_local_paper_record(user_name, session_doc, profile_doc):
                     get_ist_str(),
                 ),
             )
+            # Batch record closed trades to durable relational history table
+            closed_trades = session_doc.get("closed_trades") or []
+            if closed_trades:
+                trade_records = []
+                for t in closed_trades[-50:]:
+                    tid = t.get("trade_id")
+                    if tid:
+                        trade_records.append((
+                            tid,
+                            user_name,
+                            t.get("symbol", ""),
+                            t.get("side", "BUY"),
+                            int(t.get("quantity", 0)),
+                            float(t.get("entry_price", 0.0)),
+                            float(t.get("exit_price", 0.0)),
+                            float(t.get("gross_pnl", 0.0)),
+                            float(t.get("net_pnl", 0.0)),
+                            float(t.get("return_pct", 0.0)),
+                            str(t.get("entry_time", "")),
+                            str(t.get("exit_time", "")),
+                            str(t.get("exit_reason", "")),
+                            str(t.get("strategy", "")),
+                            str(t.get("instrument_type", "EQUITY")),
+                        ))
+                conn.executemany(
+                    """
+                    INSERT OR IGNORE INTO paper_trades_history (
+                        trade_id, user_name, symbol, side, quantity,
+                        entry_price, exit_price, gross_pnl, net_pnl, return_pct,
+                        entry_time, exit_time, exit_reason, strategy, instrument_type
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    trade_records
+                )
 
 
 def _load_local_paper_profiles():
@@ -643,6 +700,35 @@ def _load_local_paper_profiles():
 
 def _document_updated_at(document):
     return str(document.get("last_updated") or document.get("last_active") or "")
+
+
+def send_telegram_alert(message: str, config: dict = None):
+    """Sends asynchronous telegram alert if configured in session or environment."""
+    cfg = config or {}
+    bot_token = cfg.get("telegram_bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = cfg.get("telegram_chat_id") or os.getenv("TELEGRAM_CHAT_ID")
+    if not bot_token or not chat_id:
+        return False
+
+    def _sender():
+        try:
+            import urllib.request
+            import urllib.parse
+            url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+            data = urllib.parse.urlencode({
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": "true"
+            }).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers={"User-Agent": "FinGroww-Bot/1.0"})
+            with urllib.request.urlopen(req, timeout=5):
+                pass
+        except Exception as exc:
+            logger.debug("Telegram alert delivery skipped: %s", exc)
+
+    threading.Thread(target=_sender, daemon=True).start()
+    return True
 
 
 class PaperTradingSession:
@@ -660,20 +746,30 @@ class PaperTradingSession:
         self.last_updated = get_ist_str()
         self.last_tick_at = 0
 
+        # Circuit Breaker state
+        self.is_circuit_breaker_triggered = False
+        self.circuit_breaker_reason = ""
+        self.circuit_breaker_triggered_at = None
+
         # Configuration defaults
         self.config = {
             "initial_capital": 100000.0,
             "instruments": ["EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_OPTIONS"],
             "market_caps": ["LARGE_CAP", "MID_CAP", "SMALL_CAP"],
             "market": "NSE",
-             "trading_style": "HIGH_WINRATE", # HIGH_WINRATE, INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
+            "trading_style": "HIGH_WINRATE", # HIGH_WINRATE, INTRADAY, SCALPING, SWING, POSITIONAL, LONG_TERM
             "holding_duration_mins": 1440, # 1 Day (1440 mins) default; 1, 5, 15, 30, 60, days, weeks, months, or -1 (Open/Target)
             "risk_profile": "MODERATE", # CONSERVATIVE, MODERATE, AGGRESSIVE
             "max_risk_per_trade_pct": 1.0,
             "daily_loss_limit_inr": None,
+            "max_daily_drawdown_pct": 5.0, # Daily Max Drawdown Circuit Breaker limit %
+            "circuit_breaker_action": "HALT_NEW", # HALT_NEW or CLOSE_ALL
+            "tsl_mode": "TIERED", # TIERED (Breakeven/Lock) or DYNAMIC (continuous trail)
+            "tsl_trail_pct": 1.5,
             "max_open_positions": 10,
             "auto_square_off_time": "15:15",
             "auto_stop_on_exit": False, # If True, engine automatically stops after all positions exit
+            "telegram_alerts_enabled": False,
         }
         if config:
             self.config.update(config)
@@ -725,7 +821,9 @@ class PaperTradingSession:
             return
         for k in ["instruments", "market_caps", "market", "trading_style", "holding_duration_mins", "risk_profile",
                   "max_risk_per_trade_pct", "daily_loss_limit_inr", "max_open_positions",
-                  "auto_stop_on_exit", "stop_loss_pct", "target_pct"]:
+                  "auto_stop_on_exit", "stop_loss_pct", "target_pct", "max_daily_drawdown_pct",
+                  "circuit_breaker_action", "tsl_mode", "tsl_trail_pct", "telegram_bot_token",
+                  "telegram_chat_id", "telegram_alerts_enabled"]:
             if k in new_config:
                 self.config[k] = new_config[k]
 
@@ -743,6 +841,14 @@ class PaperTradingSession:
 
         self.last_updated = get_ist_str()
         self.log_event("CONFIG_UPDATE", f"Trading configuration updated. Risk profile: {rp}, Max trades: {self.config['max_open_positions']}")
+
+    @_session_locked
+    def reset_circuit_breaker(self):
+        """Manually resets the daily drawdown circuit breaker to allow new trades."""
+        self.is_circuit_breaker_triggered = False
+        self.circuit_breaker_reason = ""
+        self.circuit_breaker_triggered_at = None
+        self.log_event("CIRCUIT_BREAKER_RESET", "Daily Max Drawdown Circuit Breaker manually reset. Trading allowed.")
 
     @_session_locked
     def start(self):
@@ -785,17 +891,35 @@ class PaperTradingSession:
         self.closed_trades = []
         self._synced_closed_trade_ids.clear()
         self.status = "IDLE"
+        self.is_circuit_breaker_triggered = False
+        self.circuit_breaker_reason = ""
+        self.circuit_breaker_triggered_at = None
         self.log_event("SESSION_RESET", f"Paper trading session reset. Capital restored to ₹{cap:,.2f}.")
 
-    def can_open_new_trade(self):
+    def can_open_new_trade(self, is_manual=False):
         """Enforces pre-trade risk supervisor checks."""
-        if self.status != "RUNNING":
-            return False, f"Session is in {self.status} state."
+        # 1. Circuit Breaker Check
+        if getattr(self, "is_circuit_breaker_triggered", False):
+            return False, f"CIRCUIT_BREAKER_ACTIVE: {getattr(self, 'circuit_breaker_reason', 'Daily Max Drawdown breached.')}"
 
-        ist = get_ist_now()
-        cur_mins = ist.hour * 60 + ist.minute
-        if ist.weekday() >= 5 or cur_mins < 555 or cur_mins >= 915:
-            return False, "New trades are allowed only on NSE weekdays from 09:15 to 15:15 IST."
+        # 2. Daily Max Drawdown Check
+        max_dd_limit = float(self.config.get("max_daily_drawdown_pct") or 5.0)
+        if max_dd_limit > 0 and self.max_drawdown_pct >= max_dd_limit:
+            self.is_circuit_breaker_triggered = True
+            self.circuit_breaker_reason = f"Daily max drawdown reached {self.max_drawdown_pct:.1f}% (Limit: {max_dd_limit:.1f}%). New trades halted."
+            self.circuit_breaker_triggered_at = get_ist_str()
+            self.log_event("CIRCUIT_BREAKER_TRIGGERED", self.circuit_breaker_reason)
+            send_telegram_alert(f"⚠️ <b>FinGroww Circuit Breaker</b>: {self.circuit_breaker_reason}", self.config)
+            return False, self.circuit_breaker_reason
+
+        if not is_manual:
+            if self.status != "RUNNING":
+                return False, f"Session is in {self.status} state."
+
+            ist = get_ist_now()
+            cur_mins = ist.hour * 60 + ist.minute
+            if ist.weekday() >= 5 or cur_mins < 555 or cur_mins >= 915:
+                return False, "New trades are allowed only on NSE weekdays from 09:15 to 15:15 IST."
 
         # Max open positions check
         max_pos = int(self.config.get("max_open_positions", 10))
@@ -852,11 +976,12 @@ class PaperTradingSession:
             return float(pos.get("current_price") or pos.get("entry_price") or 100.0)
 
     @_session_locked
-    def execute_trade(self, setup, quote_resolver=None, market_is_open=False, option_quote_resolver=None):
+    def execute_trade(self, setup, quote_resolver=None, market_is_open=False, option_quote_resolver=None, is_manual=False):
         """Executes a paper order with realistic slippage, margin allocation, and charges."""
-        if not market_is_open:
+        is_manual = is_manual or setup.get("is_manual", False) or setup.get("allow_offline", False)
+        if not market_is_open and not is_manual:
             return None, "NSE market is closed or its status is unavailable; no trade was opened."
-        can_trade, reason = self.can_open_new_trade()
+        can_trade, reason = self.can_open_new_trade(is_manual=is_manual)
         if not can_trade:
             return None, reason
 
@@ -1181,6 +1306,15 @@ class PaperTradingSession:
         self.positions.append(position)
         tp_str = f"₹{tp:,.2f}" if (tp is not None and tp > 0) else "None (Open)"
         self.log_event("ORDER_FILLED", f"Filled {side} {actual_qty} {sym} ({inst_type}) @ ₹{exec_price:,.2f}. Target: {tp_str}, SL: ₹{sl:,.2f}")
+        send_telegram_alert(
+            f"🚀 <b>FinGroww Trade Executed</b>\n\n"
+            f"<b>Symbol:</b> {position['symbol']} ({position['side']})\n"
+            f"<b>Entry:</b> ₹{position['entry_price']:,.2f} | <b>Qty:</b> {position['quantity']}\n"
+            f"<b>Target:</b> {tp_str} | <b>SL:</b> ₹{position['stop_loss']:,.2f}\n"
+            f"<b>Strategy:</b> {position['strategy']}\n"
+            f"<i>Trader: {self.user_name}</i>",
+            self.config
+        )
         self._recalculate_equity()
         self.save_to_db()
         return position, "Success"
@@ -1255,6 +1389,37 @@ class PaperTradingSession:
             pos_margin = float(pos.get("allocated_margin") or (entry_p * qty) or 1.0)
             pos["pnl_pct"] = round((net_unrealized / max(pos_margin, 1.0)) * 100, 2)
             pos["last_updated"] = get_ist_str()
+
+            # Track peak / trough favorable price for continuous TSL
+            peak_p = float(pos.get("peak_price") or entry_p)
+            trough_p = float(pos.get("trough_price") or entry_p)
+            if side == "BUY":
+                if curr_price > peak_p:
+                    pos["peak_price"] = curr_price
+                    peak_p = curr_price
+            else:
+                if curr_price < trough_p:
+                    pos["trough_price"] = curr_price
+                    trough_p = curr_price
+
+            # Continuous Dynamic TSL (if configured)
+            tsl_mode = pos.get("tsl_mode") or self.config.get("tsl_mode", "TIERED")
+            if tsl_mode == "DYNAMIC":
+                trail_pct = float(self.config.get("tsl_trail_pct", 1.5))
+                if side == "BUY":
+                    dynamic_sl = round(peak_p * (1.0 - (trail_pct / 100.0)), 2)
+                    if dynamic_sl > sl and dynamic_sl > entry_p:
+                        pos["stop_loss"] = dynamic_sl
+                        sl = dynamic_sl
+                        pos["trailing_state"] = "DYNAMIC_TSL"
+                        pos["trailing_label"] = f"📈 Dynamic TSL (₹{dynamic_sl:,.2f})"
+                else:
+                    dynamic_sl = round(trough_p * (1.0 + (trail_pct / 100.0)), 2)
+                    if dynamic_sl < sl and dynamic_sl < entry_p:
+                        pos["stop_loss"] = dynamic_sl
+                        sl = dynamic_sl
+                        pos["trailing_state"] = "DYNAMIC_TSL"
+                        pos["trailing_label"] = f"📉 Dynamic TSL (₹{dynamic_sl:,.2f})"
 
             # --- 80%+ Win-Rate Dynamic Breakeven & Profit Lock-In Trailing System ---
             target_distance = abs(tp - entry_p) if (tp is not None and tp > 0) else 0.0
@@ -1403,35 +1568,35 @@ class PaperTradingSession:
         )
         self.realized_pnl = round(self.realized_pnl + net_pnl, 2)
 
-        entry_ts = pos["entry_timestamp"]
+        entry_ts = pos.get("entry_timestamp", pos.get("opened_at", time.time()))
         exit_ts = time.time()
         holding_secs = int(exit_ts - entry_ts)
         holding_str = format_duration_display(holding_secs)
 
         closed_trade = {
-            "trade_id": pos["trade_id"],
+            "trade_id": pos.get("trade_id", f"PT-{int(time.time())}"),
             "symbol": sym,
-            "name": pos["name"],
+            "name": pos.get("name", sym),
             "instrument_type": inst_type,
             "side": side,
-            "entry_time": pos["entry_time"],
+            "entry_time": pos.get("entry_time", get_ist_now().strftime("%Y-%m-%d %H:%M:%S")),
             "exit_time": get_ist_now().strftime("%Y-%m-%d %H:%M:%S"),
             "entry_price": entry_p,
             "exit_price": exec_exit_p,
             "quantity": qty,
             "allocated_margin": pos.get("allocated_margin", round(entry_p * qty, 2)),
             "used_amount": pos.get("allocated_margin", round(entry_p * qty, 2)),
-            "target_price": pos["target_price"],
-            "stop_loss": pos["stop_loss"],
+            "target_price": pos.get("target_price", 0.0),
+            "stop_loss": pos.get("stop_loss", 0.0),
             "stop_loss_pct": pos.get("stop_loss_pct"),
             "target_pct": pos.get("target_pct"),
             "gross_pnl": gross_pnl,
             "net_pnl": net_pnl,
             "charges": total_charges,
-            "slippage": pos["slippage"],
+            "slippage": pos.get("slippage", 0.0),
             "exit_reason": reason,
             "trailing_state": pos.get("trailing_state", "INITIAL"),
-            "strategy": pos["strategy"],
+            "strategy": pos.get("strategy", "15m Strategy"),
             "signal_rationale": pos.get("signal_rationale"),
             "signal_indicators": pos.get("signal_indicators", {}),
             "market_data_source": pos.get("market_data_source"),
@@ -1450,6 +1615,17 @@ class PaperTradingSession:
         self.closed_trades.insert(0, closed_trade)
         if pos in self.positions:
             self.positions.remove(pos)
+
+        pnl_badge = "🟢 PROFIT" if is_win else "🔴 LOSS"
+        send_telegram_alert(
+            f"{'🟢' if is_win else '🔴'} <b>FinGroww Trade Closed</b>\n\n"
+            f"<b>Symbol:</b> {sym} ({side})\n"
+            f"<b>Exit Price:</b> ₹{exec_exit_p:,.2f} ({reason})\n"
+            f"<b>Net P&L:</b> ₹{net_pnl:+,.2f} ({closed_trade['return_pct']:+.2f}%)\n"
+            f"<b>Status:</b> {pnl_badge}\n"
+            f"<i>Trader: {self.user_name}</i>",
+            self.config
+        )
 
         outcome_badge = "🟢 PROFIT" if is_win else "🔴 LOSS"
         if reason == "TIME_EXPIRED":
@@ -1478,10 +1654,8 @@ class PaperTradingSession:
         return True, f"Simulated duration expiry for {target_pos['symbol']} ({trade_id}). Auto-closed with TIME_EXPIRED."
 
     @_session_locked
-    def manual_close_position(self, trade_id, quote_resolver=None, market_is_open=False, option_quote_resolver=None):
-        """Manually exits a position only with an open market and a fresh NSE quote."""
-        if not market_is_open:
-            return False, "NSE market is closed or its status is unavailable."
+    def manual_close_position(self, trade_id, quote_resolver=None, market_is_open=False, option_quote_resolver=None, force=False):
+        """Manually exits a position only with an open market and a fresh NSE quote, or if force=True."""
         target_pos = None
         for p in self.positions:
             if p["trade_id"] == trade_id:
@@ -1489,6 +1663,14 @@ class PaperTradingSession:
                 break
         if not target_pos:
             return False, "Position not found."
+
+        if not market_is_open:
+            if force:
+                self._close_position(target_pos, "MANUAL_EXIT_OFFLINE", target_pos.get("current_price"))
+                self._recalculate_equity()
+                self.save_to_db()
+                return True, "Position closed manually (offline mode)."
+            return False, "NSE market is closed or its status is unavailable."
 
         base_sym = target_pos.get("base_symbol", target_pos["symbol"])
         if target_pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS") and option_quote_resolver and target_pos.get("strike"):
@@ -1662,6 +1844,13 @@ class PaperTradingSession:
                 "peak_equity": self.peak_equity,
                 "max_drawdown_inr": self.max_drawdown_inr,
                 "max_drawdown_pct": self.max_drawdown_pct,
+                "is_circuit_breaker_triggered": getattr(self, "is_circuit_breaker_triggered", False),
+            },
+            "circuit_breaker": {
+                "is_triggered": getattr(self, "is_circuit_breaker_triggered", False),
+                "reason": getattr(self, "circuit_breaker_reason", ""),
+                "triggered_at": getattr(self, "circuit_breaker_triggered_at", None),
+                "max_daily_drawdown_pct": float(self.config.get("max_daily_drawdown_pct", 5.0)),
             },
             "active_positions_count": len(self.positions),
             "active_positions": self.positions,
@@ -2576,10 +2765,18 @@ class PaperTradingEngine:
                     batch.append((it, tg))
                     already_queued.add(sym)
 
-            # 2. Advance rolling scan offset to continuously rotate across the entire 72-stock universe
+            # 2. Anchor large caps (top market movers)
+            anchor_symbols = {"RELIANCE", "HDFCBANK", "INFY", "TCS"}
+            for it, tg in eligible:
+                sym = it["symbol"]
+                if sym in anchor_symbols and sym not in already_queued:
+                    batch.append((it, tg))
+                    already_queued.add(sym)
+
+            # 3. Advance rolling scan offset to continuously rotate across the entire 72-stock universe
             self._scan_offset = (getattr(self, "_scan_offset", 0) + 1) % 1000
 
-            # 3. Dynamic allocation: Scan up to 4-5 rotating candidate stocks per allowed market cap
+            # 4. Dynamic allocation: Scan up to 4-5 rotating candidate stocks per allowed market cap
             for mc in allowed_market_caps:
                 pool = stocks_by_mcap.get(mc, [])
                 if not pool:
@@ -2701,8 +2898,10 @@ class PaperTradingEngine:
 
             # Step 2: Live 15m setup radar + autonomous entry evaluation (strictly only when NSE is open)
             if market_is_open:
-                # Trigger setup scan strictly in background thread without blocking tick response (<50ms)
-                if (not self.session.scanned_signals) or (time.time() - self.last_scan_at >= 20):
+                # Cold scan immediately synchronous, then in background every 20s
+                if not self.session.scanned_signals:
+                    self.scan_and_evaluate_setups()
+                elif time.time() - self.last_scan_at >= 20:
                     if not self._scan_in_flight:
                         self._scan_in_flight = True
                         def _bg_scan_runner():

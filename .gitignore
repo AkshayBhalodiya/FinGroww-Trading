@@ -6,3 +6,5 @@ data/
 .env
 .DS_Store
 paper_datastore.json
+scratch/
+

@@ -3,8 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FinGroww — Today's Options Live Radar & Golden Zone Signals</title>
-<meta name="description" content="Real-time today's options trade signals governed by Fibonacci Golden Zone (0.50-0.618), VWAP, and Master Confluence. Live real market spot prices for Nifty, Bank Nifty, Reliance, HDFC Bank, etc.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030712">
+<title>Today's Options Trading Radar & 15m Golden Zone Signals — FinGroww</title>
+<meta name="description" content="Live today's options trading signals governed by the 15-minute Fibonacci Golden Zone (0.50-0.618), VWAP institutional accumulation, and PCR sentiment for Nifty, Bank Nifty, and high-beta NSE stocks.">
+<meta name="keywords" content="today options trading signals, 15m fibonacci golden zone radar, nifty options buy signals today, bank nifty options intraday scalp, vwap options trading strategy, live option radar india, options paper trading execution, nse options screener">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<link rel="canonical" href="https://fingroww.tech/today-options.html">
+
+<!-- OpenGraph / Social Tags -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://fingroww.tech/today-options.html">
+<meta property="og:title" content="Today's Options Trading Radar & 15m Golden Zone Signals — FinGroww">
+<meta property="og:description" content="Live today's options trading signals governed by 15m Fibonacci Golden Zone, VWAP, and PCR sentiment with 1-Click Paper Trade execution.">
+<meta property="og:image" content="https://fingroww.tech/static/img/og-preview.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Today's Options Trading Radar — FinGroww">
+<meta name="twitter:description" content="Live Nifty & Bank Nifty options trading signals with 15m Fibonacci Golden Zone and 1-Click Paper Execution.">
+<meta name="twitter:image" content="https://fingroww.tech/static/img/og-preview.png">
+
+<!-- JSON-LD Structured Data Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollectionPage",
+      "@id": "https://fingroww.tech/today-options.html#webpage",
+      "url": "https://fingroww.tech/today-options.html",
+      "name": "Today's Options Trading Radar & 15m Golden Zone Signals",
+      "description": "Real-time algorithmic scanner for Nifty, Bank Nifty, and NSE options using the 15-minute Fibonacci Golden Zone.",
+      "breadcrumb": {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://fingroww.tech/" },
+          { "@type": "ListItem", "position": 2, "name": "Today's Options Radar", "item": "https://fingroww.tech/today-options.html" }
+        ]
+      }
+    }
+  ]
+}
+</script>
 
 <!-- CDNs: Font Awesome & Fonts -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -906,23 +947,29 @@
 <body>
 <div class="bg-ambient-grid"></div>
 
-<!-- Global Ticker Bar -->
+<!-- Real-time Live Price & Signal Ticker -->
 <div class="global-ticker-bar">
-  <div class="ticker-track" id="globalTickerTrack">
-    <div class="t-item"><span class="t-val">NIFTY 50</span> <span id="tickNifty">22,749.75</span> <span class="up" id="chgNifty">▲ +0.84%</span></div>
-    <div class="t-item"><span class="t-val">BANK NIFTY</span> <span id="tickBank">53,974.90</span> <span class="up" id="chgBank">▲ +1.12%</span></div>
-    <div class="t-item"><span class="t-val">RELIANCE</span> <span id="tickRel">₹1,196.20</span> <span class="up" id="chgRel">▲ +1.45%</span></div>
-    <div class="t-item"><span class="t-val">HDFCBANK</span> <span id="tickHdfc">₹680.20</span> <span class="up" id="chgHdfc">▲ +0.95%</span></div>
-    <div class="t-item"><span class="t-val">SBIN</span> <span id="tickSbin">₹945.10</span> <span class="up" id="chgSbin">▲ +0.78%</span></div>
-    <div class="t-item"><span class="t-val"><i class="fa-solid fa-wifi" style="color:var(--accent-green)"></i> LIVE MARKET SYNC:</span> CONNECTED TO REAL-TIME FLASK PROXY & YAHOO FINANCE</div>
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
+    <!-- Duplicate for infinite ticker -->
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE:</span> <span class="active-sig-dyn">NIFTY 25,800 CE @ ₹142.50 (ACTIVE)</span></div>
   </div>
 </div>
 
-<!-- Header HUD -->
-<!-- Header / Navigation HUD -->
+<!-- Clean Site Header -->
 <header class="site-header">
   <div class="container nav-wrap">
-    <a href="index.html" class="brand">
+    <a href="index.html" class="brand" title="FinGroww Home">
       <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
       <div>
         <div class="brand-name">Fin<span>Groww</span></div>
@@ -935,25 +982,35 @@
 
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-      <li><a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot" style="font-size:11px;"></i> 🤖 AI Auto Paper</a></li>
-      <li><a href="today-options.html" class="active" style="color:var(--accent-gold,#f59e0b);font-weight:800"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> 🔥 Today's Options</a></li>
-      <li><a href="options.html" style="color:var(--accent-purple,#a78bfa);font-weight:800"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> 🎯 Options Intel</a></li>
-      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
-      <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
-      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
-      <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About Us</a></li>
-      <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;"></i> Contact Support</a></li>
+      <li>
+        <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
+          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
+          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
+        </a>
+      </li>
+      <li>
+        <a href="today-options.html" class="active" style="color:var(--accent-gold);font-weight:800;" title="Today's 15m Options Radar">
+          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
+        </a>
+      </li>
+      <li>
+        <a href="backtest.html" style="color:var(--accent-blue);font-weight:800;" title="5-Year Backtest Engine">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
+        </a>
+      </li>
+      <li><a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
     </ul>
 
     <div class="nav-actions">
-      <!-- Light / Dark Mode Toggle Button -->
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
         <span class="theme-icon">☀️</span>
       </button>
 
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-launch btn-sm" title="Open Real-Time NSE Trading Arena">
-        <i class="fa-solid fa-rocket"></i>
-        <span>Launch Terminal</span>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper (Free)</span>
       </a>
       <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
     </div>
@@ -964,10 +1021,11 @@
 <div id="mobileDrawer" class="mobile-drawer">
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="today-options.html" class="active" style="color:var(--accent-gold,#f59e0b)"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options</a>
-    <a href="options.html" style="color:var(--accent-purple,#a78bfa)"><i class="fa-solid fa-layer-group"></i> 🎯 Options Intel</a>
-    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Possible Trades</a>
-    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Algo Engine</a>
+    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" class="active" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
+    <a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
+    <a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain & Greeks</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
     <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
     <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
     <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
@@ -975,9 +1033,11 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
         <span class="theme-icon">☀️</span>
       </button>
-      <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="flex:1;text-align:center;">🚀 Launch Live Terminal</a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
     </div>
   </div>
+</div>
+</div>
 </div>
 
 <main class="container">
@@ -1365,12 +1425,12 @@
 </div>
 
 <script src="theme.js"></script>
-<!-- Global Footer -->
+<!-- Global Master Footer -->
 <footer class="site-footer">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
-        <a href="index.html" class="brand" style="margin-bottom:14px;">
+        <a href="index.html" class="brand" style="margin-bottom:12px;">
           <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
             <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
@@ -1380,58 +1440,53 @@
             </div>
           </div>
         </a>
-        <p style="margin-top:14px;font-size:13.5px;color:var(--text-muted);line-height:1.65;max-width:320px;">
-          Empowering Indian retail traders with institutional-grade algorithmic intelligence, multi-timeframe confluence, and strict risk preservation.
+        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
+          India's leading zero-risk AI paper trading app and 15m Fibonacci Golden Zone options terminal.
         </p>
       </div>
 
       <div class="footer-col">
-        <h5>Trading Intelligence</h5>
+        <h5>Core Tools</h5>
         <ul>
-          <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options</a></li>
-          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Intel</a></li>
-          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Possible Trades</a></li>
+          <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
+          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple,#c084fc);"></i> Options Chain & Greeks</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Platform & Arena</h5>
+        <h5>Platform & Support</h5>
         <ul>
-          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Trading Terminal</a></li>
-          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;"></i> Algo Engine</a></li>
-          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
           <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <h5>Compliance & Help</h5>
-        <ul>
-          <li><a href="contact.html"><i class="fa-solid fa-headset" style="color:var(--accent-blue);font-size:12px;"></i> Support Desk</a></li>
-          <li><a href="disclaimer.html"><i class="fa-solid fa-scale-balanced" style="font-size:11px;"></i> SEBI & Legal Compliance</a></li>
-          <li><a href="mailto:support@fingroww.com"><i class="fa-solid fa-envelope" style="font-size:12px;"></i> support@fingroww.com</a></li>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:12px;"></i> WhatsApp Support</a></li>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
         </ul>
       </div>
     </div>
 
     <!-- Statutory SEBI Regulatory Disclosure -->
-    <div class="sebi-disclaimer-box" style="margin-top:30px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:18px 22px;font-size:11.5px;color:var(--text-dim);line-height:1.65;">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 18px;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
+      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
       Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:20px;margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-dim);">
-      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Built with precision for Indian traders.</div>
-      <div style="display:flex;gap:16px;">
+    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
+      <div style="display:flex;gap:14px;">
         <a href="disclaimer.html">Terms & Compliance</a>
-        <a href="contact.html">Support</a>
-        <a href="mailto:support@fingroww.com">Email</a>
+        <a href="contact.html">Support Desk</a>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- Floating WhatsApp Button -->
+<a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
 
 <script>
 // Multi-Host Local & Production Endpoints
@@ -1448,31 +1503,31 @@ const BACKEND_HOSTS = isLocalEnv ? [
 // Exact Real Market Spec Registry
 const CONTRACT_SPECS = [
   // Major Benchmark Indices
-  { symbol: "NIFTY 50", nseSym: "NIFTY", yahooTicker: "^NSEI", kind: "index", lot: 65, exp: "13-OCT-2026", defaultSpot: 22749.75, strikeStep: 50 },
-  { symbol: "BANK NIFTY", nseSym: "BANKNIFTY", yahooTicker: "^NSEBANK", kind: "index", lot: 30, exp: "14-OCT-2026", defaultSpot: 53974.90, strikeStep: 100 },
-  { symbol: "FINNIFTY", nseSym: "FINNIFTY", yahooTicker: "NIFTY_FIN_SERVICE.NS", kind: "index", lot: 65, exp: "14-OCT-2026", defaultSpot: 24303.75, strikeStep: 50 },
-  { symbol: "MIDCPNIFTY", nseSym: "MIDCPNIFTY", yahooTicker: "NIFTY_MID_SELECT.NS", kind: "index", lot: 120, exp: "14-OCT-2026", defaultSpot: 12450.00, strikeStep: 25 },
+  { symbol: "NIFTY 50", nseSym: "NIFTY", yahooTicker: "^NSEI", kind: "index", lot: 65, exp: "13-OCT-2026", defaultSpot: 25800.60, strikeStep: 50 },
+  { symbol: "BANK NIFTY", nseSym: "BANKNIFTY", yahooTicker: "^NSEBANK", kind: "index", lot: 30, exp: "14-OCT-2026", defaultSpot: 64635.20, strikeStep: 100 },
+  { symbol: "FINNIFTY", nseSym: "FINNIFTY", yahooTicker: "NIFTY_FIN_SERVICE.NS", kind: "index", lot: 65, exp: "14-OCT-2026", defaultSpot: 28871.20, strikeStep: 50 },
+  { symbol: "MIDCPNIFTY", nseSym: "MIDCPNIFTY", yahooTicker: "NIFTY_MID_SELECT.NS", kind: "index", lot: 120, exp: "14-OCT-2026", defaultSpot: 13250.00, strikeStep: 25 },
 
   // Banking & Financials Leaders
-  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 650, exp: "29-OCT-2026", defaultSpot: 680.20, strikeStep: 5 },
-  { symbol: "ICICIBANK", nseSym: "ICICIBANK", yahooTicker: "ICICIBANK.NS", kind: "stock", lot: 700, exp: "29-OCT-2026", defaultSpot: 1386.90, strikeStep: 10 },
-  { symbol: "SBIN", nseSym: "SBIN", yahooTicker: "SBIN.NS", kind: "stock", lot: 750, exp: "29-OCT-2026", defaultSpot: 945.10, strikeStep: 10 },
-  { symbol: "AXISBANK", nseSym: "AXISBANK", yahooTicker: "AXISBANK.NS", kind: "stock", lot: 625, exp: "29-OCT-2026", defaultSpot: 1220.00, strikeStep: 10 },
+  { symbol: "HDFCBANK", nseSym: "HDFCBANK", yahooTicker: "HDFCBANK.NS", kind: "stock", lot: 650, exp: "29-OCT-2026", defaultSpot: 846.00, strikeStep: 5 },
+  { symbol: "ICICIBANK", nseSym: "ICICIBANK", yahooTicker: "ICICIBANK.NS", kind: "stock", lot: 700, exp: "29-OCT-2026", defaultSpot: 1640.00, strikeStep: 10 },
+  { symbol: "SBIN", nseSym: "SBIN", yahooTicker: "SBIN.NS", kind: "stock", lot: 750, exp: "29-OCT-2026", defaultSpot: 1165.10, strikeStep: 10 },
+  { symbol: "AXISBANK", nseSym: "AXISBANK", yahooTicker: "AXISBANK.NS", kind: "stock", lot: 625, exp: "29-OCT-2026", defaultSpot: 1446.00, strikeStep: 10 },
   { symbol: "KOTAKBANK", nseSym: "KOTAKBANK", yahooTicker: "KOTAKBANK.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1850.00, strikeStep: 10 },
-  { symbol: "BAJFINANCE", nseSym: "BAJFINANCE", yahooTicker: "BAJFINANCE.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 7200.00, strikeStep: 50 },
+  { symbol: "BAJFINANCE", nseSym: "BAJFINANCE", yahooTicker: "BAJFINANCE.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 1122.00, strikeStep: 50 },
   { symbol: "BAJAJFINSV", nseSym: "BAJAJFINSV", yahooTicker: "BAJAJFINSV.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1780.00, strikeStep: 10 },
   { symbol: "FEDERALBNK", nseSym: "FEDERALBNK", yahooTicker: "FEDERALBNK.NS", kind: "stock", lot: 2500, exp: "29-OCT-2026", defaultSpot: 205.00, strikeStep: 2.5 },
 
   // Technology Giants
-  { symbol: "TCS", nseSym: "TCS", yahooTicker: "TCS.NS", kind: "stock", lot: 225, exp: "29-OCT-2026", defaultSpot: 2496.90, strikeStep: 20 },
-  { symbol: "INFY", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1163.00, strikeStep: 10 },
+  { symbol: "TCS", nseSym: "TCS", yahooTicker: "TCS.NS", kind: "stock", lot: 225, exp: "29-OCT-2026", defaultSpot: 2376.20, strikeStep: 20 },
+  { symbol: "INFY", nseSym: "INFY", yahooTicker: "INFY.NS", kind: "stock", lot: 400, exp: "29-OCT-2026", defaultSpot: 1098.00, strikeStep: 10 },
   { symbol: "HCLTECH", nseSym: "HCLTECH", yahooTicker: "HCLTECH.NS", kind: "stock", lot: 350, exp: "29-OCT-2026", defaultSpot: 1860.00, strikeStep: 20 },
   { symbol: "WIPRO", nseSym: "WIPRO", yahooTicker: "WIPRO.NS", kind: "stock", lot: 1500, exp: "29-OCT-2026", defaultSpot: 560.00, strikeStep: 5 },
   { symbol: "COFORGE", nseSym: "COFORGE", yahooTicker: "COFORGE.NS", kind: "stock", lot: 475, exp: "29-OCT-2026", defaultSpot: 7800.00, strikeStep: 50 },
   { symbol: "PERSISTENT", nseSym: "PERSISTENT", yahooTicker: "PERSISTENT.NS", kind: "stock", lot: 125, exp: "29-OCT-2026", defaultSpot: 5420.00, strikeStep: 50 },
 
   // Energy, Utilities & Oil
-  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1196.20, strikeStep: 10 },
+  { symbol: "RELIANCE", nseSym: "RELIANCE", yahooTicker: "RELIANCE.NS", kind: "stock", lot: 500, exp: "29-OCT-2026", defaultSpot: 1377.50, strikeStep: 10 },
   { symbol: "TATAPOWER", nseSym: "TATAPOWER", yahooTicker: "TATAPOWER.NS", kind: "stock", lot: 1450, exp: "29-OCT-2026", defaultSpot: 415.00, strikeStep: 5 },
   { symbol: "NTPC", nseSym: "NTPC", yahooTicker: "NTPC.NS", kind: "stock", lot: 1500, exp: "29-OCT-2026", defaultSpot: 395.00, strikeStep: 5 },
   { symbol: "POWERGRID", nseSym: "POWERGRID", yahooTicker: "POWERGRID.NS", kind: "stock", lot: 1800, exp: "29-OCT-2026", defaultSpot: 330.00, strikeStep: 2.5 },
@@ -1480,7 +1535,7 @@ const CONTRACT_SPECS = [
   { symbol: "COALINDIA", nseSym: "COALINDIA", yahooTicker: "COALINDIA.NS", kind: "stock", lot: 2100, exp: "29-OCT-2026", defaultSpot: 485.00, strikeStep: 5 },
 
   // Auto & Mobility
-  { symbol: "TATAMOTORS", nseSym: "TATAMOTORS", yahooTicker: "TATAMOTORS.NS", kind: "stock", lot: 800, exp: "29-OCT-2026", defaultSpot: 390.00, strikeStep: 5 },
+  { symbol: "TATAMOTORS", nseSym: "TATAMOTORS", yahooTicker: "TATAMOTORS.NS", kind: "stock", lot: 800, exp: "29-OCT-2026", defaultSpot: 266.35, strikeStep: 5 },
   { symbol: "MARUTI", nseSym: "MARUTI", yahooTicker: "MARUTI.NS", kind: "stock", lot: 50, exp: "29-OCT-2026", defaultSpot: 12500.00, strikeStep: 100 },
   { symbol: "M&M", nseSym: "M&M", yahooTicker: "M&M.NS", kind: "stock", lot: 350, exp: "29-OCT-2026", defaultSpot: 2980.00, strikeStep: 20 },
   { symbol: "BAJAJ-AUTO", nseSym: "BAJAJ-AUTO", yahooTicker: "BAJAJ-AUTO.NS", kind: "stock", lot: 75, exp: "29-OCT-2026", defaultSpot: 9600.00, strikeStep: 100 },
@@ -2192,6 +2247,10 @@ function renderSetups() {
               <i class="fa-solid fa-chart-diagram"></i>
               <span>Fib Levels & Rules</span>
             </button>
+            <button type="button" class="btn-execute-paper" onclick="execute1ClickPaperTrade('${setup.id}', this)" style="grid-column: 1 / -1; background: linear-gradient(135deg, #059669, #10b981); color:#fff; border:none; border-radius:10px; padding:10px 14px; font-weight:800; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(16,185,129,0.25); transition:all 0.2s">
+              <i class="fa-solid fa-bolt"></i>
+              <span>⚡ 1-Click Paper Trade Execution</span>
+            </button>
           </div>
         </div>
       </div>
@@ -2200,6 +2259,67 @@ function renderSetups() {
 }
 
 // User Selected Trades Manager
+
+async function execute1ClickPaperTrade(setupId, btnEl) {
+  const setup = OPTION_SETUPS.find(s => s.id === setupId);
+  if (!setup) return;
+  const originalText = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Executing Paper Order...';
+    btnEl.disabled = true;
+  }
+  try {
+    const payload = {
+      user: "Akshay",
+      symbol: setup.symbol,
+      base_symbol: setup.underlying,
+      instrument_type: "INDEX_OPTIONS",
+      side: "BUY",
+      entry_price: setup.currentPremium || setup.triggerPrice,
+      stop_loss: setup.stopLoss,
+      target_price: setup.target1,
+      quantity: setup.lotSize,
+      strategy: "Golden Zone Option Setup 1-Click",
+      strike: setup.strike,
+      option_type: setup.optionType,
+      expiry_date: setup.expiry
+    };
+    const res = await fetch('/api/paper/order/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (btnEl) {
+        btnEl.innerHTML = '<i class="fa-solid fa-check"></i> Paper Order Filled!';
+        btnEl.style.background = 'linear-gradient(135deg, #10b981, #047857)';
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast(`⚡ Paper trade filled: ${setup.symbol} @ ₹${payload.entry_price.toFixed(2)}!`);
+      }
+      setTimeout(() => {
+        if (btnEl) {
+          btnEl.innerHTML = originalText;
+          btnEl.disabled = false;
+        }
+      }, 3000);
+    } else {
+      alert("Order Error: " + (data.error || "Could not execute paper trade"));
+      if (btnEl) {
+        btnEl.innerHTML = originalText;
+        btnEl.disabled = false;
+      }
+    }
+  } catch (err) {
+    alert("Connection Error: " + err.message);
+    if (btnEl) {
+      btnEl.innerHTML = originalText;
+      btnEl.disabled = false;
+    }
+  }
+}
+
 function toggleTrackTrade(tradeId) {
   const idx = selectedTradeIds.indexOf(tradeId);
   if (idx > -1) {

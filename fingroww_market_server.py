@@ -6,10 +6,14 @@ import re
 import os
 import hashlib
 import uuid
+import json
+import logging
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger("FinGrowwServer")
 
 app = Flask(__name__, static_folder=".", static_url_path="")
 NSE = "https://www.nseindia.com"
@@ -142,10 +146,14 @@ INDEX_ALIASES = {
 
 YAHOO_TICKERS = {
     "NIFTY 50": "^NSEI",
+    "NIFTY": "^NSEI",
     "NIFTY BANK": "^NSEBANK",
     "BANK NIFTY": "^NSEBANK",
+    "BANKNIFTY": "^NSEBANK",
     "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
     "SENSEX": "^BSESN",
+    "TATAMOTORS": "TMPV.NS",
+    "BHARTIARTL": "BHARTIARTL.NS",
 }
 
 TF_YAHOO = {
@@ -416,26 +424,26 @@ def quote_from_yahoo(symbol):
 
 
 DEFAULT_SPOTS = {
-    "RELIANCE": 1196.20,
-    "NIFTY 50": 22749.75,
-    "NIFTY": 22749.75,
-    "HDFCBANK": 680.20,
-    "BANK NIFTY": 53974.90,
-    "BANKNIFTY": 53974.90,
-    "FINNIFTY": 24303.75,
-    "SENSEX": 74500.00,
-    "TATAMOTORS": 390.00,
-    "SBIN": 945.10,
-    "TCS": 2496.90,
-    "INFY": 1163.00,
-    "ICICIBANK": 1386.90,
-    "BHARTIARTL": 1978.80,
-    "ITC": 260.00,
-    "LT": 3665.10,
-    "BAJFINANCE": 912.00,
-    "MARUTI": 11450.00,
-    "AXISBANK": 1150.00,
-    "VEDL": 440.00
+    "RELIANCE": 1377.50,
+    "NIFTY 50": 25800.60,
+    "NIFTY": 25800.60,
+    "HDFCBANK": 846.00,
+    "BANK NIFTY": 64635.20,
+    "BANKNIFTY": 64635.20,
+    "FINNIFTY": 28871.20,
+    "SENSEX": 83450.00,
+    "TATAMOTORS": 266.35,
+    "SBIN": 1165.10,
+    "TCS": 2376.20,
+    "INFY": 1098.00,
+    "ICICIBANK": 1640.00,
+    "BHARTIARTL": 2161.70,
+    "ITC": 485.00,
+    "LT": 3820.00,
+    "BAJFINANCE": 1122.00,
+    "MARUTI": 12850.00,
+    "AXISBANK": 1446.00,
+    "VEDL": 510.00
 }
 
 
@@ -1164,6 +1172,30 @@ def quote():
         return jsonify({"error": str(exc), "symbol": symbol}), 502
 
 
+@app.get("/api/market/ticker")
+@app.get("/api/market/all")
+def get_market_ticker():
+    symbols = ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "RELIANCE", "HDFCBANK", "INFY", "TCS", "ICICIBANK", "SBIN", "BHARTIARTL"]
+    items = []
+    for sym in symbols:
+        try:
+            q = resolve_quote(sym)
+            if q and q.get("lastPrice"):
+                lp = float(q["lastPrice"])
+                pchg = float(q.get("pChange") or 0.0)
+                items.append({
+                    "symbol": sym,
+                    "lastPrice": lp,
+                    "pChange": pchg,
+                    "pChangeFormatted": f"{'+' if pchg >= 0 else ''}{pchg:.2f}%",
+                    "source": q.get("source", "Real NSE/Yahoo Feed"),
+                    "up": pchg >= 0
+                })
+        except Exception:
+            pass
+    return jsonify({"ok": True, "count": len(items), "data": items})
+
+
 def tf_to_yahoo(tf):
     t = (tf or "15m").strip()
     for key in (t, t.lower(), t.upper()):
@@ -1214,27 +1246,28 @@ def live():
             price = meta.get("regularMarketPrice") or (rows[-1]["c"] if rows else None)
         if price is None:
             return jsonify({"error": "No live data", "symbol": symbol}), 502
-        if len(rows) < 30:
-            return jsonify(
-                {
-                    "source": quote_data.get("source", "Yahoo Finance (free)"),
-                    "symbol": symbol,
-                    "lastPrice": price,
-                    "quote": quote_data,
-                    "series": rows,
-                    "warning": "Limited history — indicators may be less reliable",
-                }
-            )
-        return jsonify(
-            {
-                "source": quote_data.get("source", "Yahoo Finance (free)"),
-                "symbol": symbol,
-                "lastPrice": price,
-                "quote": quote_data,
+        payload = {
+            "source": quote_data.get("source", "Yahoo Finance (free)"),
+            "symbol": symbol,
+            "lastPrice": price,
+            "quote": quote_data,
+            "series": rows,
+            "candles": rows,
+            "data": rows,
+            "chart": {
+                "candles": rows,
                 "series": rows,
+                "symbol": symbol,
                 "interval": interval,
-            }
-        )
+                "source": quote_data.get("source", "Yahoo Finance (free)"),
+            },
+            "interval": interval,
+            "count": len(rows),
+            "ok": True,
+        }
+        if len(rows) < 30:
+            payload["warning"] = "Limited history — indicators may be less reliable"
+        return jsonify(payload)
     except Exception as exc:
         return jsonify({"error": str(exc), "symbol": symbol}), 502
 
@@ -2009,6 +2042,8 @@ from fingroww_paper_engine import (
     PaperTradingSession,
     PaperTradingEngine,
     MultiUserPaperSessionManager,
+    LOT_SIZES,
+    send_telegram_alert,
     get_ist_now,
     get_ist_str,
 )
@@ -2023,6 +2058,18 @@ paper_manager = MultiUserPaperSessionManager(
 
 # Retain default session & engine for backward compatibility
 paper_session, paper_engine = paper_manager.get_session("Akshay")
+
+# Multi-Agent Swarm Orchestrator Initialization
+try:
+    from agents.swarm_orchestrator import SwarmOrchestrator
+    swarm_orchestrator = SwarmOrchestrator.get_instance(
+        quote_resolver=resolve_paper_quote,
+        option_quote_resolver=resolve_option_quote
+    )
+    swarm_orchestrator.agent3_sniper.session_resolver = lambda u: paper_manager.get_session(u)
+except Exception as _swarm_err:
+    logger.warning("Could not initialize SwarmOrchestrator: %s", _swarm_err)
+    swarm_orchestrator = None
 
 _last_bg_radar_scan_at = 0.0
 
@@ -2269,7 +2316,7 @@ def paper_session_tick():
     return jsonify({"ok": True, "state": state})
 
 
-@app.post("/api/paper/session/scan")
+@app.route("/api/paper/session/scan", methods=["GET", "POST"])
 def paper_session_scan():
     """Read-only 15-minute setup radar scan matching user's active configuration (never auto-executes)."""
     data = request.get_json(silent=True) or {}
@@ -2448,11 +2495,13 @@ def paper_manual_close():
     
     u_sess, _ = get_user_session_and_engine(request)
     market_open = get_nse_market_status()["is_trading_hours"]
+    force = bool(data.get("force", False) or not market_open)
     ok, msg = u_sess.manual_close_position(
         trade_id,
         quote_resolver=paper_manager.quote_resolver,
         market_is_open=market_open,
         option_quote_resolver=paper_manager.option_quote_resolver,
+        force=force,
     )
     if not ok:
         return jsonify({"error": msg}), 404 if msg == "Position not found." else 409
@@ -2479,6 +2528,135 @@ def paper_test_expire_position():
     if not ok:
         return jsonify({"error": msg}), 404
     return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
+
+
+@app.post("/api/paper/order/execute")
+@app.post("/api/paper/manual-order")
+def paper_order_execute():
+    """1-Click manual or external paper trade execution (from options.html / today-options.html / ticket)."""
+    data = request.get_json(silent=True) or {}
+    u_sess, u_eng = get_user_session_and_engine(request)
+    if not u_sess:
+        return jsonify({"ok": False, "error": "User session not found."}), 404
+
+    sym = str(data.get("symbol") or "NIFTY24000CE").strip().upper()
+    base_sym = str(data.get("base_symbol") or sym.split()[0]).strip().upper()
+    inst_type = str(data.get("instrument_type") or ("INDEX_OPTIONS" if "CE" in sym or "PE" in sym else "EQUITY")).strip().upper()
+    side = str(data.get("side") or "BUY").strip().upper()
+    entry_p = float(data.get("entry_price") or data.get("price") or 100.0)
+    sl = float(data.get("stop_loss") or (entry_p * 0.8 if side == "BUY" else entry_p * 1.2))
+    tp = float(data.get("target_price") or (entry_p * 1.3 if side == "BUY" else entry_p * 0.7))
+    lot_size = LOT_SIZES.get(base_sym, 25) if ("OPTION" in inst_type or "FUTURE" in inst_type) else 1
+    qty = int(data.get("quantity") or data.get("qty") or (lot_size if ("OPTION" in inst_type or "FUTURE" in inst_type) else 10))
+    strat = str(data.get("strategy") or "1-Click Options Execution")
+
+    setup = {
+        "symbol": sym,
+        "base_symbol": base_sym,
+        "name": sym,
+        "instrument_type": inst_type,
+        "side": side,
+        "entry_price": entry_p,
+        "stop_loss": sl,
+        "target_price": tp,
+        "quantity": qty,
+        "lot_size": lot_size,
+        "risk_distance": abs(entry_p - sl),
+        "reward_risk": round(abs(tp - entry_p) / max(0.01, abs(entry_p - sl)), 2),
+        "strategy": strat,
+        "is_manual": True,
+        "allow_offline": True,
+        "confidence_score": 92,
+        "rationale": f"1-Click paper trade placed from FinGroww Terminal ({strat})"
+    }
+
+    if "OPTION" in inst_type:
+        setup["strike"] = data.get("strike")
+        setup["option_type"] = data.get("option_type") or ("CE" if "CE" in sym else "PE")
+        setup["expiry_date"] = data.get("expiry_date")
+        setup["expiry_label"] = data.get("expiry_label")
+
+    market_open = get_nse_market_status()["is_trading_hours"]
+    pos, err = u_sess.execute_trade(
+        setup,
+        quote_resolver=None,
+        market_is_open=market_open,
+        option_quote_resolver=None,
+        is_manual=True
+    )
+    if not pos:
+        return jsonify({"ok": False, "error": err or "Order execution rejected."}), 400
+
+    u_sess.save_to_db()
+    return jsonify({
+        "ok": True,
+        "message": f"Successfully executed 1-click paper order for {sym} ({side}) @ ₹{entry_p:,.2f}",
+        "position": pos,
+        "available_balance": u_sess.available_balance,
+        "active_positions_count": len(u_sess.positions)
+    })
+
+
+@app.post("/api/paper/circuit-breaker/reset")
+def paper_reset_circuit_breaker():
+    """Manually resets the daily max drawdown circuit breaker."""
+    u_sess, _ = get_user_session_and_engine(request)
+    if not u_sess:
+        return jsonify({"ok": False, "error": "User session not found."}), 404
+    u_sess.reset_circuit_breaker()
+    u_sess.save_to_db()
+    return jsonify({"ok": True, "message": "Circuit Breaker successfully reset. Trading allowed.", "state": u_sess.get_state()})
+
+
+@app.get("/api/paper/stream")
+def paper_sse_stream():
+    """Server-Sent Events (SSE) real-time streaming endpoint for zero-latency UI updates."""
+    u_sess, _ = get_user_session_and_engine(request)
+
+    def event_stream():
+        start_t = time.time()
+        while time.time() - start_t < 300:
+            try:
+                state = u_sess.get_state() if u_sess else {}
+                state_json = json.dumps(state, default=str)
+                yield f"event: tick\ndata: {state_json}\n\n"
+                time.sleep(1.5)
+            except GeneratorExit:
+                break
+            except Exception as e:
+                logger.debug("SSE stream connection ended: %s", e)
+                break
+
+    response = Response(event_stream(), mimetype="text/event-stream")
+    response.headers["Cache-Control"] = "no-cache, no-transform"
+    response.headers["X-Accel-Buffering"] = "no"
+    response.headers["Connection"] = "keep-alive"
+    return response
+
+
+@app.post("/api/paper/alerts/telegram/test")
+def paper_test_telegram_alert():
+    """Tests Telegram bot connectivity and sends verification notification."""
+    data = request.get_json(silent=True) or {}
+    u_sess, _ = get_user_session_and_engine(request)
+    cfg = dict(u_sess.config) if u_sess else {}
+    if data.get("bot_token"):
+        cfg["telegram_bot_token"] = data["bot_token"]
+    if data.get("chat_id"):
+        cfg["telegram_chat_id"] = data["chat_id"]
+
+    from fingroww_paper_engine import send_telegram_alert
+    delivered = send_telegram_alert(
+        "🔔 <b>FinGroww AI Paper Trading</b>\n\n"
+        "Your Telegram alerts have been successfully connected! 🚀\n"
+        "You will receive instant alerts for executed trades, target hits, and risk limits.",
+        cfg
+    )
+    return jsonify({
+        "ok": True,
+        "delivered": delivered,
+        "message": "Verification alert dispatched to Telegram." if delivered else "Could not dispatch alert. Check token and chat ID."
+    })
 
 
 @app.get("/api/paper/profiles")
@@ -2572,6 +2750,67 @@ def paper_run_backtest():
     return jsonify(results)
 
 
+# -------------------------------------------------------------------------
+# FinGroww Autonomous Multi-Agent Swarm REST Endpoints
+# -------------------------------------------------------------------------
+@app.get("/api/agents/status")
+def get_swarm_status():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    return jsonify({"ok": True, "data": swarm_orchestrator.get_full_status()})
+
+
+@app.post("/api/agents/control")
+def update_swarm_control():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    payload = request.get_json(silent=True) or {}
+    mode = payload.get("mode")
+    risk_profile = payload.get("risk_profile")
+    is_active = payload.get("is_active")
+    updated = swarm_orchestrator.update_controls(mode=mode, risk_profile=risk_profile, is_active=is_active)
+    return jsonify({"ok": True, "data": updated})
+
+
+@app.get("/api/agents/audit")
+def get_swarm_audit():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    limit = int(request.args.get("limit", 40))
+    trail = swarm_orchestrator.bus.get_audit_trail(limit=limit)
+    return jsonify({"ok": True, "count": len(trail), "trail": trail})
+
+
+@app.post("/api/agents/approve")
+def approve_swarm_signal():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    payload = request.get_json(silent=True) or {}
+    sig_id = payload.get("signal_id")
+    if not sig_id:
+        return jsonify({"ok": False, "error": "Missing signal_id"}), 400
+    res = swarm_orchestrator.approve_signal(sig_id)
+    if res:
+        return jsonify({"ok": True, "message": f"Signal {sig_id} approved and sent to Execution Sniper.", "signal": res})
+    return jsonify({"ok": False, "error": f"Signal {sig_id} not found in pending queue"}), 404
+
+
+@app.post("/api/agents/scan")
+def trigger_swarm_scan():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    res = swarm_orchestrator.trigger_manual_cycle()
+    return jsonify({"ok": True, "data": res})
+
+
+@app.post("/api/agents/circuit-breaker/reset")
+def reset_swarm_circuit_breaker():
+    if not swarm_orchestrator:
+        return jsonify({"ok": False, "error": "Swarm orchestrator not initialized"}), 503
+    swarm_orchestrator.reset_circuit_breaker()
+    return jsonify({"ok": True, "message": "Circuit breaker reset successfully."})
+
+
 @app.get("/backtest.html")
 @app.get("/backtest")
 @app.get("/strategy-backtest")
@@ -2584,6 +2823,13 @@ def serve_backtest_page():
 @app.get("/paper-trading")
 def serve_paper_trading_page():
     return send_from_directory(".", "ai-auto-paper-trading.html")
+
+
+@app.get("/ai-agents.html")
+@app.get("/ai-agents")
+@app.get("/swarm")
+def serve_ai_agents_page():
+    return send_from_directory(".", "ai-agents.html")
 
 
 @app.get("/")
