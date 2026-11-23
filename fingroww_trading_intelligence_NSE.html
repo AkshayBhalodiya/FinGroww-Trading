@@ -2240,7 +2240,6 @@ function renderBacktestPanel(bt){
 
 const CLOUD_API="https://api.fingroww.tech";
 const PRIMARY_RENDER_API="https://fingroww-trading-y3na.onrender.com";
-const FALLBACK_CLOUD_API="https://fingroww-trading.onrender.com";
 const LOCAL_API="http://127.0.0.1:8787";
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 12000) {
@@ -2273,7 +2272,6 @@ async function fetchApi(path, options = {}) {
     if (isLocalHost) candidateHosts.push("http://127.0.0.1:8787");
     else candidateHosts.push("");
     candidateHosts.push("https://api.fingroww.tech");
-    candidateHosts.push("https://fingroww-trading.onrender.com");
   }
 
   for (const host of candidateHosts) {

@@ -667,8 +667,7 @@ async function agentFetch(path, options = {}) {
   const candidateHosts = activeAgentHost ? [activeAgentHost] : [
     PRIMARY_RENDER_URL,
     isLocalEnv ? "http://127.0.0.1:8787" : "",
-    "https://api.fingroww.tech",
-    "https://fingroww-trading.onrender.com"
+    "https://api.fingroww.tech"
   ].filter(Boolean);
 
   for (const host of candidateHosts) {

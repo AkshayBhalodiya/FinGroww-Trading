@@ -3517,12 +3517,15 @@ function showToast(message, type = "info") {
 // Active API host cache to eliminate redundant/failed requests (persisted per tab)
 const API_URL = "https://api.fingroww.tech";
 const PRIMARY_RENDER_URL = "https://fingroww-trading-y3na.onrender.com";
-const FALLBACK_API_URL = "https://fingroww-trading.onrender.com";
 const RENDER_BACKEND_URL = PRIMARY_RENDER_URL;
 let activePaperApiHost = (function() {
   try {
     const cached = sessionStorage.getItem("fingroww_active_api_host");
     if (cached && (cached.startsWith("http://") || cached.startsWith("https://"))) {
+      if (cached.includes("fingroww-trading.onrender.com") && !cached.includes("fingroww-trading-y3na.onrender.com")) {
+        sessionStorage.removeItem("fingroww_active_api_host");
+        return null;
+      }
       return cached;
     }
   } catch (e) {}
@@ -3540,22 +3543,17 @@ async function fetchPaperApi(path, options = {}) {
 
   let candidateHosts = [PRIMARY_RENDER_URL];
   if (isLocalBackendServed) {
-    candidateHosts.push("");
-    candidateHosts.push("http://127.0.0.1:8787");
+    candidateHosts = ["", "http://127.0.0.1:8787", PRIMARY_RENDER_URL, API_URL];
   } else if (isRenderServed) {
-    candidateHosts.push("");
-    candidateHosts.push(API_URL);
-    candidateHosts.push(FALLBACK_API_URL);
+    candidateHosts = ["", PRIMARY_RENDER_URL, API_URL];
   } else if (isLocalDev) {
-    candidateHosts.push("http://127.0.0.1:8787");
-    candidateHosts.push(API_URL);
-    candidateHosts.push(FALLBACK_API_URL);
+    candidateHosts = ["http://127.0.0.1:8787", PRIMARY_RENDER_URL, API_URL];
   } else {
-    candidateHosts.push(API_URL);
-    candidateHosts.push(FALLBACK_API_URL);
+    // Live static site (e.g. fingroww.tech)
+    candidateHosts = [PRIMARY_RENDER_URL, API_URL];
   }
 
-  if (activePaperApiHost) {
+  if (activePaperApiHost && candidateHosts.includes(activePaperApiHost)) {
     candidateHosts = [activePaperApiHost, ...candidateHosts.filter(h => h !== activePaperApiHost)];
   }
 
@@ -3578,6 +3576,20 @@ async function fetchPaperApi(path, options = {}) {
       clearTimeout(timer);
       if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404)) {
         try {
+          if (host && (!host.includes("fingroww-trading.onrender.com") || host.includes("fingroww-trading-y3na.onrender.com"))) {
+            activePaperApiHost = host;
+            sessionStorage.setItem("fingroww_active_api_host", host);
+          }
+        } catch (e) {}
+        return await r.json();
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      // Continue to next candidate host
+    }
+  }
+  throw new Error(`All backend hosts failed for ${path}`);
+}
           const json = await r.json();
           if (host) {
             activePaperApiHost = host;

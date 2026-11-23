@@ -371,7 +371,8 @@ class TestPaperTradingEngine(unittest.TestCase):
         self.assertEqual(data["market_status_source"], "NSE official market status")
 
         fingroww_market_server.paper_market_cache.update({"at": 0, "status": None})
-        with patch.object(fingroww_market_server, "nse_get", return_value=None):
+        with patch.object(fingroww_market_server, "nse_get", return_value=None), \
+             patch.object(fingroww_market_server, "get_ist_now", return_value=datetime(2026, 10, 28, 20, 0)):
             closed = self.client.get("/api/paper/market-status").get_json()
         self.assertFalse(closed["is_trading_hours"])
         self.assertEqual(closed["freshness"], "NO_LIVE_TRADING")

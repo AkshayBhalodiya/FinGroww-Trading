@@ -172,18 +172,32 @@ TF_YAHOO = {
 @app.before_request
 def handle_preflight():
     if request.method == "OPTIONS":
+        origin = request.headers.get("Origin") or "*"
         resp = Response()
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control"
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control, X-Requested-With, Origin, Accept"
+        resp.headers["Access-Control-Max-Age"] = "86400"
         return resp
 
 
 @app.after_request
 def add_cors(resp):
-    resp.headers["Access-Control-Allow-Origin"] = "*"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control"
+    origin = request.headers.get("Origin") or "*"
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control, X-Requested-With, Origin, Accept"
+    return resp
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    origin = request.headers.get("Origin") or "*"
+    resp = jsonify({"ok": False, "error": str(e), "type": type(e).__name__})
+    resp.status_code = 500
+    resp.headers["Access-Control-Allow-Origin"] = origin
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control, X-Requested-With, Origin, Accept"
     return resp
 
 
@@ -2071,7 +2085,7 @@ except Exception as _swarm_err:
     logger.warning("Could not initialize SwarmOrchestrator: %s", _swarm_err)
     swarm_orchestrator = None
 
-_last_bg_radar_scan_at = 0.0
+_last_bg_radar_scan_at = time.time()
 
 def paper_background_worker():
     """Autonomous background supervisor to evaluate active user sessions and pre-compute radar setups in background."""
@@ -2148,6 +2162,7 @@ def paper_session_state():
 
 
 @app.post("/api/paper/session/config")
+@app.route("/api/paper/config", methods=["GET", "POST"])
 def paper_update_config():
     """Validates and updates paper trading session configuration for a user."""
     data = request.get_json(silent=True) or {}
@@ -2249,6 +2264,7 @@ def paper_update_config():
 
 
 @app.post("/api/paper/session/start")
+@app.route("/api/paper/start", methods=["POST"])
 def paper_start_session():
     """Validates inputs and starts the AI auto paper trading engine for a user."""
     data = request.get_json(silent=True) or {}
@@ -2309,6 +2325,8 @@ def paper_session_control():
 
 
 @app.post("/api/paper/session/tick")
+@app.route("/api/paper/engine/tick", methods=["GET", "POST"])
+@app.route("/api/paper/tick", methods=["GET", "POST"])
 def paper_session_tick():
     """Triggers one evaluation cycle for a user session."""
     u_sess, u_eng = get_user_session_and_engine(request)
@@ -2317,6 +2335,7 @@ def paper_session_tick():
 
 
 @app.route("/api/paper/session/scan", methods=["GET", "POST"])
+@app.route("/api/paper/scan", methods=["GET", "POST"])
 def paper_session_scan():
     """Read-only 15-minute setup radar scan matching user's active configuration (never auto-executes)."""
     data = request.get_json(silent=True) or {}
@@ -2329,8 +2348,20 @@ def paper_session_scan():
     if scan_patch:
         u_sess.update_config(scan_patch)
 
-    force = bool(data.get("force", False))
-    setups = u_eng.scan_and_evaluate_setups(force=force)
+    force = bool(data.get("force", False) or request.args.get("force") in ("true", "1"))
+    if force:
+        def _bg_scan():
+            try:
+                u_eng.scan_and_evaluate_setups(force=True)
+            except Exception:
+                pass
+        threading.Thread(target=_bg_scan, daemon=True).start()
+    else:
+        try:
+            u_eng.scan_and_evaluate_setups(force=False)
+        except Exception:
+            pass
+
     market_status = get_nse_market_status()
 
     # Optional pagination support for API callers

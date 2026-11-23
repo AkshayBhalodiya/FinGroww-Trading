@@ -2798,12 +2798,13 @@ class PaperTradingEngine:
 
             raw_setups = []
             from concurrent.futures import ThreadPoolExecutor, wait
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            executor = ThreadPoolExecutor(max_workers=8)
+            try:
                 future_to_item = {
                     executor.submit(self._eval_single_item, it, tg, allowed_market_caps, is_long_term_style, min_rr): it
                     for it, tg in batch
                 }
-                done_futs, _ = wait(future_to_item.keys(), timeout=8.0)
+                done_futs, _ = wait(future_to_item.keys(), timeout=4.5)
                 for fut in done_futs:
                     try:
                         res = fut.result()
@@ -2811,6 +2812,8 @@ class PaperTradingEngine:
                             raw_setups.extend(res)
                     except Exception:
                         pass
+            finally:
+                executor.shutdown(wait=False, cancel_futures=True)
 
             seen_keys = set()
             setups = []
