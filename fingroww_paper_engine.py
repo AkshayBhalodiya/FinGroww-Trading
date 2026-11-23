@@ -848,6 +848,9 @@ class PaperTradingSession:
         self.is_circuit_breaker_triggered = False
         self.circuit_breaker_reason = ""
         self.circuit_breaker_triggered_at = None
+        self.max_drawdown_inr = 0.0
+        self.max_drawdown_pct = 0.0
+        self.peak_equity = self.account_equity
         self.log_event("CIRCUIT_BREAKER_RESET", "Daily Max Drawdown Circuit Breaker manually reset. Trading allowed.")
 
     @_session_locked
