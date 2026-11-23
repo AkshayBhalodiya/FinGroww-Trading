@@ -1,1 +1,1 @@
-web: gunicorn fingroww_market_server:app --workers 1 --worker-class gthread --threads 8 --worker-tmp-dir /dev/shm --max-requests 25000 --max-requests-jitter 2500 --timeout 120
+web: gunicorn -b 0.0.0.0:${PORT:-10000} -c gunicorn.conf.py fingroww_market_server:app
