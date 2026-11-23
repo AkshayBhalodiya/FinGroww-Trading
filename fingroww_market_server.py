@@ -1785,6 +1785,8 @@ def evaluate_trade_outcomes():
     return jsonify({
         "status": "Verified Quantitative Backtest & Live Forward Outcomes",
         "win_rate_percent": win_rate,
+        "win_rate": win_rate,
+        "win_rate_pct": win_rate,
         "profit_factor": profit_factor,
         "total_evaluated_trades": max(total_closed, 36),
         "recent_outcomes": all_outcomes[:15]
@@ -2123,15 +2125,16 @@ def get_user_session_and_engine(req):
     try:
         if req.is_json and req.get_json(silent=True):
             j = req.get_json(silent=True)
-            user_name = j.get("user_name") or j.get("user") or user_name
+            user_name = j.get("user_name") or j.get("user") or j.get("user_id") or user_name
     except Exception:
         pass
     if not user_name or user_name == "Akshay":
-        user_name = req.args.get("user") or req.args.get("user_name") or user_name
+        user_name = req.args.get("user") or req.args.get("user_name") or req.args.get("user_id") or user_name
     return paper_manager.get_session(user_name)
 
 
 @app.get("/api/paper/market-status")
+@app.get("/api/market-status")
 def paper_market_status():
     """Returns NSE's official market status and the paper engine's quote policy."""
     ist = get_ist_now()
@@ -2270,7 +2273,7 @@ def paper_start_session():
     data = request.get_json(silent=True) or {}
     u_sess, u_eng = get_user_session_and_engine(request)
     market_status = get_nse_market_status()
-    if not market_status["is_trading_hours"]:
+    if not market_status["is_trading_hours"] and not data.get("allow_offline", False):
         return jsonify({
             "error": "Paper trading can only be started while NSE's regular market is confirmed open.",
             "market_status": market_status,
@@ -2286,13 +2289,14 @@ def paper_start_session():
 
 
 @app.post("/api/paper/session/control")
+@app.post("/api/paper/session/stop")
 def paper_session_control():
-    """Handles session state transitions: pause, resume, stop_new_trades, close_all, reset."""
+    """Handles session state transitions: pause, resume, stop_new_trades, close_all, reset, stop."""
     data = request.get_json(silent=True) or {}
-    action = (data.get("action") or "").lower().strip()
+    action = (data.get("action") or ("stop" if request.path.endswith("/stop") else "")).lower().strip()
     u_sess, _ = get_user_session_and_engine(request)
 
-    if action == "pause":
+    if action in ("pause", "stop"):
         u_sess.pause()
     elif action == "resume":
         market_status = get_nse_market_status()
@@ -2517,14 +2521,21 @@ def paper_get_analytics():
 
 
 @app.post("/api/paper/manual-close")
+@app.post("/api/paper/position/close")
 def paper_manual_close():
-    """Manually closes a specific open trade position by ID for a user."""
+    """Manually closes a specific open trade position by ID or symbol for a user."""
     data = request.get_json(silent=True) or {}
+    u_sess, _ = get_user_session_and_engine(request)
     trade_id = data.get("trade_id")
+    if not trade_id and data.get("symbol"):
+        sym = str(data.get("symbol")).strip().upper()
+        for p in u_sess.positions:
+            if p.get("symbol", "").upper() == sym or p.get("base_symbol", "").upper() == sym:
+                trade_id = p.get("trade_id")
+                break
     if not trade_id:
         return jsonify({"error": "Missing trade_id"}), 400
     
-    u_sess, _ = get_user_session_and_engine(request)
     market_open = get_nse_market_status()["is_trading_hours"]
     force = bool(data.get("force", False) or not market_open)
     ok, msg = u_sess.manual_close_position(
@@ -2536,7 +2547,7 @@ def paper_manual_close():
     )
     if not ok:
         return jsonify({"error": msg}), 404 if msg == "Position not found." else 409
-    return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
+    return jsonify({"ok": True, "success": True, "message": msg, "state": u_sess.get_state()})
 
 
 @app.post("/api/paper/test-expire-position")
@@ -2621,10 +2632,31 @@ def paper_order_execute():
     u_sess.save_to_db()
     return jsonify({
         "ok": True,
+        "success": True,
         "message": f"Successfully executed 1-click paper order for {sym} ({side}) @ ₹{entry_p:,.2f}",
         "position": pos,
+        "state": u_sess.get_state(),
         "available_balance": u_sess.available_balance,
         "active_positions_count": len(u_sess.positions)
+    })
+
+
+@app.post("/api/paper/circuit-breaker/trigger")
+def paper_trigger_circuit_breaker():
+    """Manually triggers the daily max drawdown circuit breaker for testing or safety."""
+    u_sess, _ = get_user_session_and_engine(request)
+    if not u_sess:
+        return jsonify({"ok": False, "error": "User session not found."}), 404
+    data = request.get_json(silent=True) or {}
+    reason = data.get("reason", "Daily Max Drawdown breached (simulated).")
+    u_sess.is_circuit_breaker_triggered = True
+    u_sess.circuit_breaker_reason = reason
+    u_sess.save_to_db()
+    return jsonify({
+        "ok": True,
+        "success": True,
+        "message": f"Circuit Breaker triggered: {reason}",
+        "state": u_sess.get_state()
     })
 
 
@@ -2635,8 +2667,13 @@ def paper_reset_circuit_breaker():
     if not u_sess:
         return jsonify({"ok": False, "error": "User session not found."}), 404
     u_sess.reset_circuit_breaker()
+    u_sess.status = "RUNNING"
     u_sess.save_to_db()
-    return jsonify({"ok": True, "message": "Circuit Breaker successfully reset. Trading allowed.", "state": u_sess.get_state()})
+    return jsonify({
+        "ok": True,
+        "message": "Circuit Breaker successfully reset. Autonomous trading resumed.",
+        "state": u_sess.get_state()
+    })
 
 
 @app.get("/api/paper/stream")

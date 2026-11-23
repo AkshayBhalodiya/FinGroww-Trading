@@ -3541,15 +3541,14 @@ async function fetchPaperApi(path, options = {}) {
   const isRenderServed = hostname.includes("onrender.com") || hostname.includes("api.fingroww.tech");
   const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
-  let candidateHosts = [PRIMARY_RENDER_URL];
-  if (isLocalBackendServed) {
-    candidateHosts = ["", "http://127.0.0.1:8787", PRIMARY_RENDER_URL, API_URL];
-  } else if (isRenderServed) {
-    candidateHosts = ["", PRIMARY_RENDER_URL, API_URL];
+  let candidateHosts = [];
+  if (isLocalBackendServed || isRenderServed) {
+    // Page is served directly by the backend (Local 8787 or Render) -> call same host directly
+    candidateHosts = [""];
   } else if (isLocalDev) {
     candidateHosts = ["http://127.0.0.1:8787", PRIMARY_RENDER_URL, API_URL];
   } else {
-    // Live static site (e.g. fingroww.tech)
+    // Live static hosting (Hostinger fingroww.tech, etc.)
     candidateHosts = [PRIMARY_RENDER_URL, API_URL];
   }
 
@@ -5416,19 +5415,37 @@ async function openCandlestickChart(symbol, entryPrice, targetPrice, stopLoss, s
 }
 
 async function resetCircuitBreaker() {
+  const btn = document.getElementById("btnResetCircuitBreaker");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Resetting...';
+  }
   try {
     const data = await fetchPaperApi("/api/paper/circuit-breaker/reset", {
       method: "POST",
-      body: JSON.stringify({ user: currentUserName })
+      body: JSON.stringify({ user: currentUserName, user_name: currentUserName })
     });
     if (data && data.ok) {
-      showToast("Circuit Breaker reset. Trading resumed!");
-      if (data.state) updateUiWithState(data.state);
+      showToast("Circuit Breaker reset! Autonomous trading resumed.", "success");
+      const cbBanner = document.getElementById("circuitBreakerBanner");
+      if (cbBanner) cbBanner.style.display = "none";
+      if (data.state) {
+        updateUiWithState(data.state);
+        syncConfigFormWithState(data.state);
+      }
+      // Instantly trigger tick and setup scan so trades continue immediately
+      pollSessionTick();
+      scanConfirmedSetups(null, false);
     } else {
-      alert((data && data.error) || "Could not reset circuit breaker");
+      showToast((data && data.error) || "Could not reset circuit breaker", "error");
     }
   } catch(e) {
-    alert("Error resetting circuit breaker: " + e.message);
+    showToast("Error resetting circuit breaker: " + e.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-rotate-left"></i> Reset Circuit Breaker';
+    }
   }
 }
 

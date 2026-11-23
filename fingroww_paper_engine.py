@@ -852,7 +852,8 @@ class PaperTradingSession:
         self.max_drawdown_pct = 0.0
         self.peak_equity = self.account_equity
         self._circuit_breaker_manually_reset = True
-        self.log_event("CIRCUIT_BREAKER_RESET", "Daily Max Drawdown Circuit Breaker manually reset. Trading allowed.")
+        self.status = "RUNNING"
+        self.log_event("CIRCUIT_BREAKER_RESET", "Daily Max Drawdown Circuit Breaker manually reset. Trading allowed and resumed.")
 
     @_session_locked
     def start(self):
