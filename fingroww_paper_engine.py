@@ -851,6 +851,7 @@ class PaperTradingSession:
         self.max_drawdown_inr = 0.0
         self.max_drawdown_pct = 0.0
         self.peak_equity = self.account_equity
+        self._circuit_breaker_manually_reset = True
         self.log_event("CIRCUIT_BREAKER_RESET", "Daily Max Drawdown Circuit Breaker manually reset. Trading allowed.")
 
     @_session_locked
@@ -907,7 +908,18 @@ class PaperTradingSession:
 
         # 2. Daily Max Drawdown Check
         max_dd_limit = float(self.config.get("max_daily_drawdown_pct") or 5.0)
-        if max_dd_limit > 0 and self.max_drawdown_pct >= max_dd_limit:
+        current_dd_inr = max(0.0, self.peak_equity - self.account_equity)
+        current_dd_pct = (current_dd_inr / self.peak_equity * 100.0) if self.peak_equity > 0 else 0.0
+        # If max_drawdown_pct was manually set or exceeds limit, check current drawdown or active breaker
+        effective_dd_pct = max(current_dd_pct, self.max_drawdown_pct)
+        if max_dd_limit > 0 and current_dd_pct >= max_dd_limit:
+            self.is_circuit_breaker_triggered = True
+            self.circuit_breaker_reason = f"Daily max drawdown reached {current_dd_pct:.1f}% (Limit: {max_dd_limit:.1f}%). New trades halted."
+            self.circuit_breaker_triggered_at = get_ist_str()
+            self.log_event("CIRCUIT_BREAKER_TRIGGERED", self.circuit_breaker_reason)
+            send_telegram_alert(f"⚠️ <b>FinGroww Circuit Breaker</b>: {self.circuit_breaker_reason}", self.config)
+            return False, self.circuit_breaker_reason
+        elif max_dd_limit > 0 and not getattr(self, "_circuit_breaker_manually_reset", False) and self.max_drawdown_pct >= max_dd_limit:
             self.is_circuit_breaker_triggered = True
             self.circuit_breaker_reason = f"Daily max drawdown reached {self.max_drawdown_pct:.1f}% (Limit: {max_dd_limit:.1f}%). New trades halted."
             self.circuit_breaker_triggered_at = get_ist_str()
