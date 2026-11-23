@@ -3588,27 +3588,6 @@ async function fetchPaperApi(path, options = {}) {
       // Continue to next candidate host
     }
   }
-  throw new Error(`All backend hosts failed for ${path}`);
-}
-          const json = await r.json();
-          if (host) {
-            activePaperApiHost = host;
-            try { sessionStorage.setItem("fingroww_active_api_host", host); } catch (e) {}
-          }
-          return json;
-        } catch (parseErr) {
-          // Response was not JSON
-        }
-      }
-    } catch (e) {
-      clearTimeout(timer);
-      if (host && host === activePaperApiHost) {
-        activePaperApiHost = null;
-        try { sessionStorage.removeItem("fingroww_active_api_host"); } catch (_) {}
-      }
-    }
-  }
-
   return null;
 }
 
