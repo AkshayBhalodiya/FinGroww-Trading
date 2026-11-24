@@ -776,7 +776,7 @@ def _document_updated_at(document):
     return str(document.get("last_updated") or document.get("last_active") or "")
 
 
-def send_telegram_alert(message: str, config: dict = None):
+def send_telegram_alert(message: str, config: dict | None = None):
     """Sends asynchronous telegram alert if configured in session or environment."""
     cfg = config or {}
     bot_token = cfg.get("telegram_bot_token") or os.getenv("TELEGRAM_BOT_TOKEN")
@@ -818,7 +818,7 @@ class PaperTradingSession:
         self.status = "IDLE" # IDLE, RUNNING, PAUSED, STOPPED_NEW_TRADES
         self.created_at = get_ist_str()
         self.last_updated = get_ist_str()
-        self.last_tick_at = 0
+        self.last_tick_at = 0.0
 
         # Circuit Breaker state
         self.is_circuit_breaker_triggered = False
@@ -1082,10 +1082,13 @@ class PaperTradingSession:
         sl = float(setup["stop_loss"])
         tp = float(setup["target_price"])
         holding_duration_mins = float(self.config.get("holding_duration_mins", 1440))
+        risk_distance = float(setup.get("risk_distance") or abs(raw_entry - sl))
+        reward_risk = float(setup.get("reward_risk") or self.config.get("min_rr", 1.8))
 
         supported_types = ("EQUITY", "INDEX_FUTURES", "INDEX_OPTIONS", "STOCK_FUTURES", "STOCK_OPTIONS")
         if side not in ("BUY", "SELL") or inst_type not in supported_types:
             return None, f"Instrument type [{inst_type}] is not supported for auto trading."
+        live_quote = None
         if quote_resolver:
             base_sym = setup.get("base_symbol", sym)
             try:
@@ -1225,6 +1228,9 @@ class PaperTradingSession:
                     break
         lot_size = lot_size or 1
 
+        product_type = "FUT"
+        is_long_term = False
+        is_intraday = False
         if "FUTURE" in inst_type:
             # Futures intraday MIS margin (~10% in Indian market)
             margin_per_unit = exec_price * 0.10
@@ -1278,7 +1284,7 @@ class PaperTradingSession:
             allocated_capital = round(actual_qty * margin_per_unit, 2)
 
         # Entry charges (delivery charges model for CNC equity)
-        is_delivery = (inst_type == "EQUITY" and is_long_term) if 'is_long_term' in locals() else False
+        is_delivery = inst_type == "EQUITY" and is_long_term
         entry_costs = PaperTradeCostModel.calculate_charges(inst_type, side, exec_price, actual_qty, is_delivery=is_delivery)
         required_balance = round(allocated_capital + entry_costs["total"], 2)
         if required_balance > self.available_balance:
@@ -1527,11 +1533,12 @@ class PaperTradingSession:
         if not has_sl and not has_sl_pct:
             return None, "Stop-Loss is strictly mandatory for all manual trades to protect your capital."
 
+        sl_pct_val = 0.0
         if has_sl_pct:
-            sl_pct_val = float(stop_loss_pct)
+            sl_pct_val = float(stop_loss_pct if stop_loss_pct is not None else 0)
             sl = max(0.05, round(exec_price * (1.0 - (sl_pct_val / 100.0)), 2))
         else:
-            sl = round(float(stop_loss), 2)
+            sl = round(float(stop_loss if stop_loss is not None else 0), 2)
 
         if sl >= exec_price:
             return None, f"Stop-Loss (₹{sl:,.2f}) must be strictly less than the entry price (₹{exec_price:,.2f})."
@@ -1548,7 +1555,7 @@ class PaperTradingSession:
             strat_name = "🎯 Manual (FinGroww 1.8R Algo Target)"
             is_algo_tp = True
         else:
-            tp = round(float(target_price), 2)
+            tp = round(float(target_price if target_price is not None else 0), 2)
             if tp <= exec_price:
                 return None, f"Target Price (₹{tp:,.2f}) must be strictly greater than the entry price (₹{exec_price:,.2f})."
             strat_name = "👤 Manual Trade (Custom Target)"
@@ -1623,7 +1630,7 @@ class PaperTradingSession:
             "target_price": tp,
             "stop_loss": sl,
             "initial_stop_loss": sl,
-            "stop_loss_pct": float(stop_loss_pct) if has_sl_pct else round(abs(exec_price - sl) / exec_price * 100, 2),
+            "stop_loss_pct": sl_pct_val if has_sl_pct else round(abs(exec_price - sl) / exec_price * 100, 2),
             "target_pct": round(abs(tp - exec_price) / exec_price * 100, 2),
             "trailing_state": "INITIAL",
             "trailing_label": "Standard SL Active",
@@ -2035,7 +2042,7 @@ class PaperTradingSession:
         except Exception as exc:
             logger.warning("Manual close quote failed for %s: %s", target_pos["symbol"], exc)
             quote = None
-        if not _is_fresh_nse_quote(quote):
+        if quote is None or not _is_fresh_nse_quote(quote):
             if force:
                 self._close_position(target_pos, "MANUAL_EXIT", target_pos.get("current_price"))
                 self._recalculate_equity()
@@ -2082,7 +2089,7 @@ class PaperTradingSession:
             except Exception as exc:
                 logger.warning("Close-all quote failed for %s: %s", pos["symbol"], exc)
                 quote = None
-            if not _is_fresh_nse_quote(quote):
+            if quote is None or not _is_fresh_nse_quote(quote):
                 continue
             raw_spot = float(quote["lastPrice"])
             if pos.get("instrument_type") in ("INDEX_OPTIONS", "STOCK_OPTIONS"):
@@ -2508,6 +2515,7 @@ class PaperTradingSession:
                 self._synced_closed_trade_ids = {
                     t.get("trade_id") for t in mongo_doc["closed_trades"] if isinstance(t, dict) and t.get("trade_id")
                 }
+            self._restored_from_db = True
             return True
         except (AttributeError, KeyError, TypeError, ValueError) as e:
             logger.exception("Could not restore paper trading data for %s", self.user_name)
@@ -2589,6 +2597,9 @@ class PaperTradingEngine:
         recent_volumes = [float(candle.get("v") or 0) for candle in candles[-21:-1]]
         avg_volume = sum(recent_volumes) / len(recent_volumes) if recent_volumes else 0
         volume_active = (avg_volume <= 0) or (float(latest.get("v") or 0) >= avg_volume * 0.20)
+        benchmark_confluence = "Neutral"
+        is_fresh_golden_cross = False
+        is_fresh_death_cross = False
 
         if is_long_term_style:
             # Long-Term Equity Investment (CNC Cash Holding)
@@ -3667,9 +3678,15 @@ class MultiUserPaperSessionManager:
             self.db = db
             for sess in list(self.sessions.values()):
                 sess.db = db
-                # If a profile was created/updated locally while MongoDB was offline, push it once
+                # If a profile was created/updated locally while MongoDB was offline, push or restore it
                 try:
-                    if not db["paper_profiles"].find_one({"user_name": sess.user_name}):
+                    existing_doc = db["paper_profiles"].find_one({"user_name": sess.user_name})
+                    if existing_doc:
+                        # Profile exists in MongoDB! If in-memory session was a fallback blank, restore true state from MongoDB
+                        if not getattr(sess, "_restored_from_db", False):
+                            sess.load_from_db()
+                            logger.info("Successfully reloaded persisted profile [%s] from MongoDB Atlas (status: %s)", sess.user_name, sess.status)
+                    else:
                         sess.save_to_db()
                 except Exception as exc:
                     logger.warning("Could not sync local profile %s to MongoDB: %s", sess.user_name, exc)
@@ -3780,7 +3797,11 @@ class MultiUserPaperSessionManager:
         uname = (user_name or "Akshay").strip()
         with self._manager_lock:
             if uname in self.sessions:
-                return self.sessions[uname], self.engines[uname]
+                sess = self.sessions[uname]
+                if self.db is not None and not getattr(sess, "_restored_from_db", False):
+                    sess.db = self.db
+                    sess.load_from_db()
+                return sess, self.engines[uname]
 
             sess = PaperTradingSession(user_name=uname, db=self.db)
             eng = PaperTradingEngine(
