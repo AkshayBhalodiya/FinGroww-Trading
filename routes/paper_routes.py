@@ -588,7 +588,7 @@ def paper_option_quote():
 
     dist_pct = abs(strike_val - spot_price) / max(spot_price, 1.0)
     if premium <= 0 or (premium <= 0.05 and dist_pct <= 0.08):
-        iv = 14.0 if ("NIFTY" in base_sym and "BANK" not in base_sym) else (16.0 if "BANK" in base_sym else 20.0)
+        iv = 18.5 if ("NIFTY" in base_sym and "BANK" not in base_sym) else (20.0 if "BANK" in base_sym else 22.0)
         dte = max(1, expiry_info.get("dte", 7))
         atm_time_val = 0.4 * spot_price * (iv / 100.0) * math.sqrt(dte / 365.0)
         vol_w = max(0.01, (iv / 100.0) * math.sqrt(dte / 365.0))

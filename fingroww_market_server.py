@@ -220,14 +220,24 @@ def handle_exception(e):
     return resp
 
 
+IS_RENDER = bool(os.environ.get("RENDER")) or bool(os.environ.get("RENDER_SERVICE_ID"))
 _last_nse_fail = 0
+
+
+def is_nse_supported():
+    """Returns False immediately on foreign cloud servers (Render) where NSE blocks datacenter IPs."""
+    if IS_RENDER and not os.environ.get("NSE_PROXY_URL"):
+        return False
+    if time.time() - _last_nse_fail < 180:
+        return False
+    return True
 
 
 def init_nse(force=False):
     global last_init, _last_nse_fail
-    now = time.time()
-    if now - _last_nse_fail < 10:
+    if not is_nse_supported():
         return
+    now = time.time()
     with lock:
         if not force and now - last_init < 300 and session.cookies:
             return
@@ -240,7 +250,7 @@ def init_nse(force=False):
                     "Accept": "text/html,application/xhtml+xml",
                     "Referer": NSE + "/",
                 },
-                timeout=5.0,
+                timeout=(1.0, 2.5),
             )
             if r.status_code in (401, 403):
                 _last_nse_fail = time.time()
@@ -250,12 +260,13 @@ def init_nse(force=False):
             _last_nse_fail = time.time()
 
 
-def nse_get(path, params=None, referer=None, timeout=4.5):
+def nse_get(path, params=None, referer=None, timeout=2.5):
     global _last_nse_fail
-    if time.time() - _last_nse_fail < 10:
+    if not is_nse_supported():
         return None
     try:
         init_nse()
+        req_timeout = (1.0, float(timeout)) if isinstance(timeout, (int, float)) else timeout
         r = session.get(
             NSE + path,
             headers={
@@ -264,7 +275,7 @@ def nse_get(path, params=None, referer=None, timeout=4.5):
                 "Referer": referer or (NSE + "/market-data/live-market-indices"),
             },
             params=params,
-            timeout=timeout,
+            timeout=req_timeout,
         )
         if r.status_code in (401, 403):
             _last_nse_fail = time.time()
@@ -491,21 +502,22 @@ _general_quote_cache_lock = threading.Lock()
 def resolve_quote(symbol):
     def _fetch():
         res = None
-        if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
-            try:
-                q = quote_from_nse_index(symbol)
-                if q and q.get("lastPrice"):
-                    res = q
-            except Exception:
-                pass
+        if is_nse_supported():
+            if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
+                try:
+                    q = quote_from_nse_index(symbol)
+                    if q and q.get("lastPrice"):
+                        res = q
+                except Exception:
+                    pass
 
-        if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
-            try:
-                q = quote_from_nse_equity(symbol)
-                if q and q.get("lastPrice"):
-                    res = q
-            except Exception:
-                pass
+            if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
+                try:
+                    q = quote_from_nse_equity(symbol)
+                    if q and q.get("lastPrice"):
+                        res = q
+                except Exception:
+                    pass
 
         if not res and symbol == "SENSEX":
             try:
@@ -561,6 +573,8 @@ def resolve_live_quote(symbol):
     cache_ttl = 15.0 if market_is_open else 300.0
 
     def _fetch_live():
+        if not is_nse_supported():
+            return None
         quote = None
         try:
             if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
@@ -808,7 +822,7 @@ def generate_fallback_option_chain(symbol, spot):
     pe_tot_oi = 0
 
     # Realistic Option Pricing based on Indian Market Volatilities
-    iv = 14.0 if ("NIFTY" in symbol and "BANK" not in symbol) else (16.0 if "BANK" in symbol else 20.0)
+    iv = 18.5 if ("NIFTY" in symbol and "BANK" not in symbol) else (20.0 if "BANK" in symbol else 22.0)
     dte = max(1, days_ahead)
     atm_time_val = 0.4 * spot * (iv / 100.0) * math.sqrt(dte / 365.0)
     vol_w = max(0.01, (iv / 100.0) * math.sqrt(dte / 365.0))
@@ -1001,9 +1015,9 @@ def _extract_leg_ltp(leg):
 def fetch_option_chain(symbol, expiry=None):
     sym = normalize_symbol(symbol)
     is_index = sym in ("NIFTY 50", "NIFTY", "BANK NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTY NEXT 50", "NIFTYNXT50")
-    if sym == "SENSEX":
+    if sym == "SENSEX" or not is_nse_supported():
         quote_data = resolve_quote(sym) or {}
-        spot = quote_data.get("lastPrice") or 75000.0
+        spot = quote_data.get("lastPrice") or (25350.0 if "NIFTY" in sym else 2500.0)
         return generate_fallback_option_chain(sym, spot)
 
     nse_sym = "NIFTY" if sym == "NIFTY 50" else ("BANKNIFTY" if sym in ("BANK NIFTY", "NIFTY BANK") else ("NIFTYNXT50" if sym == "NIFTY NEXT 50" else sym))
