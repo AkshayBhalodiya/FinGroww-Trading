@@ -3410,6 +3410,7 @@ button[disabled],
 </a>
 
 <script src="theme.js"></script>
+<script src="api.js"></script>
 <script>
 // =========================================================================
 // AI AUTO PAPER TRADING CONTROLLER (MULTI-USER & LEADERBOARD SYSTEM)
@@ -3514,78 +3515,16 @@ function showToast(message, type = "info") {
   }, 3500);
 }
 
-// Active API host cache to eliminate redundant/failed requests (persisted per tab)
-const API_URL = "https://api.fingroww.tech";
-const PRIMARY_RENDER_URL = "https://fingroww-trading-y3na.onrender.com";
+// Unified API Client Bridge (powered by api.js)
+const API_URL = window.API_URL || "https://api.fingroww.tech";
+const PRIMARY_RENDER_URL = window.PRIMARY_RENDER_URL || "https://fingroww-trading-y3na.onrender.com";
 const RENDER_BACKEND_URL = PRIMARY_RENDER_URL;
-let activePaperApiHost = (function() {
-  try {
-    const cached = sessionStorage.getItem("fingroww_active_api_host");
-    if (cached && (cached.startsWith("http://") || cached.startsWith("https://"))) {
-      if (cached.includes("fingroww-trading.onrender.com") && !cached.includes("fingroww-trading-y3na.onrender.com")) {
-        sessionStorage.removeItem("fingroww_active_api_host");
-        return null;
-      }
-      return cached;
-    }
-  } catch (e) {}
-  return null;
-})();
+let activePaperApiHost = window.FinGrowwApi ? window.FinGrowwApi.getActiveHost() : null;
 
 // API Helper adhering to FinGroww dual-host pattern
 async function fetchPaperApi(path, options = {}) {
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  const protocol = window.location.protocol;
-  const isLocalBackendServed = (hostname === "127.0.0.1" || hostname === "localhost") && port === "8787";
-  const isRenderServed = hostname.includes("onrender.com") || hostname.includes("api.fingroww.tech");
-  const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
-
-  let candidateHosts = [];
-  if (isLocalBackendServed || isRenderServed) {
-    // Page is served directly by the backend (Local 8787 or Render) -> call same host directly
-    candidateHosts = [""];
-  } else if (isLocalDev) {
-    candidateHosts = ["http://127.0.0.1:8787", PRIMARY_RENDER_URL, API_URL];
-  } else {
-    // Live static hosting (Hostinger fingroww.tech, etc.)
-    candidateHosts = [PRIMARY_RENDER_URL, API_URL];
-  }
-
-  if (activePaperApiHost && candidateHosts.includes(activePaperApiHost)) {
-    candidateHosts = [activePaperApiHost, ...candidateHosts.filter(h => h !== activePaperApiHost)];
-  }
-
-  // Generous response timeout (25s normal, 60s for heavy scans/backtests) to prevent premature AbortController cancel on cloud servers
-  let timeoutMs = 25000;
-  if (path.includes("/scan") || path.includes("/backtest")) {
-    timeoutMs = 60000;
-  }
-
-  for (const host of candidateHosts) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const url = host ? (host + path) : path;
-      const r = await fetch(url, { 
-        ...options, 
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json", ...(options.headers || {}) } 
-      });
-      clearTimeout(timer);
-      if (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404)) {
-        try {
-          if (host && (!host.includes("fingroww-trading.onrender.com") || host.includes("fingroww-trading-y3na.onrender.com"))) {
-            activePaperApiHost = host;
-            sessionStorage.setItem("fingroww_active_api_host", host);
-          }
-        } catch (e) {}
-        return await r.json();
-      }
-    } catch (e) {
-      clearTimeout(timer);
-      // Continue to next candidate host
-    }
+  if (window.FinGrowwApi && window.FinGrowwApi.fetch) {
+    return await window.FinGrowwApi.fetch(path, options);
   }
   return null;
 }

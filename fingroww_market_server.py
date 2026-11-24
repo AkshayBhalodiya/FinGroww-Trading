@@ -2088,6 +2088,7 @@ except Exception as _swarm_err:
     swarm_orchestrator = None
 
 _last_bg_radar_scan_at = time.time()
+_last_keepalive_ping_at = time.time()
 
 def paper_background_worker():
     """Autonomous background supervisor to evaluate active user sessions and pre-compute radar setups in background."""
@@ -2112,6 +2113,17 @@ def paper_background_worker():
                     paper_engine.scan_and_evaluate_setups(force=True)
                 except Exception:
                     pass
+
+            # Sleep-prevention self keep-alive (every 10 minutes)
+            global _last_keepalive_ping_at
+            if now_ts - _last_keepalive_ping_at >= 600.0:
+                _last_keepalive_ping_at = now_ts
+                render_ext_url = os.getenv("RENDER_EXTERNAL_URL") or "https://fingroww-trading-y3na.onrender.com"
+                if render_ext_url and "onrender.com" in render_ext_url:
+                    try:
+                        session.get(f"{render_ext_url.rstrip('/')}/api/health", timeout=4.0)
+                    except Exception:
+                        pass
         except Exception:
             app.logger.exception("Paper trading background supervisor failed")
         time.sleep(10.0)
@@ -2131,6 +2143,21 @@ def get_user_session_and_engine(req):
     if not user_name or user_name == "Akshay":
         user_name = req.args.get("user") or req.args.get("user_name") or req.args.get("user_id") or user_name
     return paper_manager.get_session(user_name)
+
+
+@app.get("/api/health")
+@app.get("/api/ping")
+def health_check():
+    """Ultra-lightweight zero-allocation keepalive ping for monitoring and sleep prevention."""
+    ist = get_ist_now()
+    return jsonify({
+        "ok": True,
+        "status": "healthy",
+        "service": "FinGroww-Trading",
+        "ist_time": ist.strftime("%Y-%m-%d %H:%M:%S IST"),
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    })
 
 
 @app.get("/api/paper/market-status")
