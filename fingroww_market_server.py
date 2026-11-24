@@ -226,10 +226,10 @@ _last_nse_fail = 0
 def init_nse(force=False):
     global last_init, _last_nse_fail
     now = time.time()
-    if now - _last_nse_fail < 60:
+    if now - _last_nse_fail < 10:
         return
     with lock:
-        if not force and now - last_init < 60:
+        if not force and now - last_init < 300 and session.cookies:
             return
         last_init = now
         try:
@@ -240,17 +240,19 @@ def init_nse(force=False):
                     "Accept": "text/html,application/xhtml+xml",
                     "Referer": NSE + "/",
                 },
-                timeout=2.0,
+                timeout=5.0,
             )
             if r.status_code in (401, 403):
                 _last_nse_fail = time.time()
+            elif r.status_code == 200:
+                _last_nse_fail = 0
         except Exception:
             _last_nse_fail = time.time()
 
 
-def nse_get(path, params=None, referer=None, timeout=2.0):
+def nse_get(path, params=None, referer=None, timeout=4.5):
     global _last_nse_fail
-    if time.time() - _last_nse_fail < 60:
+    if time.time() - _last_nse_fail < 10:
         return None
     try:
         init_nse()
@@ -268,6 +270,7 @@ def nse_get(path, params=None, referer=None, timeout=2.0):
             _last_nse_fail = time.time()
             return None
         if r.status_code == 200:
+            _last_nse_fail = 0
             return r.json()
     except Exception:
         _last_nse_fail = time.time()
@@ -632,8 +635,19 @@ def get_nse_market_status():
     ist = get_ist_now()
     market_minute = ist.hour * 60 + ist.minute
     regular_session = ist.weekday() < 5 and 555 <= market_minute < 930
-    ttl = 45.0 if regular_session else 120.0
 
+    # 1. Immediate 0ms Fast-Path when outside regular trading hours (market is definitely CLOSED)
+    if not regular_session:
+        return {
+            "is_trading_hours": False,
+            "market_status": "CLOSED",
+            "source": "IST Schedule (Market Closed)",
+            "trade_date": ist.strftime("%d-%b-%Y"),
+            "reason": "NSE regular trading session is closed.",
+        }
+
+    # 2. Check cached status (45s TTL during market hours)
+    ttl = 45.0
     cached = paper_market_cache.get("status")
     if cached and (now - paper_market_cache.get("at", 0) < ttl):
         current = dict(cached)
@@ -643,7 +657,13 @@ def get_nse_market_status():
             current["reason"] = "NSE regular trading session is closed."
         return current
 
-    data = nse_get("/api/marketStatus")
+    # 3. Call NSE official marketStatus with strict 2.0s timeout
+    data = None
+    try:
+        data = nse_get("/api/marketStatus", timeout=2.0)
+    except Exception:
+        data = None
+
     market_states = data.get("marketState") if isinstance(data, dict) else None
     market_states = market_states if isinstance(market_states, list) else []
     capital_market = next(
@@ -1127,7 +1147,14 @@ def fetch_option_chain(symbol, expiry=None):
                 option_chain_cache[cache_key] = {"at": now, "data": result}
             return result
 
-    return generate_fallback_option_chain(sym, spot)
+    fallback_chain = generate_fallback_option_chain(sym, spot)
+    with option_chain_lock:
+        if len(option_chain_cache) > 30:
+            oldest = sorted(option_chain_cache.keys(), key=lambda k: option_chain_cache[k]["at"])[:15]
+            for k in oldest:
+                option_chain_cache.pop(k, None)
+        option_chain_cache[cache_key] = {"at": now, "data": fallback_chain}
+    return fallback_chain
 
 
 def resolve_option_quote(base_symbol, strike, opt_type="CE", expiry=None):

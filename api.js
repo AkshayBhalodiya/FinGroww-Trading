@@ -12,15 +12,16 @@
   const LOCAL_DEV_API = "http://127.0.0.1:8787";
   const CACHE_STORAGE_KEY = "fingroww_active_api_host";
 
-  // Prohibited / suspended legacy domains
+  // Prohibited / suspended / unconfigured legacy domains
   const DEAD_HOST_FRAGMENTS = [
-    "fingroww-trading.onrender.com" // Suspended Render service (returns 503 without CORS)
+    "fingroww-trading.onrender.com", // Suspended Render service (returns 503 without CORS)
+    "api.fingroww.tech" // Currently unconfigured API domain (prevents 20s timeout hang)
   ];
 
   function isHostDead(host) {
     if (!host) return false;
     for (const dead of DEAD_HOST_FRAGMENTS) {
-      if (host.includes(dead) && !host.includes("fingroww-trading-y3na.onrender.com")) {
+      if (host.includes(dead)) {
         return true;
       }
     }
@@ -48,19 +49,19 @@
     const protocol = window.location.protocol || "";
 
     const isLocalBackendServed = (hostname === "127.0.0.1" || hostname === "localhost") && port === "8787";
-    const isRenderServed = hostname.includes("onrender.com") || hostname.includes("api.fingroww.tech");
+    const isRenderServed = hostname.includes("onrender.com");
     const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
     let hosts = [PRIMARY_RENDER_URL];
     if (isLocalBackendServed) {
-      hosts = ["", LOCAL_DEV_API, PRIMARY_RENDER_URL, CUSTOM_DOMAIN_API];
+      hosts = ["", LOCAL_DEV_API, PRIMARY_RENDER_URL];
     } else if (isRenderServed) {
-      hosts = ["", PRIMARY_RENDER_URL, CUSTOM_DOMAIN_API];
+      hosts = ["", PRIMARY_RENDER_URL];
     } else if (isLocalDev) {
-      hosts = [LOCAL_DEV_API, PRIMARY_RENDER_URL, CUSTOM_DOMAIN_API];
+      hosts = [LOCAL_DEV_API, PRIMARY_RENDER_URL];
     } else {
       // Live production static domain (e.g., fingroww.tech)
-      hosts = [PRIMARY_RENDER_URL, CUSTOM_DOMAIN_API];
+      hosts = [PRIMARY_RENDER_URL];
     }
 
     // Filter out any dead host

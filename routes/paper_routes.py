@@ -243,18 +243,17 @@ def paper_session_scan():
         u_sess.update_config(scan_patch)
 
     force = bool(data.get("force", False) or request.args.get("force") in ("true", "1"))
-    if force:
+    now_ts = time.time()
+    last_scan = getattr(u_eng, "last_scan_at", 0) or 0
+    # Always run scan asynchronously in background so HTTP response is instant (<10ms)
+    # This prevents blocking Gunicorn worker threads and browser connection slots.
+    if force or not u_sess.scanned_signals or (now_ts - last_scan > 60):
         def _bg_scan():
             try:
                 u_eng.scan_and_evaluate_setups(force=True)
             except Exception:
                 pass
         threading.Thread(target=_bg_scan, daemon=True).start()
-    else:
-        try:
-            u_eng.scan_and_evaluate_setups(force=False)
-        except Exception:
-            pass
 
     market_status = srv.get_nse_market_status()
 
