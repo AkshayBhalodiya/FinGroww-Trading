@@ -482,6 +482,7 @@ def evaluate_trade_outcomes():
 
 
 @market_bp.get("/api/system/status")
+@market_bp.get("/api/system/metrics")
 def system_status():
     """Return backend infrastructure health, data latency & MongoDB status."""
     from cache_manager import global_quote_cache, live_paper_quote_cache, session_stream_hub, redis_bridge

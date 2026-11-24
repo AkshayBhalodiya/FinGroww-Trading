@@ -1,3 +1,8 @@
+import sys
+# Register module alias when executed directly as script to prevent dual-import
+if __name__ == "__main__":
+    sys.modules["fingroww_market_server"] = sys.modules[__name__]
+
 from flask import Flask, jsonify, request, send_from_directory, Response
 import requests
 import time
