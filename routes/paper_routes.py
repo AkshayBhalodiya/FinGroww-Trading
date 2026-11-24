@@ -490,7 +490,7 @@ def paper_manual_order():
     target_price = data.get("target_price")
     algo_target = bool(data.get("algo_target", False))
     lots = int(data.get("lots") or 1)
-    holding_mins = float(data.get("holding_duration_mins") or 1440)
+    holding_mins = int(data.get("holding_duration_mins") or 1440)
 
     market_status = srv.get_nse_market_status()
     market_is_open = bool(market_status.get("is_trading_hours"))
