@@ -2100,6 +2100,8 @@ button[disabled],
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 14px;
   max-width: fit-content;
+  position: relative;
+  z-index: 20;
 }
 .dual-mode-pill {
   display: inline-flex;
@@ -2114,21 +2116,26 @@ button[disabled],
   font-weight: 700;
   cursor: pointer;
   transition: all 0.25s ease;
+  user-select: none;
+  outline: none;
+}
+.dual-mode-pill * {
+  pointer-events: none;
 }
 .dual-mode-pill:hover {
   color: var(--text-main, #f8fafc);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 .dual-mode-pill.active {
-  background: rgba(56, 189, 248, 0.12);
-  color: var(--accent-blue, #38bdf8);
-  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12) !important;
+  color: var(--accent-blue, #38bdf8) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
   box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
 }
 .dual-mode-pill.mode-real.active {
-  background: rgba(245, 158, 11, 0.14);
-  color: var(--accent-gold, #fbbf24);
-  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: var(--accent-gold, #fbbf24) !important;
+  border-color: rgba(245, 158, 11, 0.45) !important;
   box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
 }
 .badge-mode-virtual {
@@ -2286,12 +2293,12 @@ button[disabled],
 
   <!-- Dual-Mode Top Navigation: Paper Trading vs Real Live Trading -->
   <div class="trading-dual-mode-bar">
-    <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('PAPER')" title="Risk-free virtual paper trading with ₹1,00,000 cash">
+    <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('paper')" title="Risk-free virtual paper trading with ₹1,00,000 cash">
       <i class="fa-solid fa-scroll" style="color:var(--accent-blue);"></i>
       <span>Paper Trading</span>
       <span class="badge-mode-virtual">VIRTUAL ₹1,00,000</span>
     </button>
-    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('REAL')" title="Real live money trading with Zerodha, Angel One, or Dhan">
+    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" title="Real live money trading with Zerodha, Angel One, or Dhan">
       <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
       <span>Real Live Trading</span>
       <span class="badge-mode-real">ZERODHA · ANGEL ONE · DHAN</span>
@@ -3914,17 +3921,17 @@ button[disabled],
 
     <!-- Broker Selection Tabs -->
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:18px;">
-      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--accent-gold); background:rgba(245,158,11,0.12); cursor:pointer;">
+      <label class="broker-tab-label" onclick="selectBrokerTab('ZERODHA_KITE')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--accent-gold); background:rgba(245,158,11,0.12); cursor:pointer;">
         <input type="radio" name="brokerSelectRadio" value="ZERODHA_KITE" checked onchange="onBrokerPlatformRadioChange()" style="display:none;">
         <span style="font-weight:700; font-size:13px; color:#f87171;"><i class="fa-solid fa-k"></i> Zerodha</span>
         <span style="font-size:10px; color:var(--text-dim);">Kite Connect v3</span>
       </label>
-      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
+      <label class="broker-tab-label" onclick="selectBrokerTab('ANGEL_ONE')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
         <input type="radio" name="brokerSelectRadio" value="ANGEL_ONE" onchange="onBrokerPlatformRadioChange()" style="display:none;">
         <span style="font-weight:700; font-size:13px; color:#34d399;"><i class="fa-solid fa-a"></i> Angel One</span>
         <span style="font-size:10px; color:var(--text-dim);">SmartAPI</span>
       </label>
-      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
+      <label class="broker-tab-label" onclick="selectBrokerTab('DHAN')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
         <input type="radio" name="brokerSelectRadio" value="DHAN" onchange="onBrokerPlatformRadioChange()" style="display:none;">
         <span style="font-weight:700; font-size:13px; color:#fbbf24;"><i class="fa-solid fa-d"></i> DhanHQ</span>
         <span style="font-size:10px; color:var(--text-dim);">DhanHQ v2</span>
@@ -4580,6 +4587,11 @@ function openManualOrderModal() {
     symEl.value = "NIFTY 50";
   }
 
+  const strikeInp = document.getElementById("manualOrderStrike");
+  if (strikeInp) {
+    strikeInp.value = ""; // Clear strike so the fresh symbol's accurate ATM is resolved
+  }
+
   const lotsInp = document.getElementById("manualOrderLots");
   if (lotsInp && (!lotsInp.value || parseInt(lotsInp.value) < 1)) {
     lotsInp.value = "1";
@@ -4597,8 +4609,18 @@ function openManualOrderModal() {
       btnSubmit.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
     }
   } else {
-    if (availEl && window.currentSessionState && window.currentSessionState.account) {
-      const bal = Number(window.currentSessionState.account.available_balance || 0);
+    if (availEl) {
+      const state = (typeof sessionState !== "undefined" && sessionState) ? sessionState : (window.currentSessionState || null);
+      let bal = 100000;
+      if (state && state.account) {
+        bal = Number(state.account.cash_balance ?? state.account.available_balance ?? state.account.account_equity ?? 100000);
+      } else {
+        const eqText = document.getElementById("metricAccountEquity")?.textContent || "";
+        const m = eqText.replace(/[^0-9.]/g, "");
+        if (m && !isNaN(parseFloat(m))) {
+          bal = parseFloat(m);
+        }
+      }
       availEl.textContent = `₹${bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     if (btnSubmit) {
@@ -4642,7 +4664,7 @@ function setManualOptionType(type) {
     }
   }
   updateManualContractTitle();
-  fetchManualOptionQuote();
+  fetchManualOptionQuote(false);
 }
 
 function updateManualContractTitle() {
@@ -4650,7 +4672,7 @@ function updateManualContractTitle() {
   const strikeInp = document.getElementById("manualOrderStrike");
   const titleEl = document.getElementById("manualContractTitle");
   const sym = symEl ? symEl.value : "NIFTY 50";
-  const strike = strikeInp ? strikeInp.value : "--";
+  const strike = (strikeInp && strikeInp.value) ? strikeInp.value : (lastManualQuote?.strike || "ATM");
   if (titleEl) {
     titleEl.textContent = `${sym} ${strike} ${currentManualOptType}`;
   }
@@ -4667,7 +4689,19 @@ function onManualSymbolChange() {
   const strikeInp = document.getElementById("manualOrderStrike");
   if (strikeInp) {
     strikeInp.step = step;
+    strikeInp.value = ""; // Reset strike so the new instrument's ATM strike is fetched
   }
+
+  // Clear previous quote cache and show immediate loading state
+  lastManualQuote = null;
+  const titleEl = document.getElementById("manualContractTitle");
+  if (titleEl) titleEl.textContent = `${sym} ATM ${currentManualOptType}`;
+  const spotEl = document.getElementById("manualSpotBadge");
+  if (spotEl) spotEl.textContent = "CMP: Loading...";
+  const ltpEl = document.getElementById("manualLtpDisplay");
+  if (ltpEl) ltpEl.textContent = "₹--";
+  const expEl = document.getElementById("manualExpiryBadge");
+  if (expEl) expEl.textContent = "Resolving Expiry...";
 
   fetchManualOptionQuote(true);
 }
@@ -4681,7 +4715,7 @@ function adjustManualStrike(stepDelta) {
 
   let val = parseFloat(strikeInp.value);
   if (isNaN(val) || val <= 0) {
-    val = lastManualQuote && lastManualQuote.spot_price ? lastManualQuote.spot_price : 24500;
+    val = lastManualQuote && lastManualQuote.spot_price ? lastManualQuote.spot_price : (lastManualQuote?.strike || 24500);
   }
   val = Math.round((val + (stepDelta * step)) / step) * step;
   strikeInp.value = val;
@@ -4699,7 +4733,7 @@ function setManualStrikeToAtm() {
     if (strikeInp) {
       strikeInp.value = atm;
       updateManualContractTitle();
-      fetchManualOptionQuote();
+      fetchManualOptionQuote(false);
     }
   }
 }
@@ -4708,7 +4742,7 @@ function debounceManualQuoteFetch() {
   clearTimeout(manualQuoteDebounceTimer);
   manualQuoteDebounceTimer = setTimeout(() => {
     updateManualContractTitle();
-    fetchManualOptionQuote();
+    fetchManualOptionQuote(false);
   }, 350);
 }
 
@@ -4730,10 +4764,12 @@ async function fetchManualOptionQuote(autoAtm = false) {
     spotEl.textContent = `CMP: ₹${Number(data.spot_price).toFixed(2)}`;
   }
 
-  if (autoAtm && (!strike || parseFloat(strike) <= 0)) {
-    if (strikeInp) strikeInp.value = data.strike;
-    updateManualContractTitle();
+  if (strikeInp) {
+    if (autoAtm || !strikeInp.value || parseFloat(strikeInp.value) <= 0 || (data.strike && Math.abs(parseFloat(strikeInp.value) - data.strike) > data.strike * 0.35)) {
+      strikeInp.value = data.strike;
+    }
   }
+  updateManualContractTitle();
 
   const ltpEl = document.getElementById("manualLtpDisplay");
   if (ltpEl) ltpEl.textContent = `₹${(Number(data.premium) || 0).toFixed(2)}`;
@@ -4745,11 +4781,11 @@ async function fetchManualOptionQuote(autoAtm = false) {
   if (lotMarginEl) lotMarginEl.textContent = `₹${(Number(data.margin_1_lot) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const expEl = document.getElementById("manualExpiryBadge");
-  if (expEl) expEl.textContent = data.expiry_label || "Upcoming Expiry";
+  if (expEl) expEl.textContent = data.expiry_label || data.expiry || "Upcoming Expiry";
 
-  // Auto-fill suggested SL if input is currently empty
+  // Auto-fill suggested SL
   const slInp = document.getElementById("manualOrderSl");
-  if (slInp && (!slInp.value || parseFloat(slInp.value) <= 0)) {
+  if (slInp) {
     slInp.value = data.suggested_sl ? Number(data.suggested_sl).toFixed(2) : (Number(data.premium) * 0.8).toFixed(2);
   }
 
@@ -6759,8 +6795,11 @@ let currentTradingMode = localStorage.getItem("fingroww_trading_mode") || "paper
 let activeBrokerData = null;
 
 function switchTradingMode(mode) {
-  currentTradingMode = mode === "real" ? "real" : "paper";
-  localStorage.setItem("fingroww_trading_mode", currentTradingMode);
+  const normMode = String(mode || "paper").toLowerCase().trim();
+  currentTradingMode = (normMode === "real") ? "real" : "paper";
+  try {
+    localStorage.setItem("fingroww_trading_mode", currentTradingMode);
+  } catch (e) {}
 
   const tabPaper = document.getElementById("tabModePaper");
   const tabReal = document.getElementById("tabModeReal");
@@ -6770,14 +6809,14 @@ function switchTradingMode(mode) {
   if (currentTradingMode === "real") {
     if (tabReal) tabReal.classList.add("active");
     if (tabPaper) tabPaper.classList.remove("active");
-    if (viewPaper) viewPaper.style.display = "none";
-    if (viewReal) viewReal.style.display = "block";
+    if (viewPaper) viewPaper.style.setProperty("display", "none", "important");
+    if (viewReal) viewReal.style.setProperty("display", "block", "important");
     refreshBrokerStatus();
   } else {
     if (tabPaper) tabPaper.classList.add("active");
     if (tabReal) tabReal.classList.remove("active");
-    if (viewPaper) viewPaper.style.display = "block";
-    if (viewReal) viewReal.style.display = "none";
+    if (viewPaper) viewPaper.style.setProperty("display", "block", "important");
+    if (viewReal) viewReal.style.setProperty("display", "none", "important");
   }
 
   // Notify backend of mode toggle
@@ -6787,19 +6826,21 @@ function switchTradingMode(mode) {
   }).catch(() => {});
 }
 
+function selectBrokerTab(brokerKey) {
+  const targetKey = brokerKey || "ZERODHA_KITE";
+  const radios = document.getElementsByName("brokerSelectRadio");
+  radios.forEach(r => {
+    r.checked = (r.value === targetKey);
+  });
+  onBrokerPlatformRadioChange();
+}
+
 function openConnectBrokerModal(brokerKey) {
   const modal = document.getElementById("modalConnectBroker");
   if (!modal) return;
   modal.classList.add("active");
 
-  const targetKey = brokerKey || "ZERODHA_KITE";
-  const radios = document.getElementsByName("brokerSelectRadio");
-  radios.forEach(r => {
-    if (r.value === targetKey) {
-      r.checked = true;
-    }
-  });
-  onBrokerPlatformRadioChange();
+  selectBrokerTab(brokerKey || "ZERODHA_KITE");
 }
 
 function onBrokerPlatformRadioChange() {
@@ -6914,7 +6955,11 @@ async function refreshBrokerStatus() {
     const disconnectedHero = document.getElementById("brokerDisconnectedSetup");
     const connectedTerminal = document.getElementById("brokerConnectedTerminal");
 
-    if (res && res.success && res.connected) {
+    const isConnected = !!(res && (res.connected || (res.status && res.status.is_connected)));
+    const brokerName = (res && (res.broker_name || res.broker || (res.status && res.status.broker_name))) || null;
+    const clientId = (res && (res.client_id || (res.status && res.status.client_id))) || null;
+
+    if (isConnected) {
       activeBrokerData = res;
       if (statusDot) statusDot.style.background = "#10b981";
       if (statusText) statusText.textContent = "CONNECTED (LIVE)";
@@ -6923,10 +6968,10 @@ async function refreshBrokerStatus() {
         statusBadge.style.borderColor = "rgba(16,185,129,0.4)";
         statusBadge.style.color = "#34d399";
       }
-      if (lblBrokerName) lblBrokerName.textContent = res.broker_name || res.broker || "Live Broker";
-      if (lblClientId) lblClientId.textContent = res.client_id || "--";
-      if (disconnectedHero) disconnectedHero.style.display = "none";
-      if (connectedTerminal) connectedTerminal.style.display = "block";
+      if (lblBrokerName) lblBrokerName.textContent = brokerName || "Live Broker";
+      if (lblClientId) lblClientId.textContent = clientId || "--";
+      if (disconnectedHero) disconnectedHero.style.setProperty("display", "none", "important");
+      if (connectedTerminal) connectedTerminal.style.setProperty("display", "block", "important");
 
       await Promise.all([
         fetchBrokerFunds(),
@@ -6944,8 +6989,8 @@ async function refreshBrokerStatus() {
       }
       if (lblBrokerName) lblBrokerName.textContent = "No Broker";
       if (lblClientId) lblClientId.textContent = "--";
-      if (disconnectedHero) disconnectedHero.style.display = "block";
-      if (connectedTerminal) connectedTerminal.style.display = "none";
+      if (disconnectedHero) disconnectedHero.style.setProperty("display", "block", "important");
+      if (connectedTerminal) connectedTerminal.style.setProperty("display", "none", "important");
     }
   } catch (e) {
     console.error("Broker status fetch failed", e);
@@ -7115,8 +7160,24 @@ window.addEventListener("DOMContentLoaded", async () => {
   if (savedTradingMode === "real") {
     switchTradingMode("real");
   } else {
-    // Keep broker status in sync in the background
+    switchTradingMode("paper");
     refreshBrokerStatus();
+  }
+
+  // Explicit click listeners for dual-mode navigation tabs
+  const tabPaperBtn = document.getElementById("tabModePaper");
+  const tabRealBtn = document.getElementById("tabModeReal");
+  if (tabPaperBtn) {
+    tabPaperBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      switchTradingMode("paper");
+    });
+  }
+  if (tabRealBtn) {
+    tabRealBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      switchTradingMode("real");
+    });
   }
   // 0. Instant Optimistic Render from LocalStorage Cache (0ms instant page display!)
   try {

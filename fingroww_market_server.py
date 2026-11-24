@@ -805,25 +805,24 @@ def generate_fallback_option_chain(symbol, spot):
             }
         })
 
-    is_index = symbol in ("NIFTY 50", "NIFTY", "BANK NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX")
-    now_dt = datetime.now()
-    # Build upcoming Thursday-like expiry labels dynamically relative to current date
-    days_ahead = (3 - now_dt.weekday()) % 7
-    if days_ahead == 0:
-        days_ahead = 7
-    base_exp = now_dt + timedelta(days=days_ahead)
-    if is_index:
+    from fingroww_paper_engine import get_next_option_expiry
+    exp_info = get_next_option_expiry(symbol)
+    base_exp = exp_info["datetime"]
+    days_ahead = exp_info["dte"]
+    kind = exp_info["kind"]
+
+    if kind == "Weekly":
         expiries = [
-            f"{(base_exp + timedelta(days=0)).strftime('%d-%b-%Y').upper()} (Current Weekly - {days_ahead} DTE)",
+            f"{base_exp.strftime('%d-%b-%Y').upper()} (Current Weekly - {days_ahead} DTE)",
             f"{(base_exp + timedelta(days=7)).strftime('%d-%b-%Y').upper()} (Next Weekly - {days_ahead + 7} DTE)",
-            f"{(base_exp + timedelta(days=14)).strftime('%d-%b-%Y').upper()} (Current Monthly - {days_ahead + 14} DTE)",
-            f"{(base_exp + timedelta(days=42)).strftime('%d-%b-%Y').upper()} (Next Monthly - {days_ahead + 42} DTE)",
+            f"{(base_exp + timedelta(days=14)).strftime('%d-%b-%Y').upper()} (Far Weekly - {days_ahead + 14} DTE)",
+            f"{(base_exp + timedelta(days=28)).strftime('%d-%b-%Y').upper()} (Monthly - {days_ahead + 28} DTE)",
         ]
     else:
         expiries = [
-            f"{(base_exp + timedelta(days=14)).strftime('%d-%b-%Y').upper()} (Current Monthly - {days_ahead + 14} DTE)",
-            f"{(base_exp + timedelta(days=42)).strftime('%d-%b-%Y').upper()} (Next Monthly - {days_ahead + 42} DTE)",
-            f"{(base_exp + timedelta(days=70)).strftime('%d-%b-%Y').upper()} (Far Monthly - {days_ahead + 70} DTE)",
+            f"{base_exp.strftime('%d-%b-%Y').upper()} (Current Monthly - {days_ahead} DTE)",
+            f"{(base_exp + timedelta(days=28)).strftime('%d-%b-%Y').upper()} (Next Monthly - {days_ahead + 28} DTE)",
+            f"{(base_exp + timedelta(days=56)).strftime('%d-%b-%Y').upper()} (Far Monthly - {days_ahead + 56} DTE)",
         ]
 
     pcr = round(pe_tot_oi / ce_tot_oi, 2) if ce_tot_oi > 0 else 1.0

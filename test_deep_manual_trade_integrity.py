@@ -47,6 +47,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
                 stop_loss_pct=20.0,
                 algo_target=True,
                 lots=1,
+                market_is_open=True,
             )
             self.assertIsNotNone(pos, f"Failed for {sym} {strike} {opt_type}: {err}")
             self.assertEqual(pos["execution_type"], "MANUAL")
@@ -115,7 +116,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         sess.config["max_open_positions"] = 2
 
         # 1. Open 1 Manual Trade
-        man_pos, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=15.0, lots=1)
+        man_pos, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=15.0, lots=1, market_is_open=True)
         self.assertIsNotNone(man_pos)
         self.assertEqual(len(sess.positions), 1)
 
@@ -153,7 +154,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         sess.reset(initial_capital=200000.0)
 
         # Trade 1: Will hit Target
-        pos_tp, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, algo_target=True, lots=1)
+        pos_tp, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, algo_target=True, lots=1, market_is_open=True)
         entry_price = pos_tp["entry_price"]
         target_price = pos_tp["target_price"]
 
@@ -176,7 +177,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         self.assertTrue(sess.closed_trades[0]["is_win"])
 
         # Trade 2: Will hit Stop Loss
-        pos_sl, _ = sess.execute_manual_trade("BANK NIFTY", 52000, "PE", stop_loss_pct=20.0, algo_target=True, lots=1)
+        pos_sl, _ = sess.execute_manual_trade("BANK NIFTY", 52000, "PE", stop_loss_pct=20.0, algo_target=True, lots=1, market_is_open=True)
         sl_price = pos_sl["stop_loss"]
 
         # Simulate price tick below stop-loss
@@ -203,11 +204,11 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         sess.reset(initial_capital=200000.0)
 
         # 1. Execute 1 manual trade & close it
-        p1, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=15.0, lots=1)
+        p1, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=15.0, lots=1, market_is_open=True)
         sess.manual_close_position(p1["trade_id"], force=True)
 
         # 2. Execute 1 active manual trade (keep open)
-        p2, _ = sess.execute_manual_trade("BANK NIFTY", 52000, "PE", stop_loss_pct=20.0, lots=1)
+        p2, _ = sess.execute_manual_trade("BANK NIFTY", 52000, "PE", stop_loss_pct=20.0, lots=1, market_is_open=True)
 
         # Save to DB
         sess.save_to_db()
@@ -235,7 +236,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         sess.reset(initial_capital=250000.0)
 
         # Place a manual trade in session
-        m_pos, err = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, lots=1)
+        m_pos, err = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, lots=1, market_is_open=True)
         self.assertIsNotNone(m_pos, f"Failed: {err}")
 
         # Initialize Swarm Orchestrator singleton
@@ -258,7 +259,7 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
         sess, _ = paper_manager.get_session(user)
         sess.reset(initial_capital=100000.0)
 
-        p, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, lots=1)
+        p, _ = sess.execute_manual_trade("NIFTY", 24500, "CE", stop_loss_pct=20.0, lots=1, market_is_open=True)
 
         st = sess.get_state()
         # Verify get_state includes manual execution attributes

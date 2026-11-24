@@ -10,9 +10,8 @@ import io
 import queue
 import threading
 from flask import Blueprint, request, jsonify, Response
-import fingroww_market_server as srv
-import fingroww_paper_engine as pe
 from cache_manager import session_stream_hub
+import fingroww_paper_engine as pe
 
 paper_bp = Blueprint("paper_api", __name__)
 
@@ -528,28 +527,76 @@ def paper_manual_order():
 
 @paper_bp.get("/api/paper/option-quote")
 def paper_option_quote():
-    """Returns live quote, lot size, and margin details for a specific strike and CE/PE contract."""
-    from fingroww_paper_engine import DEFAULT_SPOTS
+    """Returns live quote, lot size, accurate upcoming expiry, and margin details for a specific strike and CE/PE contract."""
+    from fingroww_paper_engine import DEFAULT_SPOTS, get_next_option_expiry
     sym = request.args.get("symbol") or "NIFTY 50"
     strike = request.args.get("strike")
     opt_type = request.args.get("option_type") or "CE"
 
     base_sym = srv.normalize_symbol(sym)
     quote = srv.resolve_paper_quote(base_sym) or {}
-    spot_price = float(quote.get("lastPrice") or DEFAULT_SPOTS.get(base_sym, 24500.0))
 
-    step = 50 if "NIFTY" in base_sym and "BANK" not in base_sym else (100 if "BANK" in base_sym else 50)
-    if not strike:
-        strike_val = int(round(spot_price / step) * step)
+    fallback_spots = {
+        "NIFTY 50": 24850.0,
+        "NIFTY": 24850.0,
+        "BANK NIFTY": 52400.0,
+        "BANKNIFTY": 52400.0,
+        "FINNIFTY": 24200.0,
+        "MIDCPNIFTY": 12800.0,
+        "SENSEX": 81500.0,
+        "RELIANCE": 1285.0,
+        "HDFCBANK": 1750.0,
+        "TCS": 4150.0,
+        "INFY": 1850.0,
+        "ICICIBANK": 1260.0,
+        "SBIN": 820.0,
+        "TATAMOTORS": 780.0,
+        "BHARTIARTL": 1650.0,
+        "LT": 3600.0,
+    }
+    spot_price = float(quote.get("lastPrice") or fallback_spots.get(base_sym, DEFAULT_SPOTS.get(base_sym, 24850.0)))
+
+    # Standard F&O Strike Intervals
+    if "BANK" in base_sym:
+        step = 100
+    elif "SENSEX" in base_sym:
+        step = 100
+    elif "MIDCPNIFTY" in base_sym:
+        step = 25
+    elif "NIFTY" in base_sym or "FINNIFTY" in base_sym:
+        step = 50
+    elif spot_price < 500:
+        step = 5
+    elif spot_price < 1500:
+        step = 10
+    elif spot_price < 3000:
+        step = 20
+    else:
+        step = 50
+
+    atm_strike = int(round(spot_price / step) * step) if step >= 1 else round(spot_price, 1)
+
+    # Sanitize and validate strike (auto-center ATM if empty or stale from previous symbol)
+    if not strike or str(strike).strip() == "" or str(strike).strip() == "0":
+        strike_val = atm_strike
     else:
         try:
-            strike_val = float(strike)
-            strike_val = int(strike_val) if strike_val == int(strike_val) else round(strike_val, 2)
-        except ValueError:
-            strike_val = int(round(spot_price / step) * step)
+            val = float(strike)
+            # If strike is off by more than 35% from spot, it is a stale cross-symbol strike!
+            if abs(val - spot_price) > (spot_price * 0.35):
+                strike_val = atm_strike
+            else:
+                strike_val = int(val) if val == int(val) else round(val, 2)
+        except (ValueError, TypeError):
+            strike_val = atm_strike
 
     opt_quote = srv.resolve_option_quote(base_sym, strike_val, opt_type)
     premium = float(opt_quote.get("lastPrice") or 0.0) if opt_quote else 0.0
+
+    # Dynamic Next Expiry Calculation
+    expiry_info = get_next_option_expiry(base_sym)
+    expiry_label = expiry_info.get("label") or "Upcoming Expiry"
+    expiry_date = expiry_info.get("date") or "Upcoming Expiry"
 
     if premium <= 0:
         dist = abs(strike_val - spot_price) / max(spot_price, 1.0)
@@ -563,7 +610,7 @@ def paper_option_quote():
             if k in base_sym.upper():
                 lot_size = v
                 break
-    lot_size = lot_size or (25 if "NIFTY" in base_sym else 15)
+    lot_size = lot_size or (25 if "NIFTY" in base_sym and "BANK" not in base_sym else (30 if "BANK" in base_sym else 15))
     margin_1_lot = round(premium * lot_size, 2)
 
     suggested_sl = max(0.05, round(premium * 0.80, 2))
@@ -581,8 +628,10 @@ def paper_option_quote():
         "margin_1_lot": margin_1_lot,
         "suggested_sl": suggested_sl,
         "suggested_target": suggested_target,
-        "expiry_label": (opt_quote or {}).get("expiry_label") or "Upcoming Expiry",
-        "market_source": (opt_quote or {}).get("source") or "NSE / Fair Value",
+        "expiry": expiry_date,
+        "expiry_date": expiry_date,
+        "expiry_label": expiry_label,
+        "market_source": (opt_quote or {}).get("source") or "NSE Official Live / Fair Value",
     })
 
 
@@ -854,3 +903,8 @@ def paper_run_backtest():
         years=years,
     )
     return jsonify(results)
+
+
+# Late import to prevent circular import when importing routes package
+import fingroww_market_server as srv
+

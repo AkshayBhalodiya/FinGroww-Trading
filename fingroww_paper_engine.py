@@ -256,6 +256,86 @@ UNIVERSE = [
 ]
 
 DEFAULT_SPOTS = {u["symbol"]: float(u.get("default_price", 1000.0)) for u in UNIVERSE}
+DEFAULT_SPOTS.update({
+    "NIFTY 50": 24850.0,
+    "NIFTY": 24850.0,
+    "BANK NIFTY": 52400.0,
+    "BANKNIFTY": 52400.0,
+    "FINNIFTY": 24200.0,
+    "MIDCPNIFTY": 12800.0,
+    "SENSEX": 81500.0,
+})
+
+
+def get_next_option_expiry(symbol: str, base_date=None) -> dict:
+    """
+    Computes the accurate upcoming option expiry date and DTE relative to current IST date.
+    - NIFTY 50: Weekly Thursday
+    - BANK NIFTY: Weekly Wednesday
+    - FINNIFTY: Weekly Tuesday
+    - MIDCPNIFTY: Weekly Monday
+    - SENSEX: Weekly Friday
+    - Stock Options (RELIANCE, TCS, etc.): Monthly Last Thursday
+    """
+    import calendar
+    from datetime import datetime, timedelta
+
+    if base_date is None:
+        base_date = get_ist_now()
+
+    sym = (symbol or "NIFTY 50").strip().upper()
+    weekly_weekday_map = {
+        "MIDCPNIFTY": 0,    # Monday
+        "FINNIFTY": 1,      # Tuesday
+        "BANK NIFTY": 2,    # Wednesday
+        "BANKNIFTY": 2,     # Wednesday
+        "NIFTY 50": 3,      # Thursday
+        "NIFTY": 3,         # Thursday
+        "SENSEX": 4,        # Friday
+    }
+
+    is_index = any(k in sym for k in ["NIFTY", "SENSEX", "MIDCPNIFTY", "FINNIFTY"])
+
+    if sym in weekly_weekday_map:
+        target_wd = weekly_weekday_map[sym]
+        days_ahead = (target_wd - base_date.weekday()) % 7
+        if days_ahead == 0 and (base_date.hour > 15 or (base_date.hour == 15 and base_date.minute >= 30)):
+            days_ahead = 7
+        expiry_dt = base_date + timedelta(days=days_ahead)
+        kind = "Weekly"
+    elif is_index:
+        days_ahead = (3 - base_date.weekday()) % 7
+        if days_ahead == 0 and (base_date.hour > 15 or (base_date.hour == 15 and base_date.minute >= 30)):
+            days_ahead = 7
+        expiry_dt = base_date + timedelta(days=days_ahead)
+        kind = "Weekly"
+    else:
+        # Stock options: Last Thursday of the month
+        kind = "Monthly"
+        tz = getattr(base_date, "tzinfo", None)
+        year, month = base_date.year, base_date.month
+        last_day = calendar.monthrange(year, month)[1]
+        last_date = datetime(year, month, last_day, 15, 30, tzinfo=tz)
+        offset = (last_date.weekday() - 3) % 7
+        last_thursday = last_date - timedelta(days=offset)
+        if base_date > last_thursday:
+            year, month = (year + 1, 1) if month == 12 else (year, month + 1)
+            last_day = calendar.monthrange(year, month)[1]
+            last_date = datetime(year, month, last_day, 15, 30, tzinfo=tz)
+            offset = (last_date.weekday() - 3) % 7
+            last_thursday = last_date - timedelta(days=offset)
+        expiry_dt = last_thursday
+
+    dte = max(0, (expiry_dt.date() - base_date.date()).days)
+    formatted_date = expiry_dt.strftime("%d-%b-%Y").upper()
+    label = f"{formatted_date} ({kind} · {dte} DTE)"
+    return {
+        "date": formatted_date,
+        "datetime": expiry_dt,
+        "dte": dte,
+        "kind": kind,
+        "label": label,
+    }
 
 
 def evaluate_timewise_profit_metrics(setup, current_live_quote=None):
@@ -903,7 +983,7 @@ class PaperTradingSession:
         self.circuit_breaker_triggered_at = None
         self.log_event("SESSION_RESET", f"Paper trading session reset. Capital restored to ₹{cap:,.2f}.")
 
-    def can_open_new_trade(self, is_manual=False):
+    def can_open_new_trade(self, is_manual=False, market_is_open=False):
         """Enforces pre-trade risk supervisor checks."""
         # 1. Circuit Breaker Check
         if getattr(self, "is_circuit_breaker_triggered", False):
@@ -930,7 +1010,7 @@ class PaperTradingSession:
             send_telegram_alert(f"⚠️ <b>FinGroww Circuit Breaker</b>: {self.circuit_breaker_reason}", self.config)
             return False, self.circuit_breaker_reason
 
-        if not is_manual:
+        if not is_manual and not market_is_open:
             if self.status != "RUNNING":
                 return False, f"Session is in {self.status} state."
 
@@ -999,7 +1079,7 @@ class PaperTradingSession:
         is_manual = is_manual or setup.get("is_manual", False) or setup.get("allow_offline", False)
         if not market_is_open and not is_manual:
             return None, "NSE market is closed or its status is unavailable; no trade was opened."
-        can_trade, reason = self.can_open_new_trade(is_manual=is_manual)
+        can_trade, reason = self.can_open_new_trade(is_manual=is_manual, market_is_open=market_is_open)
         if not can_trade:
             return None, reason
 
@@ -1419,6 +1499,12 @@ class PaperTradingSession:
                     opt_oi = opt_q.get("oi")
             except Exception as exc:
                 logger.warning("Manual order quote resolver failed for %s: %s", sym, exc)
+
+        if not expiry_label:
+            exp_info = get_next_option_expiry(base_sym)
+            expiry_date = exp_info["date"]
+            expiry_kind = exp_info["kind"]
+            expiry_label = exp_info["label"]
 
         if not raw_entry or raw_entry <= 0:
             if quote_resolver:
