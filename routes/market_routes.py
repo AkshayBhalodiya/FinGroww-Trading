@@ -484,6 +484,7 @@ def evaluate_trade_outcomes():
 @market_bp.get("/api/system/status")
 def system_status():
     """Return backend infrastructure health, data latency & MongoDB status."""
+    from cache_manager import global_quote_cache, live_paper_quote_cache, session_stream_hub, redis_bridge
     return jsonify({
         "server_time": datetime.now(timezone.utc).isoformat(),
         "database": {
@@ -492,10 +493,16 @@ def system_status():
             "signals_stored": srv.mongo_db["signals"].count_documents({}) if srv.mongo_db is not None else len(srv.local_datastore["signals"])
         },
         "market_proxy": {
-            "nse_connected": bool(srv.quote_cache),
             "source": "NSE Direct + Yahoo Finance API",
-            "cache_size": len(srv.quote_cache),
+            "cache_size": len(srv.paper_live_quote_cache),
             "multi_user_sessions": len(srv.paper_manager.sessions) if srv.paper_manager else 0,
-            "swarm_active": bool(srv.swarm_orchestrator and srv.swarm_orchestrator.is_active)
+            "swarm_active": bool(srv.swarm_orchestrator and getattr(srv.swarm_orchestrator, "is_active", True))
+        },
+        "caching_and_streaming": {
+            "general_quote_cache": global_quote_cache.get_metrics(),
+            "paper_live_quote_cache": live_paper_quote_cache.get_metrics(),
+            "redis_connected": redis_bridge.is_connected,
+            "active_sse_subscribers": session_stream_hub.get_subscriber_count(),
+            "total_sse_broadcasts": session_stream_hub.total_broadcasts
         }
     })

@@ -5395,7 +5395,10 @@ function initSSEConnection() {
     try { sseEventSource.close(); } catch(e) {}
     sseEventSource = null;
   }
-  const url = `/api/paper/stream?user=${encodeURIComponent(currentUserName)}`;
+  const streamPath = `/api/paper/stream?user=${encodeURIComponent(currentUserName)}`;
+  const url = window.FinGrowwApi && typeof window.FinGrowwApi.buildUrl === "function"
+    ? window.FinGrowwApi.buildUrl(streamPath)
+    : streamPath;
   sseEventSource = new EventSource(url);
   sseEventSource.addEventListener("tick", (e) => {
     try {
@@ -5406,7 +5409,7 @@ function initSSEConnection() {
         if (badge) badge.style.display = "inline-flex";
       }
     } catch(err) {
-      console.debug("SSE error:", err);
+      console.debug("SSE parse error:", err);
     }
   });
   sseEventSource.onerror = () => {
@@ -5425,6 +5428,10 @@ if ('serviceWorker' in navigator) {
 
 async function pollSessionTick() {
   if (isSessionTicking || document.hidden) return;
+  // If real-time SSE stream is actively connected, skip redundant HTTP polling
+  if (sseEventSource && sseEventSource.readyState === EventSource.OPEN) {
+    return;
+  }
   isSessionTicking = true;
   try {
     const res = await fetchPaperApi("/api/paper/session/tick", { 

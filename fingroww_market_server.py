@@ -23,8 +23,17 @@ last_init = 0
 indices_cache = {"at": 0, "rows": []}
 symbols_cache = {"at": 0, "items": []}
 paper_market_cache = {"at": 0, "status": None}
-paper_live_quote_cache = {}
-paper_chart_cache = {}
+
+from cache_manager import (
+    global_quote_cache,
+    live_paper_quote_cache,
+    chart_candles_cache,
+    session_stream_hub,
+    redis_bridge,
+)
+
+paper_live_quote_cache = live_paper_quote_cache
+paper_chart_cache = chart_candles_cache
 paper_quote_cache_lock = threading.Lock()
 option_chain_cache = {}
 option_contract_info_cache = {}
@@ -465,82 +474,73 @@ DEFAULT_SPOTS = {
 }
 
 
-_general_quote_cache = {}
+_general_quote_cache = global_quote_cache
 _general_quote_cache_lock = threading.Lock()
 
 
 def resolve_quote(symbol):
-    now = time.time()
-    with _general_quote_cache_lock:
-        cached = _general_quote_cache.get(symbol)
-        if cached and (now - cached.get("fetched_at", 0) < 10.0):
-            return dict(cached)
+    def _fetch():
+        res = None
+        if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
+            try:
+                q = quote_from_nse_index(symbol)
+                if q and q.get("lastPrice"):
+                    res = q
+            except Exception:
+                pass
 
-    res = None
-    if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
-        try:
-            q = quote_from_nse_index(symbol)
-            if q and q.get("lastPrice"):
-                res = q
-        except Exception:
-            pass
+        if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
+            try:
+                q = quote_from_nse_equity(symbol)
+                if q and q.get("lastPrice"):
+                    res = q
+            except Exception:
+                pass
 
-    if not res and symbol not in INDEX_ALIASES and symbol not in ("NIFTY 50", "NIFTY BANK", "SENSEX"):
-        try:
-            q = quote_from_nse_equity(symbol)
-            if q and q.get("lastPrice"):
-                res = q
-        except Exception:
-            pass
+        if not res and symbol == "SENSEX":
+            try:
+                res = quote_from_yahoo(symbol)
+            except Exception:
+                pass
 
-    if not res and symbol == "SENSEX":
-        try:
-            res = quote_from_yahoo(symbol)
-        except Exception:
-            pass
+        if not res:
+            try:
+                q = quote_from_yahoo(symbol)
+                if q and q.get("lastPrice"):
+                    res = q
+            except Exception:
+                pass
 
-    if not res:
-        try:
-            q = quote_from_yahoo(symbol)
-            if q and q.get("lastPrice"):
-                res = q
-        except Exception:
-            pass
+        if not res:
+            try:
+                q = quote_from_nse_index(symbol)
+                if q and q.get("lastPrice"):
+                    res = q
+            except Exception:
+                pass
 
-    if not res:
-        try:
-            q = quote_from_nse_index(symbol)
-            if q and q.get("lastPrice"):
-                res = q
-        except Exception:
-            pass
+        if not res:
+            fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
+            res = {
+                "source": "FinGroww Spec Engine (Fallback Close)",
+                "symbol": symbol,
+                "company": symbol,
+                "lastPrice": fallback_price,
+                "change": 0.0,
+                "pChange": 0.0,
+                "previousClose": fallback_price,
+                "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
+            }
+        return res
 
-    if not res:
-        fallback_price = DEFAULT_SPOTS.get(symbol, 1000.0)
-        res = {
-            "source": "FinGroww Spec Engine (Fallback Close)",
-            "symbol": symbol,
-            "company": symbol,
-            "lastPrice": fallback_price,
-            "change": 0.0,
-            "pChange": 0.0,
-            "previousClose": fallback_price,
-            "timestamp": time.strftime("%d-%b-%Y %H:%M:%S IST")
-        }
-
-    if res and res.get("lastPrice"):
-        res["fetched_at"] = now
-        with _general_quote_cache_lock:
-            if len(_general_quote_cache) > 200:
-                _general_quote_cache.clear()
-            _general_quote_cache[symbol] = dict(res)
-
-    return res
+    cached = _general_quote_cache.get_or_fetch(symbol, _fetch, ttl=10.0)
+    if cached and redis_bridge.is_connected:
+        redis_bridge.set(symbol, cached, ttl=10)
+    return cached or _fetch()
 
 
 def resolve_live_quote(symbol):
     """Returns an NSE quote only; never substitutes delayed or synthetic prices."""
-    now = time.time()
     market_is_open = False
     try:
         st = get_nse_market_status()
@@ -550,30 +550,25 @@ def resolve_live_quote(symbol):
     # 15s during market hours, 300s when market is closed (saves 95% redundant HTTP requests)
     cache_ttl = 15.0 if market_is_open else 300.0
 
-    with paper_quote_cache_lock:
-        cached = paper_live_quote_cache.get(symbol)
-        if cached and (now - cached.get("fetched_at", 0) <= cache_ttl):
-            return dict(cached)
+    def _fetch_live():
+        quote = None
+        try:
+            if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
+                quote = quote_from_nse_index(symbol)
+            elif symbol == "SENSEX":
+                quote = None
+            else:
+                quote = quote_from_nse_equity(symbol)
+            if quote and quote.get("lastPrice"):
+                quote["fetched_at"] = time.time()
+                if redis_bridge.is_connected:
+                    redis_bridge.set(symbol, quote, ttl=int(cache_ttl))
+            return quote
+        except Exception as exc:
+            app.logger.warning("NSE live quote failed for %s: %s", symbol, exc)
+            return None
 
-    try:
-        if symbol in INDEX_ALIASES or symbol in ("NIFTY 50", "NIFTY BANK"):
-            quote = quote_from_nse_index(symbol)
-        elif symbol == "SENSEX":
-            quote = None
-        else:
-            quote = quote_from_nse_equity(symbol)
-        if quote and quote.get("lastPrice"):
-            quote["fetched_at"] = time.time()
-            with paper_quote_cache_lock:
-                if len(paper_live_quote_cache) > 200:
-                    oldest = sorted(paper_live_quote_cache.keys(), key=lambda k: paper_live_quote_cache[k].get("fetched_at", 0))[:80]
-                    for k in oldest:
-                        paper_live_quote_cache.pop(k, None)
-                paper_live_quote_cache[symbol] = dict(quote)
-        return quote
-    except Exception as exc:
-        app.logger.warning("NSE live quote failed for %s: %s", symbol, exc)
-        return None
+    return paper_live_quote_cache.get_or_fetch(symbol, _fetch_live, ttl=cache_ttl)
 
 
 def resolve_paper_quote(symbol):
@@ -1441,7 +1436,11 @@ def paper_background_worker():
                 reconnected_db = _init_mongo_connection()
                 if reconnected_db is not None:
                     paper_manager.set_db(reconnected_db)
-            paper_manager.tick_all_running()
+            ticked_results = paper_manager.tick_all_running()
+            if ticked_results:
+                for uname, state in ticked_results.items():
+                    if state:
+                        session_stream_hub.broadcast(uname, state)
 
             # Pre-compute and refresh 15m radar setups asynchronously in background so frontend /scan responds in <1ms
             now_ts = time.time()

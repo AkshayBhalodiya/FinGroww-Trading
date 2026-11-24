@@ -7,10 +7,12 @@ import time
 import json
 import csv
 import io
+import queue
 import threading
 from flask import Blueprint, request, jsonify, Response
 import fingroww_market_server as srv
 import fingroww_paper_engine as pe
+from cache_manager import session_stream_hub
 
 paper_bp = Blueprint("paper_api", __name__)
 
@@ -145,7 +147,9 @@ def paper_update_config():
     u_sess.update_config(data)
     u_eng.last_scan_at = 0.0
     u_sess.save_to_db()
-    return jsonify({"ok": True, "state": u_sess.get_state()})
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
+    return jsonify({"ok": True, "state": st})
 
 
 @paper_bp.post("/api/paper/session/start")
@@ -167,6 +171,7 @@ def paper_start_session():
     u_sess.save_to_db()
     # Trigger first tick immediately
     state = u_eng.tick()
+    session_stream_hub.broadcast(u_sess.user_name, state)
     return jsonify({"ok": True, "message": f"AI Auto Paper Trading started for {u_sess.user_name}.", "state": state})
 
 
@@ -207,7 +212,9 @@ def paper_session_control():
         return jsonify({"error": f"Unknown control action: {action}"}), 400
 
     u_sess.save_to_db()
-    return jsonify({"ok": True, "action": action, "state": u_sess.get_state()})
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
+    return jsonify({"ok": True, "action": action, "state": st})
 
 
 @paper_bp.post("/api/paper/session/tick")
@@ -217,6 +224,7 @@ def paper_session_tick():
     """Triggers one evaluation cycle for a user session."""
     u_sess, u_eng = srv.get_user_session_and_engine(request)
     state = u_eng.tick()
+    session_stream_hub.broadcast(u_sess.user_name, state)
     return jsonify({"ok": True, "state": state})
 
 
@@ -427,7 +435,9 @@ def paper_manual_close():
     )
     if not ok:
         return jsonify({"error": msg}), 404 if msg == "Position not found." else 409
-    return jsonify({"ok": True, "success": True, "message": msg, "state": u_sess.get_state()})
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
+    return jsonify({"ok": True, "success": True, "message": msg, "state": st})
 
 
 @paper_bp.post("/api/paper/test-expire-position")
@@ -449,7 +459,9 @@ def paper_test_expire_position():
     )
     if not ok:
         return jsonify({"error": msg}), 404
-    return jsonify({"ok": True, "message": msg, "state": u_sess.get_state()})
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
+    return jsonify({"ok": True, "message": msg, "state": st})
 
 
 @paper_bp.post("/api/paper/order/execute")
@@ -510,12 +522,14 @@ def paper_order_execute():
         return jsonify({"ok": False, "error": err or "Order execution rejected."}), 400
 
     u_sess.save_to_db()
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
     return jsonify({
         "ok": True,
         "success": True,
         "message": f"Successfully executed 1-click paper order for {sym} ({side}) @ ₹{entry_p:,.2f}",
         "position": pos,
-        "state": u_sess.get_state(),
+        "state": st,
         "available_balance": u_sess.available_balance,
         "active_positions_count": len(u_sess.positions)
     })
@@ -532,11 +546,13 @@ def paper_trigger_circuit_breaker():
     u_sess.is_circuit_breaker_triggered = True
     u_sess.circuit_breaker_reason = reason
     u_sess.save_to_db()
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
     return jsonify({
         "ok": True,
         "success": True,
         "message": f"Circuit Breaker triggered: {reason}",
-        "state": u_sess.get_state()
+        "state": st
     })
 
 
@@ -549,10 +565,12 @@ def paper_reset_circuit_breaker():
     u_sess.reset_circuit_breaker()
     u_sess.status = "RUNNING"
     u_sess.save_to_db()
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
     return jsonify({
         "ok": True,
         "message": "Circuit Breaker successfully reset. Autonomous trading resumed.",
-        "state": u_sess.get_state()
+        "state": st
     })
 
 
@@ -560,25 +578,43 @@ def paper_reset_circuit_breaker():
 def paper_sse_stream():
     """Server-Sent Events (SSE) real-time streaming endpoint for zero-latency UI updates."""
     u_sess, _ = srv.get_user_session_and_engine(request)
+    uname = u_sess.user_name if u_sess else "Akshay"
+    client_q = session_stream_hub.subscribe(uname)
 
     def event_stream():
         start_t = time.time()
-        while time.time() - start_t < 300:
-            try:
-                state = u_sess.get_state() if u_sess else {}
-                state_json = json.dumps(state, default=str)
-                yield f"event: tick\ndata: {state_json}\n\n"
-                time.sleep(1.5)
-            except GeneratorExit:
-                break
-            except Exception as e:
-                srv.logger.debug("SSE stream connection ended: %s", e)
-                break
+        last_heartbeat = start_t
+        try:
+            # 1. Immediately push current session state on initial connection
+            initial_state = u_sess.get_state() if u_sess else {}
+            yield f"event: tick\ndata: {json.dumps(initial_state, default=str)}\n\n"
+
+            # 2. Event-driven push from queue + keepalive heartbeats
+            while time.time() - start_t < 300:
+                try:
+                    # Reactive wake-up whenever an order, tick, or breaker event occurs
+                    state = client_q.get(timeout=2.0)
+                    yield f"event: tick\ndata: {json.dumps(state, default=str)}\n\n"
+                    last_heartbeat = time.time()
+                except queue.Empty:
+                    # Periodically emit keepalive ping so proxy/firewall does not drop connection
+                    now = time.time()
+                    if now - last_heartbeat >= 15.0:
+                        last_heartbeat = now
+                        yield f": heartbeat {int(now)}\n\n"
+        except GeneratorExit:
+            pass
+        except Exception as e:
+            srv.logger.debug("SSE stream connection ended: %s", e)
+        finally:
+            session_stream_hub.unsubscribe(uname, client_q)
 
     response = Response(event_stream(), mimetype="text/event-stream")
     response.headers["Cache-Control"] = "no-cache, no-transform"
     response.headers["X-Accel-Buffering"] = "no"
     response.headers["Connection"] = "keep-alive"
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 

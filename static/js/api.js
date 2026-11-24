@@ -137,6 +137,12 @@
       body: typeof body === "string" ? body : JSON.stringify(body || {})
     }),
     getActiveHost: () => activeWorkingHost || PRIMARY_RENDER_URL,
+    buildUrl: (path) => {
+      const host = activeWorkingHost || PRIMARY_RENDER_URL;
+      if (!path) return host;
+      if (!path.startsWith("/")) path = "/" + path;
+      return host ? (host + path) : path;
+    },
     clearActiveHost: () => {
       activeWorkingHost = null;
       try { sessionStorage.removeItem(CACHE_STORAGE_KEY); } catch (_) {}
