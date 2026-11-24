@@ -190,11 +190,15 @@ def add_cors(resp):
     return resp
 
 
+from werkzeug.exceptions import HTTPException
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     origin = request.headers.get("Origin") or "*"
+    code = e.code if isinstance(e, HTTPException) else 500
     resp = jsonify({"ok": False, "error": str(e), "type": type(e).__name__})
-    resp.status_code = 500
+    resp.status_code = code
     resp.headers["Access-Control-Allow-Origin"] = origin
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control, X-Requested-With, Origin, Accept"
