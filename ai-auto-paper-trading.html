@@ -3682,7 +3682,7 @@ button[disabled],
           <button type="button" class="btn btn-sm btn-outline" onclick="adjustManualStrike(-1)" style="padding:7px 12px;" title="Previous Strike">
             <i class="fa-solid fa-minus"></i>
           </button>
-          <input type="number" id="manualOrderStrike" step="50" placeholder="e.g. 24500" required oninput="debounceManualQuoteFetch()" style="flex:1;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-main);font-family:var(--font-mono);font-size:14px;font-weight:700;text-align:center;">
+          <input type="number" id="manualOrderStrike" step="50" placeholder="e.g. 24500" required oninput="debounceManualQuoteFetch()" onchange="fetchManualOptionQuote(false)" style="flex:1;padding:8px 12px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:6px;color:var(--text-main);font-family:var(--font-mono);font-size:14px;font-weight:700;text-align:center;">
           <button type="button" class="btn btn-sm btn-outline" onclick="adjustManualStrike(1)" style="padding:7px 12px;" title="Next Strike">
             <i class="fa-solid fa-plus"></i>
           </button>
@@ -4770,17 +4770,24 @@ function setManualStrikeToAtm() {
     if (strikeInp) {
       strikeInp.value = atm;
       updateManualContractTitle();
-      fetchManualOptionQuote(false);
+      fetchManualOptionQuote(true);
     }
+  } else {
+    fetchManualOptionQuote(true);
   }
 }
 
 function debounceManualQuoteFetch() {
   clearTimeout(manualQuoteDebounceTimer);
+  updateManualContractTitle();
   manualQuoteDebounceTimer = setTimeout(() => {
-    updateManualContractTitle();
-    fetchManualOptionQuote(false);
-  }, 350);
+    const strikeInp = document.getElementById("manualOrderStrike");
+    const val = strikeInp ? parseFloat(strikeInp.value) : 0;
+    // Only fetch quote if user has entered a realistic strike number (avoids premature queries while typing early digits)
+    if (val >= 50) {
+      fetchManualOptionQuote(false);
+    }
+  }, 500);
 }
 
 async function fetchManualOptionQuote(autoAtm = false) {
@@ -4790,7 +4797,11 @@ async function fetchManualOptionQuote(autoAtm = false) {
   let strike = strikeInp ? strikeInp.value : "";
   const optType = currentManualOptType || "CE";
 
-  const url = `/api/paper/option-quote?symbol=${encodeURIComponent(sym)}&strike=${encodeURIComponent(strike)}&option_type=${encodeURIComponent(optType)}`;
+  const isUserEditing = strikeInp && (document.activeElement === strikeInp);
+  const numStrike = parseFloat(strike);
+  const queryStrike = (!isNaN(numStrike) && numStrike > 0) ? numStrike : "";
+
+  const url = `/api/paper/option-quote?symbol=${encodeURIComponent(sym)}&strike=${encodeURIComponent(queryStrike)}&option_type=${encodeURIComponent(optType)}`;
   const data = await fetchPaperApi(url);
   if (!data || !data.ok) return;
 
@@ -4801,8 +4812,9 @@ async function fetchManualOptionQuote(autoAtm = false) {
     spotEl.textContent = `CMP: ₹${Number(data.spot_price).toFixed(2)}`;
   }
 
+  // Strictly preserve what the user is typing: never overwrite while user is focused/editing!
   if (strikeInp) {
-    if (autoAtm || !strikeInp.value || parseFloat(strikeInp.value) <= 0 || (data.strike && Math.abs(parseFloat(strikeInp.value) - data.strike) > data.strike * 0.35)) {
+    if (autoAtm || (!strikeInp.value && !isUserEditing)) {
       strikeInp.value = data.strike;
     }
   }
