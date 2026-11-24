@@ -13,6 +13,7 @@ import hashlib
 import uuid
 import json
 import logging
+import math
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 
@@ -456,25 +457,26 @@ def quote_from_yahoo(symbol):
 
 
 DEFAULT_SPOTS = {
-    "RELIANCE": 1377.50,
-    "NIFTY 50": 25800.60,
-    "NIFTY": 25800.60,
-    "HDFCBANK": 846.00,
-    "BANK NIFTY": 64635.20,
-    "BANKNIFTY": 64635.20,
-    "FINNIFTY": 28871.20,
-    "SENSEX": 83450.00,
-    "TATAMOTORS": 266.35,
-    "SBIN": 1165.10,
-    "TCS": 2376.20,
-    "INFY": 1098.00,
-    "ICICIBANK": 1640.00,
-    "BHARTIARTL": 2161.70,
-    "ITC": 485.00,
-    "LT": 3820.00,
-    "BAJFINANCE": 1122.00,
+    "RELIANCE": 1350.00,
+    "NIFTY 50": 25350.00,
+    "NIFTY": 25350.00,
+    "HDFCBANK": 820.00,
+    "BANK NIFTY": 62600.00,
+    "BANKNIFTY": 62600.00,
+    "FINNIFTY": 28150.00,
+    "MIDCPNIFTY": 13800.00,
+    "SENSEX": 82450.00,
+    "TATAMOTORS": 785.00,
+    "SBIN": 845.00,
+    "TCS": 4150.00,
+    "INFY": 1880.00,
+    "ICICIBANK": 1280.00,
+    "BHARTIARTL": 1580.00,
+    "ITC": 475.00,
+    "LT": 3650.00,
+    "BAJFINANCE": 6950.00,
     "MARUTI": 12850.00,
-    "AXISBANK": 1446.00,
+    "AXISBANK": 1180.00,
     "VEDL": 510.00
 }
 
@@ -589,6 +591,19 @@ def resolve_paper_quote(symbol):
                 quote["exchange_timestamp"] = now_ts
         except Exception:
             pass
+    if not quote or not quote.get("lastPrice"):
+        norm = normalize_symbol(symbol)
+        spot = DEFAULT_SPOTS.get(norm) or DEFAULT_SPOTS.get(norm.upper()) or 25350.0
+        now_ts = time.time()
+        quote = {
+            "source": "FinGroww Option Intelligence",
+            "symbol": norm,
+            "lastPrice": float(spot),
+            "change": 0.0,
+            "pChange": 0.0,
+            "fetched_at": now_ts,
+            "exchange_timestamp": now_ts,
+        }
     return quote
 
 
@@ -757,6 +772,12 @@ def generate_fallback_option_chain(symbol, spot):
     else:
         step = 50
 
+    from fingroww_paper_engine import get_next_option_expiry
+    exp_info = get_next_option_expiry(symbol)
+    base_exp = exp_info["datetime"]
+    days_ahead = exp_info["dte"]
+    kind = exp_info["kind"]
+
     atm_strike = round(spot / step) * step
     if step < 1:
         atm_strike = round(spot, 1)
@@ -766,18 +787,26 @@ def generate_fallback_option_chain(symbol, spot):
     ce_tot_oi = 0
     pe_tot_oi = 0
 
+    # Realistic Option Pricing based on Indian Market Volatilities
+    iv = 14.0 if ("NIFTY" in symbol and "BANK" not in symbol) else (16.0 if "BANK" in symbol else 20.0)
+    dte = max(1, days_ahead)
+    atm_time_val = 0.4 * spot * (iv / 100.0) * math.sqrt(dte / 365.0)
+    vol_w = max(0.01, (iv / 100.0) * math.sqrt(dte / 365.0))
+
     for strike in strikes:
-        ce_intrinsic = max(0, spot - strike)
-        diff_pct = (strike - spot) / spot
-        ce_extrinsic = max(2.0, (spot * 0.02) * max(0.1, 1 - abs(diff_pct) * 8))
-        ce_ltp = round(ce_intrinsic + ce_extrinsic, 2)
-        ce_oi = int(max(100, 50000 * max(0.1, 1 - abs(diff_pct) * 6)))
+        diff = strike - spot
+        dist_pct = abs(diff) / max(spot, 1.0)
+        decay = max(0.02, math.exp(-0.5 * (dist_pct / vol_w) ** 2))
+        extrinsic = round(max(0.50, atm_time_val * decay), 2)
+
+        ce_intrinsic = round(max(0.0, spot - strike), 2)
+        ce_ltp = round(max(0.50, ce_intrinsic + extrinsic), 2)
+        ce_oi = int(max(100, 50000 * decay))
         ce_vol = int(ce_oi * 0.35)
 
-        pe_intrinsic = max(0, strike - spot)
-        pe_extrinsic = ce_extrinsic
-        pe_ltp = round(pe_intrinsic + pe_extrinsic, 2)
-        pe_oi = int(max(100, 48000 * max(0.1, 1 - abs(diff_pct) * 6)))
+        pe_intrinsic = round(max(0.0, strike - spot), 2)
+        pe_ltp = round(max(0.50, pe_intrinsic + extrinsic), 2)
+        pe_oi = int(max(100, 48000 * decay))
         pe_vol = int(pe_oi * 0.38)
 
         ce_tot_oi += ce_oi
@@ -792,7 +821,7 @@ def generate_fallback_option_chain(symbol, spot):
                 "oi": ce_oi,
                 "changeOi": int(ce_oi * 0.05),
                 "vol": ce_vol,
-                "iv": round(15.5 + abs(diff_pct) * 20, 1)
+                "iv": round(iv + abs(diff / spot) * 20, 1)
             },
             "PE": {
                 "ltp": pe_ltp,
@@ -801,15 +830,9 @@ def generate_fallback_option_chain(symbol, spot):
                 "oi": pe_oi,
                 "changeOi": int(-pe_oi * 0.03),
                 "vol": pe_vol,
-                "iv": round(16.0 + abs(diff_pct) * 20, 1)
+                "iv": round(iv + abs(diff / spot) * 20, 1)
             }
         })
-
-    from fingroww_paper_engine import get_next_option_expiry
-    exp_info = get_next_option_expiry(symbol)
-    base_exp = exp_info["datetime"]
-    days_ahead = exp_info["dte"]
-    kind = exp_info["kind"]
 
     if kind == "Weekly":
         expiries = [

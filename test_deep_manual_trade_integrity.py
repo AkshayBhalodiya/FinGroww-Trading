@@ -26,13 +26,13 @@ class TestDeepManualTradeIntegrity(unittest.TestCase):
     def test_01_instrument_matrix_ce_pe_execution(self):
         """Tests that all supported instruments (Index & Equity options) execute CE and PE cleanly."""
         instruments = [
-            ("NIFTY 50", 24500, "CE"),
-            ("NIFTY 50", 24400, "PE"),
-            ("BANK NIFTY", 52000, "CE"),
-            ("BANK NIFTY", 51500, "PE"),
-            ("FINNIFTY", 23000, "CE"),
-            ("RELIANCE", 2800, "CE"),
-            ("TCS", 4000, "PE"),
+            ("NIFTY 50", 25350, "CE"),
+            ("NIFTY 50", 25300, "PE"),
+            ("BANK NIFTY", 62600, "CE"),
+            ("BANK NIFTY", 62500, "PE"),
+            ("FINNIFTY", 28150, "CE"),
+            ("RELIANCE", 1350, "CE"),
+            ("TCS", 4150, "PE"),
         ]
 
         sess = PaperTradingSession(user_name="MatrixTestUser")

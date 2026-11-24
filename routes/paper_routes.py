@@ -9,6 +9,7 @@ import csv
 import io
 import queue
 import threading
+import math
 from flask import Blueprint, request, jsonify, Response
 from cache_manager import session_stream_hub
 import fingroww_paper_engine as pe
@@ -536,25 +537,7 @@ def paper_option_quote():
     base_sym = srv.normalize_symbol(sym)
     quote = srv.resolve_paper_quote(base_sym) or {}
 
-    fallback_spots = {
-        "NIFTY 50": 24850.0,
-        "NIFTY": 24850.0,
-        "BANK NIFTY": 52400.0,
-        "BANKNIFTY": 52400.0,
-        "FINNIFTY": 24200.0,
-        "MIDCPNIFTY": 12800.0,
-        "SENSEX": 81500.0,
-        "RELIANCE": 1285.0,
-        "HDFCBANK": 1750.0,
-        "TCS": 4150.0,
-        "INFY": 1850.0,
-        "ICICIBANK": 1260.0,
-        "SBIN": 820.0,
-        "TATAMOTORS": 780.0,
-        "BHARTIARTL": 1650.0,
-        "LT": 3600.0,
-    }
-    spot_price = float(quote.get("lastPrice") or fallback_spots.get(base_sym, DEFAULT_SPOTS.get(base_sym, 24850.0)))
+    spot_price = float(quote.get("lastPrice") or DEFAULT_SPOTS.get(base_sym, DEFAULT_SPOTS.get(base_sym.upper(), 25350.0)))
 
     # Standard F&O Strike Intervals
     if "BANK" in base_sym:
@@ -599,10 +582,15 @@ def paper_option_quote():
     expiry_date = expiry_info.get("date") or "Upcoming Expiry"
 
     if premium <= 0:
-        dist = abs(strike_val - spot_price) / max(spot_price, 1.0)
-        time_val = spot_price * 0.015 * max(0.2, 1.0 - dist * 5)
+        iv = 14.0 if ("NIFTY" in base_sym and "BANK" not in base_sym) else (16.0 if "BANK" in base_sym else 20.0)
+        dte = max(1, expiry_info.get("dte", 7))
+        atm_time_val = 0.4 * spot_price * (iv / 100.0) * math.sqrt(dte / 365.0)
+        vol_w = max(0.01, (iv / 100.0) * math.sqrt(dte / 365.0))
+        dist_pct = abs(strike_val - spot_price) / max(spot_price, 1.0)
+        decay = max(0.02, math.exp(-0.5 * (dist_pct / vol_w) ** 2))
+        time_val = max(0.50, atm_time_val * decay)
         intrinsic = max(0.0, (spot_price - strike_val) if opt_type.upper() == "CE" else (strike_val - spot_price))
-        premium = round(max(1.0, intrinsic + time_val), 2)
+        premium = round(max(0.50, intrinsic + time_val), 2)
 
     lot_size = srv.LOT_SIZES.get(base_sym.upper())
     if not lot_size:
