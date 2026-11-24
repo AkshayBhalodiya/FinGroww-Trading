@@ -13,6 +13,7 @@ from agents.execution_sniper import ExecutionSniperAgent
 from agents.position_guardian import PositionGuardianAgent
 from agents.risk_supervisor import RiskSupervisorAgent
 from agents.swarm_orchestrator import SwarmOrchestrator
+import fingroww_paper_engine as pe
 
 class TestMultiAgentSwarm(unittest.TestCase):
 
@@ -119,7 +120,11 @@ class TestMultiAgentSwarm(unittest.TestCase):
         filled_events = []
         self.bus.subscribe("ORDER_FILLED", lambda e: filled_events.append(e))
 
-        sniper = ExecutionSniperAgent(self.bus, default_user="Akshay")
+        sniper = ExecutionSniperAgent(self.bus, default_user="UnitTestUser")
+        test_session = pe.PaperTradingSession(user_name="UnitTestUser")
+        test_session.available_cash = 100000.0
+        test_session.account_equity = 100000.0
+        sniper.session_resolver = lambda u: test_session
         signal = {
             "symbol": "NIFTY 22750 CE",
             "underlying": "NIFTY 50",
