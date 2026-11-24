@@ -931,7 +931,7 @@ def _filter_unexpired_expiries(expiries):
             m = re.search(r"(\d{1,2})-([A-Za-z]{3})-(\d{4})", exp.strip())
             if m:
                 d, mon, y = int(m.group(1)), m.group(2).capitalize(), int(m.group(3))
-                dt = datetime.datetime.strptime(f"{d:02d}-{mon}-{y}", "%d-%b-%Y").date()
+                dt = datetime.strptime(f"{d:02d}-{mon}-{y}", "%d-%b-%Y").date()
                 if dt < today:
                     continue
                 if dt == today and market_closed_today:
@@ -1004,7 +1004,7 @@ def fetch_option_chain(symbol, expiry=None):
             timeout=4.0,
         )
         if isinstance(c_info, dict):
-            expiries = [str(e) for e in (c_info.get("expiryDates") or []) if e]
+            expiries = _filter_unexpired_expiries([str(e) for e in (c_info.get("expiryDates") or []) if e])
             with option_chain_lock:
                 if len(option_contract_info_cache) > 50:
                     option_contract_info_cache.clear()
