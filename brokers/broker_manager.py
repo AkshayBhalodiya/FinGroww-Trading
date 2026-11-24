@@ -13,6 +13,7 @@ from .base_broker import BaseBrokerClient
 from .zerodha_kite import ZerodhaKiteClient
 from .angel_smartapi import AngelSmartApiClient
 from .dhan_hq import DhanHqClient
+from .upstox import UpstoxClient
 
 logger = logging.getLogger("FinGroww.BrokerManager")
 
@@ -55,7 +56,7 @@ class BrokerManager:
             client = self._clients.get(uname)
             if clean_mode == "REAL":
                 if not client or not client.is_connected:
-                    return False, "Cannot switch to REAL mode without an active connected broker (Zerodha, Angel One, or Dhan)."
+                    return False, "Cannot switch to REAL mode without an active connected broker (Zerodha, Angel One, Dhan, or Upstox)."
             self._user_modes[uname] = clean_mode
             logger.info("Switched trading mode for [%s] to %s", uname, clean_mode)
             return True, f"Trading mode successfully set to {clean_mode}."
@@ -76,8 +77,10 @@ class BrokerManager:
             client = AngelSmartApiClient()
         elif "DHAN" in b_name:
             client = DhanHqClient()
+        elif "UPSTOX" in b_name:
+            client = UpstoxClient()
         else:
-            return False, f"Unsupported broker [{broker_name}]. Supported: Zerodha Kite, Angel One, Dhan.", {}
+            return False, f"Unsupported broker [{broker_name}]. Supported: Zerodha Kite, Angel One, Dhan, Upstox.", {}
 
         success, msg, profile = client.authenticate(credentials)
         if success:

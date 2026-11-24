@@ -2298,10 +2298,10 @@ button[disabled],
       <span>Paper Trading</span>
       <span class="badge-mode-virtual">VIRTUAL ₹1,00,000</span>
     </button>
-    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" title="Real live money trading with Zerodha, Angel One, or Dhan">
+    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" title="Real live money trading with Zerodha, Angel One, Dhan, or Upstox">
       <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
       <span>Real Live Trading</span>
-      <span class="badge-mode-real">ZERODHA · ANGEL ONE · DHAN</span>
+      <span class="badge-mode-real">ZERODHA · ANGEL ONE · DHAN · UPSTOX</span>
     </button>
   </div>
 
@@ -3258,7 +3258,7 @@ button[disabled],
             Real Live Broker Trading Terminal
           </h1>
           <p class="hero-subtitle">
-            Deploy FinGroww Institutional AI Algos &amp; Manual Option Execution directly on your personal broker account. Fully integrated with Zerodha Kite, Angel One SmartAPI, and DhanHQ.
+            Deploy FinGroww Institutional AI Algos &amp; Manual Option Execution directly on your personal broker account. Fully integrated with Zerodha Kite, Angel One SmartAPI, DhanHQ, and Upstox API v2.
           </p>
         </div>
 
@@ -3288,11 +3288,11 @@ button[disabled],
         <i class="fa-solid fa-network-wired"></i>
       </div>
       <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">Connect Your Indian Broker to Start Real Trading</h3>
-      <p style="color: var(--text-muted); max-width: 620px; margin: 0 auto 24px auto; font-size: 13px; line-height: 1.6;">
-        Link your existing Zerodha Kite Connect, Angel One SmartAPI, or DhanHQ trading account. Execute AI automated strategies or manual option trades with real exchange fills and mandatory Stop-Loss protection.
+      <p style="color: var(--text-muted); max-width: 680px; margin: 0 auto 24px auto; font-size: 13px; line-height: 1.6;">
+        Link your existing Zerodha Kite Connect, Angel One SmartAPI, DhanHQ, or Upstox trading account. Execute AI automated strategies or manual option trades with real exchange fills and mandatory Stop-Loss protection.
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 860px; margin: 0 auto 24px auto; text-align: left;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 1040px; margin: 0 auto 24px auto; text-align: left;">
         <!-- Card 1: Zerodha -->
         <div class="broker-select-card" onclick="openConnectBrokerModal('ZERODHA_KITE')">
           <div>
@@ -3338,6 +3338,22 @@ button[disabled],
           </div>
           <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
             <i class="fa-solid fa-link"></i> Connect DhanHQ
+          </button>
+        </div>
+
+        <!-- Card 4: Upstox -->
+        <div class="broker-select-card" onclick="openConnectBrokerModal('UPSTOX')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-weight: 800; font-size: 16px; color: #fff;">Upstox</span>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(168,85,247,0.18); color: #c084fc; font-weight: 700;">API v2</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Ultra-fast execution with Upstox API v2. Direct Index Options execution with instant RMS margins.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Upstox
           </button>
         </div>
       </div>
@@ -3920,7 +3936,7 @@ button[disabled],
     </div>
 
     <!-- Broker Selection Tabs -->
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:18px;">
+    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:18px;">
       <label class="broker-tab-label" onclick="selectBrokerTab('ZERODHA_KITE')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--accent-gold); background:rgba(245,158,11,0.12); cursor:pointer;">
         <input type="radio" name="brokerSelectRadio" value="ZERODHA_KITE" checked onchange="onBrokerPlatformRadioChange()" style="display:none;">
         <span style="font-weight:700; font-size:13px; color:#f87171;"><i class="fa-solid fa-k"></i> Zerodha</span>
@@ -3935,6 +3951,11 @@ button[disabled],
         <input type="radio" name="brokerSelectRadio" value="DHAN" onchange="onBrokerPlatformRadioChange()" style="display:none;">
         <span style="font-weight:700; font-size:13px; color:#fbbf24;"><i class="fa-solid fa-d"></i> DhanHQ</span>
         <span style="font-size:10px; color:var(--text-dim);">DhanHQ v2</span>
+      </label>
+      <label class="broker-tab-label" onclick="selectBrokerTab('UPSTOX')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
+        <input type="radio" name="brokerSelectRadio" value="UPSTOX" onchange="onBrokerPlatformRadioChange()" style="display:none;">
+        <span style="font-weight:700; font-size:13px; color:#c084fc;"><i class="fa-solid fa-u"></i> Upstox</span>
+        <span style="font-size:10px; color:var(--text-dim);">API v2</span>
       </label>
     </div>
 
@@ -4008,6 +4029,22 @@ button[disabled],
         <div style="font-size:11.5px; color:var(--text-dim); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
           <i class="fa-solid fa-circle-info" style="color:#fbbf24; margin-right:4px;"></i>
           Generate instant Access Token from Dhan Web -> Settings &amp; Security -> DhanHQ Trading APIs.
+        </div>
+      </div>
+
+      <!-- Upstox Form Fields -->
+      <div id="brokerFieldsUpstox" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Upstox User ID / Client ID (Optional)</label>
+          <input type="text" id="upstoxClientId" placeholder="e.g. 123456" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Upstox Access Token (Bearer JWT)</label>
+          <textarea id="upstoxAccessToken" placeholder="Paste your Upstox API v2 access token here..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#c084fc; margin-right:4px;"></i>
+          Generate your Access Token from <a href="https://service.upstox.com/developer/api-documentation" target="_blank" style="color:#60a5fa; text-decoration:underline;">Upstox Developer Console</a>.
         </div>
       </div>
 
@@ -4972,7 +5009,7 @@ async function submitManualOrder() {
   // Real live broker execution route
   if (typeof currentTradingMode !== "undefined" && currentTradingMode === "real") {
     if (!activeBrokerData || !activeBrokerData.connected) {
-      showToast("No active live broker connected. Please connect Zerodha, Angel One, or Dhan first.", "error");
+      showToast("No active live broker connected. Please connect Zerodha, Angel One, Dhan, or Upstox first.", "error");
       return;
     }
     const lotSize = (lastManualQuote && lastManualQuote.lot_size) ? Number(lastManualQuote.lot_size) : 25;
@@ -6863,10 +6900,12 @@ function onBrokerPlatformRadioChange() {
   const fZerodha = document.getElementById("brokerFieldsZerodha");
   const fAngel = document.getElementById("brokerFieldsAngel");
   const fDhan = document.getElementById("brokerFieldsDhan");
+  const fUpstox = document.getElementById("brokerFieldsUpstox");
 
   if (fZerodha) fZerodha.style.display = selected === "ZERODHA_KITE" ? "block" : "none";
   if (fAngel) fAngel.style.display = selected === "ANGEL_ONE" ? "block" : "none";
   if (fDhan) fDhan.style.display = selected === "DHAN" ? "block" : "none";
+  if (fUpstox) fUpstox.style.display = selected === "UPSTOX" ? "block" : "none";
 }
 
 async function submitBrokerConnection() {
@@ -6899,6 +6938,13 @@ async function submitBrokerConnection() {
     credentials.access_token = (document.getElementById("dhanAccessToken")?.value || "").trim();
     if (!credentials.client_id || !credentials.access_token) {
       showToast("Please enter Dhan Client ID and Access Token.", "error");
+      return;
+    }
+  } else if (selected === "UPSTOX") {
+    credentials.client_id = (document.getElementById("upstoxClientId")?.value || "").trim();
+    credentials.access_token = (document.getElementById("upstoxAccessToken")?.value || "").trim();
+    if (!credentials.access_token) {
+      showToast("Please enter Upstox API v2 Access Token.", "error");
       return;
     }
   }

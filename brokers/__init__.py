@@ -11,6 +11,7 @@ from .base_broker import BaseBrokerClient
 from .zerodha_kite import ZerodhaKiteClient
 from .angel_smartapi import AngelSmartApiClient
 from .dhan_hq import DhanHqClient
+from .upstox import UpstoxClient
 from .broker_manager import BrokerManager, broker_manager
 
 __all__ = [
@@ -18,6 +19,7 @@ __all__ = [
     "ZerodhaKiteClient",
     "AngelSmartApiClient",
     "DhanHqClient",
+    "UpstoxClient",
     "BrokerManager",
     "broker_manager",
 ]

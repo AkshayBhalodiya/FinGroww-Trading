@@ -6,6 +6,7 @@ from brokers import (
     ZerodhaKiteClient,
     AngelSmartApiClient,
     DhanHqClient,
+    UpstoxClient,
     broker_manager,
 )
 from fingroww_market_server import app
@@ -164,6 +165,88 @@ class TestBrokerIntegration(unittest.TestCase):
         # 3. Disconnect
         res_disc = self.client.post(f"/api/broker/disconnect?user={self.user}")
         self.assertEqual(res_disc.status_code, 200)
+
+    def test_06_upstox_client_flow(self):
+        """Tests Upstox API v2 client with mocked network calls."""
+        upstox = UpstoxClient()
+
+        # Missing token validation
+        ok, err, _ = upstox.authenticate({"access_token": ""})
+        self.assertFalse(ok)
+        self.assertIn("required", err.lower())
+
+        with patch("requests.get") as mock_get, patch("requests.post") as mock_post:
+            # 1. Profile response
+            mock_profile = MagicMock()
+            mock_profile.status_code = 200
+            mock_profile.json.return_value = {
+                "status": "success",
+                "data": {"user_id": "UP12345", "user_name": "Akshay Upstox"}
+            }
+            mock_get.return_value = mock_profile
+
+            ok, msg, profile = upstox.authenticate({"access_token": "mock_upstox_jwt", "client_id": "UP12345"})
+            self.assertTrue(ok)
+            self.assertTrue(upstox.is_connected)
+            self.assertEqual(upstox.client_id, "UP12345")
+
+            # 2. Funds
+            mock_funds = MagicMock()
+            mock_funds.status_code = 200
+            mock_funds.json.return_value = {
+                "status": "success",
+                "data": {
+                    "equity": {
+                        "available_margin": 140000.0,
+                        "used_margin": 25000.0,
+                        "payin_amount": 5000.0
+                    }
+                }
+            }
+            mock_get.return_value = mock_funds
+            ok_f, funds, _ = upstox.get_funds()
+            self.assertTrue(ok_f)
+            self.assertEqual(funds["available_cash"], 140000.0)
+            self.assertEqual(funds["used_margin"], 25000.0)
+            self.assertEqual(funds["broker"], "UPSTOX")
+
+            # 3. Place Order
+            mock_order = MagicMock()
+            mock_order.status_code = 200
+            mock_order.json.return_value = {
+                "status": "success",
+                "data": {"order_id": "UPSTOX_ORD_9999"}
+            }
+            mock_post.return_value = mock_order
+            ok_o, o_data, _ = upstox.place_order(
+                symbol="NIFTY 24500 CE",
+                quantity=65,
+                side="BUY",
+                order_type="MARKET",
+                stop_loss=210.0
+            )
+            self.assertTrue(ok_o)
+            self.assertEqual(o_data["order_id"], "UPSTOX_ORD_9999")
+            self.assertEqual(o_data["broker"], "UPSTOX")
+
+            # 4. Connect via BrokerManager
+            mock_get.return_value = mock_profile
+            ok_m, msg_m, prof_m = broker_manager.connect_broker(
+                self.user,
+                "UPSTOX",
+                {"access_token": "mock_upstox_jwt", "client_id": "UP12345"}
+            )
+            self.assertTrue(ok_m)
+            self.assertEqual(prof_m["broker"], "UPSTOX")
+
+            # Verify mode toggle to REAL succeeds with Upstox
+            ok_mode, _ = broker_manager.set_trading_mode(self.user, "REAL")
+            self.assertTrue(ok_mode)
+            self.assertEqual(broker_manager.get_trading_mode(self.user), "REAL")
+
+            # Cleanup
+            broker_manager.disconnect_broker(self.user)
+            self.assertEqual(broker_manager.get_trading_mode(self.user), "PAPER")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 FinGroww Trading Intelligence — Real Broker API Routes Blueprint.
 =================================================================
 Exposes REST endpoints for Zerodha Kite Connect, Angel One SmartAPI,
-and DhanHQ live trading, margin checks, real position books, and panic square-offs.
+DhanHQ, and Upstox API v2 live trading, margin checks, real position books, and panic square-offs.
 """
 
 from flask import Blueprint, request, jsonify
@@ -48,13 +48,13 @@ def broker_status():
 
 @broker_bp.post("/api/broker/connect")
 def broker_connect():
-    """Connects to Zerodha Kite Connect, Angel One, or DhanHQ with user API credentials."""
+    """Connects to Zerodha Kite Connect, Angel One, DhanHQ, or Upstox with user API credentials."""
     data = request.get_json(silent=True) or {}
     user = _extract_user(request)
     broker_name = data.get("broker_name") or data.get("broker")
 
     if not broker_name:
-        return jsonify({"ok": False, "success": False, "error": "Broker name is required (e.g. ZERODHA_KITE, ANGEL_ONE, DHAN)."}), 400
+        return jsonify({"ok": False, "success": False, "error": "Broker name is required (e.g. ZERODHA_KITE, ANGEL_ONE, DHAN, UPSTOX)."}), 400
 
     credentials = data.get("credentials") or {
         "api_key": data.get("api_key"),
