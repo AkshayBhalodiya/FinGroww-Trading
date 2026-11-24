@@ -248,6 +248,83 @@ class TestBrokerIntegration(unittest.TestCase):
             broker_manager.disconnect_broker(self.user)
             self.assertEqual(broker_manager.get_trading_mode(self.user), "PAPER")
 
+    def test_07_multi_user_broker_isolation(self):
+        """Verifies complete multi-user isolation across broker connections, funds, and modes."""
+        u1 = "UnitTest_User_Akshay"
+        u2 = "UnitTest_User_Vijay"
+        u3 = "UnitTest_User_Rahul"
+        u4 = "UnitTest_User_Pooja"
+
+        # Disconnect all first
+        for u in (u1, u2, u3, u4):
+            broker_manager.disconnect_broker(u)
+
+        with patch("requests.get") as mock_get:
+            # 1. Connect User 1 to Zerodha
+            mock_res_kite = MagicMock()
+            mock_res_kite.status_code = 200
+            mock_res_kite.json.return_value = {
+                "status": "success",
+                "data": {"user_id": "KITE_AKSHAY", "user_name": "Akshay Kite"}
+            }
+            mock_get.return_value = mock_res_kite
+            ok1, _, _ = broker_manager.connect_broker(u1, "ZERODHA_KITE", {"api_key": "k", "access_token": "tok"})
+            self.assertTrue(ok1)
+            broker_manager.set_trading_mode(u1, "REAL")
+
+            # 2. Connect User 2 to Dhan
+            mock_res_dhan = MagicMock()
+            mock_res_dhan.status_code = 200
+            mock_res_dhan.json.return_value = {"availabelBalance": 50000.0, "sodLimit": 50000.0}
+            mock_get.return_value = mock_res_dhan
+            ok2, _, _ = broker_manager.connect_broker(u2, "DHAN", {"client_id": "DHAN_VIJAY", "access_token": "tok"})
+            self.assertTrue(ok2)
+            broker_manager.set_trading_mode(u2, "REAL")
+
+            # 3. Connect User 3 to Upstox
+            mock_res_upstox = MagicMock()
+            mock_res_upstox.status_code = 200
+            mock_res_upstox.json.return_value = {
+                "status": "success",
+                "data": {"user_id": "UPSTOX_RAHUL", "user_name": "Rahul Upstox"}
+            }
+            mock_get.return_value = mock_res_upstox
+            ok3, _, _ = broker_manager.connect_broker(u3, "UPSTOX", {"access_token": "tok", "client_id": "UPSTOX_RAHUL"})
+            self.assertTrue(ok3)
+
+            # User 4 connects nothing
+
+            # 4. Assert strict isolation via Flask REST API
+            r1 = self.client.get(f"/api/broker/status?user={u1}").get_json()
+            self.assertTrue(r1["connected"])
+            self.assertEqual(r1["broker"], "ZERODHA_KITE")
+            self.assertEqual(r1["mode"], "REAL")
+
+            r2 = self.client.get(f"/api/broker/status?user={u2}").get_json()
+            self.assertTrue(r2["connected"])
+            self.assertEqual(r2["broker"], "DHAN")
+            self.assertEqual(r2["mode"], "REAL")
+
+            r3 = self.client.get(f"/api/broker/status?user={u3}").get_json()
+            self.assertTrue(r3["connected"])
+            self.assertEqual(r3["broker"], "UPSTOX")
+            self.assertEqual(r3["mode"], "PAPER")
+
+            r4 = self.client.get(f"/api/broker/status?user={u4}").get_json()
+            self.assertFalse(r4["connected"])
+            self.assertIsNone(r4["broker"])
+            self.assertEqual(r4["mode"], "PAPER")
+
+            # 5. Disconnect User 1 and ensure Users 2 & 3 remain connected
+            broker_manager.disconnect_broker(u1)
+            self.assertFalse(broker_manager.get_status(u1)["is_connected"])
+            self.assertTrue(broker_manager.get_status(u2)["is_connected"])
+            self.assertTrue(broker_manager.get_status(u3)["is_connected"])
+
+        # Final cleanup
+        for u in (u1, u2, u3, u4):
+            broker_manager.disconnect_broker(u)
+
 
 if __name__ == "__main__":
     unittest.main()

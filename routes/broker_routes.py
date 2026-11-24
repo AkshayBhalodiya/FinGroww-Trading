@@ -15,15 +15,19 @@ broker_bp = Blueprint("broker_bp", __name__)
 
 
 def _extract_user(req) -> str:
-    user = "Akshay"
+    user = None
     try:
         if req.is_json and req.get_json(silent=True):
             j = req.get_json(silent=True)
-            user = j.get("user_name") or j.get("user") or user
+            user = j.get("user_name") or j.get("user") or j.get("user_id")
     except Exception:
         pass
-    if user == "Akshay":
-        user = req.args.get("user") or req.args.get("user_name") or user
+    if not user:
+        user = req.args.get("user") or req.args.get("user_name") or req.args.get("user_id")
+    if not user:
+        user = req.headers.get("X-User-Name") or req.cookies.get("fingroww_user")
+    if not user:
+        user = "Akshay"
     return str(user).strip()
 
 

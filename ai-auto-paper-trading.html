@@ -5217,6 +5217,7 @@ async function switchUserProfile(newUserName, btnEl = null) {
       }
       await fetchAndRenderAnalytics();
       await refreshLeaderboard();
+      await refreshBrokerStatus();
       showToast(`Switched active profile to [${currentUserName}].`);
     } finally {
       if (sel) sel.disabled = false;
