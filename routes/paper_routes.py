@@ -573,20 +573,26 @@ def paper_option_quote():
         except (ValueError, TypeError):
             strike_val = atm_strike
 
-    opt_quote = srv.resolve_option_quote(base_sym, strike_val, opt_type)
-    premium = float(opt_quote.get("lastPrice") or 0.0) if opt_quote else 0.0
-
     # Dynamic Next Expiry Calculation
     expiry_info = get_next_option_expiry(base_sym)
+    req_expiry = request.args.get("expiry")
+    target_expiry = req_expiry or expiry_info.get("date")
     expiry_label = expiry_info.get("label") or "Upcoming Expiry"
     expiry_date = expiry_info.get("date") or "Upcoming Expiry"
 
-    if premium <= 0:
+    opt_quote = srv.resolve_option_quote(base_sym, strike_val, opt_type, expiry=target_expiry)
+    premium = float(opt_quote.get("lastPrice") or 0.0) if opt_quote else 0.0
+
+    if opt_quote and opt_quote.get("expiry"):
+        expiry_date = opt_quote.get("expiry")
+        expiry_label = opt_quote.get("expiry_label") or expiry_label
+
+    dist_pct = abs(strike_val - spot_price) / max(spot_price, 1.0)
+    if premium <= 0 or (premium <= 0.05 and dist_pct <= 0.08):
         iv = 14.0 if ("NIFTY" in base_sym and "BANK" not in base_sym) else (16.0 if "BANK" in base_sym else 20.0)
         dte = max(1, expiry_info.get("dte", 7))
         atm_time_val = 0.4 * spot_price * (iv / 100.0) * math.sqrt(dte / 365.0)
         vol_w = max(0.01, (iv / 100.0) * math.sqrt(dte / 365.0))
-        dist_pct = abs(strike_val - spot_price) / max(spot_price, 1.0)
         decay = max(0.02, math.exp(-0.5 * (dist_pct / vol_w) ** 2))
         time_val = max(0.50, atm_time_val * decay)
         intrinsic = max(0.0, (spot_price - strike_val) if opt_type.upper() == "CE" else (strike_val - spot_price))

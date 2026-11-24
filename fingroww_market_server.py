@@ -916,19 +916,52 @@ def _build_expiries_meta(full_expiries, limit=6):
     return meta
 
 
+def _filter_unexpired_expiries(expiries):
+    """Filters out any historical expiry date that has already passed in IST."""
+    if not expiries:
+        return []
+    ist_now = get_ist_now()
+    today = ist_now.date()
+    market_closed_today = (ist_now.hour > 15 or (ist_now.hour == 15 and ist_now.minute >= 30))
+    valid = []
+    for exp in expiries:
+        if not exp or not isinstance(exp, str):
+            continue
+        try:
+            m = re.search(r"(\d{1,2})-([A-Za-z]{3})-(\d{4})", exp.strip())
+            if m:
+                d, mon, y = int(m.group(1)), m.group(2).capitalize(), int(m.group(3))
+                dt = datetime.datetime.strptime(f"{d:02d}-{mon}-{y}", "%d-%b-%Y").date()
+                if dt < today:
+                    continue
+                if dt == today and market_closed_today:
+                    continue
+                valid.append(exp)
+            else:
+                valid.append(exp)
+        except Exception:
+            valid.append(exp)
+    return valid or list(expiries)
+
+
 def _match_requested_expiry(expiries, requested_expiry):
-    """Matches a client expiry string (e.g. '17-Nov-2026' or '17-NOV-2026 (...)') to NSE expiryDates."""
+    """Matches a client expiry string (e.g. '01-Dec-2026' or '01-DEC-2026 (...)') to NSE expiryDates, defaulting to the nearest unexpired expiry."""
     if not expiries:
         return None
+    valid_expiries = _filter_unexpired_expiries(expiries)
+    fallback_expiry = valid_expiries[0] if valid_expiries else expiries[0]
     if not requested_expiry:
-        return expiries[0]
+        return fallback_expiry
     req_clean = str(requested_expiry).strip()
     m = re.search(r"(\d{1,2}-[A-Za-z]{3}-\d{4})", req_clean)
     token = (m.group(1) if m else req_clean).casefold()
+    for exp in valid_expiries:
+        if exp.casefold() == token or exp.casefold() == req_clean.casefold():
+            return exp
     for exp in expiries:
         if exp.casefold() == token or exp.casefold() == req_clean.casefold():
             return exp
-    return expiries[0]
+    return fallback_expiry
 
 
 def _extract_leg_ltp(leg):
@@ -1018,7 +1051,7 @@ def fetch_option_chain(symbol, expiry=None):
         underlying = float(records.get("underlyingValue") or spot or 0.0) or spot
         raw_items = records.get("data") or []
         if not sel_expiry and rec_expiries:
-            sel_expiry = rec_expiries[0]
+            sel_expiry = _match_requested_expiry(rec_expiries, None)
 
         rows = []
         ce_tot_oi = 0
@@ -1066,7 +1099,7 @@ def fetch_option_chain(symbol, expiry=None):
         if rows:
             atm_strike = min(rows, key=lambda x: abs(x["strikePrice"] - underlying))["strikePrice"]
             pcr = round(pe_tot_oi / ce_tot_oi, 2) if ce_tot_oi > 0 else 1.0
-            full_exp_list = expiries if expiries else (rec_expiries or [])
+            full_exp_list = _filter_unexpired_expiries(expiries if expiries else (rec_expiries or []))
             chosen_exp = sel_expiry or (full_exp_list[0] if full_exp_list else "CURRENT")
             chosen_kind = _classify_expiry_kind(chosen_exp, full_exp_list)
             expiries_meta = _build_expiries_meta(full_exp_list, limit=6)
@@ -1116,7 +1149,21 @@ def resolve_option_quote(base_symbol, strike, opt_type="CE", expiry=None):
         return None
     leg = matched.get(leg_key) or {}
     ltp = float(leg.get("ltp") or 0.0)
-    if ltp <= 0:
+    matched_strike = matched["strikePrice"]
+    spot_val = float(oc.get("spotPrice") or matched_strike)
+    dist_pct = abs(matched_strike - spot_val) / max(spot_val, 1.0)
+    if ltp <= 0.05 and dist_pct <= 0.08:
+        from fingroww_paper_engine import get_next_option_expiry
+        exp_info = get_next_option_expiry(base_symbol)
+        iv_val = float(leg.get("iv") or (14.0 if "NIFTY" in str(base_symbol) else 18.0)) or 14.0
+        dte_val = max(1, exp_info.get("dte", 7))
+        atm_time = 0.4 * spot_val * (iv_val / 100.0) * math.sqrt(dte_val / 365.0)
+        vol_width = max(0.01, (iv_val / 100.0) * math.sqrt(dte_val / 365.0))
+        decay_val = max(0.02, math.exp(-0.5 * (dist_pct / vol_width) ** 2))
+        extrinsic = max(0.50, atm_time * decay_val)
+        intrinsic = max(0.0, (spot_val - matched_strike) if leg_key == "CE" else (matched_strike - spot_val))
+        ltp = round(max(0.50, intrinsic + extrinsic), 2)
+    elif ltp <= 0:
         return None
 
     matched_strike = matched["strikePrice"]
