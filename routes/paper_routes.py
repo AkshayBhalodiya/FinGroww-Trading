@@ -337,6 +337,7 @@ def paper_get_trades():
 
 @paper_bp.get("/api/paper/export-csv")
 @paper_bp.get("/api/paper/export/trades.csv")
+@paper_bp.get("/api/paper/trades/export")
 def paper_export_trades_csv():
     """Direct streaming/download endpoint for all closed trades in RFC 4180 CSV format with all details."""
     u_sess, _ = srv.get_user_session_and_engine(request)
@@ -347,7 +348,7 @@ def paper_export_trades_csv():
     writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
 
     headers = [
-        "Trade ID", "Symbol", "Company Name", "Instrument", "Side", "Expiry / Contract",
+        "Trade ID", "Symbol", "Company Name", "Instrument", "Execution Type", "Side", "Expiry / Contract",
         "Entry Time", "Exit Time", "Holding Duration", "Quantity",
         "Entry Price (₹)", "Exit Price (₹)", "Stop Loss (₹)", "Stop Loss %", "Target (₹)", "Target %",
         "Margin Used (₹)", "Gross PnL (₹)", "Charges & Taxes (₹)", "Slippage (₹)", "Net PnL (₹)", "ROI %",
@@ -362,6 +363,7 @@ def paper_export_trades_csv():
             t.get("symbol", ""),
             t.get("name", t.get("symbol", "")),
             t.get("instrument_type", ""),
+            t.get("execution_type", "AUTO"),
             t.get("side", ""),
             t.get("expiry_label") or t.get("expiry_date") or "N/A",
             t.get("entry_time", ""),
@@ -813,6 +815,7 @@ def paper_get_leaderboard():
     mode = request.args.get("mode") or request.args.get("filter_mode") or "mix"
     leaderboard = srv.paper_manager.get_leaderboard(only_active=only_active, mode=mode)
     return jsonify({
+        "ok": True,
         "leaderboard": leaderboard,
         "total_traders": len(leaderboard),
         "only_active": only_active,

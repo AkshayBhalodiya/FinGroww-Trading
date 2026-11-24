@@ -1958,6 +1958,11 @@ class PaperTradingSession:
             logger.warning("Manual close quote failed for %s: %s", target_pos["symbol"], exc)
             quote = None
         if not _is_fresh_nse_quote(quote):
+            if force:
+                self._close_position(target_pos, "MANUAL_EXIT", target_pos.get("current_price"))
+                self._recalculate_equity()
+                self.save_to_db()
+                return True, "Position closed manually."
             return False, f"Could not get a fresh NSE quote for {target_pos['symbol']}; position remains open."
 
         raw_spot = float(quote["lastPrice"])
