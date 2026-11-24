@@ -15,6 +15,7 @@ import json
 import logging
 import math
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote as url_quote
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -77,16 +78,15 @@ def _init_mongo_connection():
             pass
 
         base_mongo_options = {
-            "serverSelectionTimeoutMS": 3000,
-            "connectTimeoutMS": 3000,
-            "socketTimeoutMS": 3500,
-            "maxPoolSize": 10,
+            "serverSelectionTimeoutMS": 1500,
+            "connectTimeoutMS": 1500,
+            "socketTimeoutMS": 2000,
+            "maxPoolSize": 5,
         }
         client_candidates = []
         if ca_file:
             client_candidates.append(("certifi-ca", {"tlsCAFile": ca_file, **base_mongo_options}))
         client_candidates.append(("tls-permissive", {"tlsAllowInvalidCertificates": True, **base_mongo_options}))
-        client_candidates.append(("standard-tls", dict(base_mongo_options)))
 
         last_mongo_err = None
         for mode_name, client_kwargs in client_candidates:
@@ -123,7 +123,8 @@ def _init_mongo_connection():
         return mongo_db
 
 
-_init_mongo_connection()
+# Asynchronous non-blocking initial datastore connection
+threading.Thread(target=_init_mongo_connection, daemon=True).start()
 
 # In-memory resilient datastore fallback
 local_datastore = {
@@ -211,7 +212,7 @@ from werkzeug.exceptions import HTTPException
 @app.errorhandler(Exception)
 def handle_exception(e):
     origin = request.headers.get("Origin") or "*"
-    code = e.code if isinstance(e, HTTPException) else 500
+    code = e.code if isinstance(e, HTTPException) and e.code is not None else 500
     resp = jsonify({"ok": False, "error": str(e), "type": type(e).__name__})
     resp.status_code = code
     resp.headers["Access-Control-Allow-Origin"] = origin
@@ -319,7 +320,7 @@ def fetch_yahoo_chart(ticker, interval="15m", range_="1mo"):
     try:
         url = (
             "https://query1.finance.yahoo.com/v8/finance/chart/"
-            + requests.utils.quote(ticker, safe="^.")
+            + url_quote(ticker, safe="^.")
             + f"?interval={interval}&range={range_}&events=div%2Csplits&includePrePost=false"
         )
         r = requests.get(url, headers={**HEADERS, "Accept": "application/json"}, timeout=3.5)
@@ -747,7 +748,7 @@ def load_equity_symbols():
     r.raise_for_status()
     items = []
     for x in INDEX_SYMBOLS:
-        item = dict(x)
+        item: dict[str, object] = dict(x)
         item["is_fo"] = True
         items.append(item)
     seen = {x["symbol"] for x in INDEX_SYMBOLS}
