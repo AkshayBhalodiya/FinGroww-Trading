@@ -401,9 +401,10 @@ def paper_export_trades_csv():
 
 @paper_bp.get("/api/paper/analytics")
 def paper_get_analytics():
-    """Returns quantitative performance analytics for a user."""
+    """Returns quantitative performance analytics for a user with execution mode filter."""
     u_sess, _ = srv.get_user_session_and_engine(request)
-    analytics = u_sess.get_performance_analytics()
+    mode = request.args.get("mode") or request.args.get("execution_type")
+    analytics = u_sess.get_performance_analytics(execution_type=mode)
     analytics["user_name"] = u_sess.user_name
     return jsonify(analytics)
 
@@ -464,8 +465,126 @@ def paper_test_expire_position():
     return jsonify({"ok": True, "message": msg, "state": st})
 
 
-@paper_bp.post("/api/paper/order/execute")
 @paper_bp.post("/api/paper/manual-order")
+def paper_manual_order():
+    """Places an immediate manual paper trade for a user session with mandatory SL."""
+    data = request.get_json(silent=True) or {}
+    u_sess, u_eng = srv.get_user_session_and_engine(request)
+    if not u_sess:
+        return jsonify({"ok": False, "error": "User session not found."}), 404
+
+    # If payload is formatted as setup object (1-click style), forward to execute_trade
+    if "setup" in data or ("symbol" in data and "strike" not in data):
+        return paper_order_execute()
+
+    base_sym = data.get("base_symbol") or data.get("symbol") or "NIFTY 50"
+    strike = data.get("strike")
+    if strike is None or str(strike).strip() == "":
+        return jsonify({"ok": False, "error": "Strike price is required."}), 400
+
+    opt_type = data.get("option_type", "CE")
+    stop_loss = data.get("stop_loss")
+    stop_loss_pct = data.get("stop_loss_pct")
+    target_price = data.get("target_price")
+    algo_target = bool(data.get("algo_target", False))
+    lots = int(data.get("lots") or 1)
+    holding_mins = float(data.get("holding_duration_mins") or 1440)
+
+    market_status = srv.get_nse_market_status()
+    market_is_open = bool(market_status.get("is_trading_hours"))
+
+    pos, err = u_sess.execute_manual_trade(
+        base_symbol=base_sym,
+        strike=strike,
+        option_type=opt_type,
+        stop_loss=stop_loss,
+        stop_loss_pct=stop_loss_pct,
+        target_price=target_price,
+        algo_target=algo_target,
+        lots=lots,
+        holding_duration_mins=holding_mins,
+        quote_resolver=srv.resolve_paper_quote,
+        option_quote_resolver=srv.resolve_option_quote,
+        market_is_open=market_is_open,
+    )
+
+    if not pos:
+        return jsonify({"ok": False, "error": err}), 400
+
+    u_sess.save_to_db()
+    st = u_sess.get_state()
+    session_stream_hub.broadcast(u_sess.user_name, st)
+
+    return jsonify({
+        "ok": True,
+        "success": True,
+        "message": f"Manual trade executed for {pos['symbol']}",
+        "position": pos,
+        "state": st,
+    })
+
+
+@paper_bp.get("/api/paper/option-quote")
+def paper_option_quote():
+    """Returns live quote, lot size, and margin details for a specific strike and CE/PE contract."""
+    from fingroww_paper_engine import DEFAULT_SPOTS
+    sym = request.args.get("symbol") or "NIFTY 50"
+    strike = request.args.get("strike")
+    opt_type = request.args.get("option_type") or "CE"
+
+    base_sym = srv.normalize_symbol(sym)
+    quote = srv.resolve_paper_quote(base_sym) or {}
+    spot_price = float(quote.get("lastPrice") or DEFAULT_SPOTS.get(base_sym, 24500.0))
+
+    step = 50 if "NIFTY" in base_sym and "BANK" not in base_sym else (100 if "BANK" in base_sym else 50)
+    if not strike:
+        strike_val = int(round(spot_price / step) * step)
+    else:
+        try:
+            strike_val = float(strike)
+            strike_val = int(strike_val) if strike_val == int(strike_val) else round(strike_val, 2)
+        except ValueError:
+            strike_val = int(round(spot_price / step) * step)
+
+    opt_quote = srv.resolve_option_quote(base_sym, strike_val, opt_type)
+    premium = float(opt_quote.get("lastPrice") or 0.0) if opt_quote else 0.0
+
+    if premium <= 0:
+        dist = abs(strike_val - spot_price) / max(spot_price, 1.0)
+        time_val = spot_price * 0.015 * max(0.2, 1.0 - dist * 5)
+        intrinsic = max(0.0, (spot_price - strike_val) if opt_type.upper() == "CE" else (strike_val - spot_price))
+        premium = round(max(1.0, intrinsic + time_val), 2)
+
+    lot_size = srv.LOT_SIZES.get(base_sym.upper())
+    if not lot_size:
+        for k, v in srv.LOT_SIZES.items():
+            if k in base_sym.upper():
+                lot_size = v
+                break
+    lot_size = lot_size or (25 if "NIFTY" in base_sym else 15)
+    margin_1_lot = round(premium * lot_size, 2)
+
+    suggested_sl = max(0.05, round(premium * 0.80, 2))
+    suggested_target = round(premium + ((premium - suggested_sl) * 1.80), 2)
+
+    return jsonify({
+        "ok": True,
+        "base_symbol": base_sym,
+        "spot_price": spot_price,
+        "strike": strike_val,
+        "option_type": opt_type.upper(),
+        "premium": premium,
+        "lastPrice": premium,
+        "lot_size": lot_size,
+        "margin_1_lot": margin_1_lot,
+        "suggested_sl": suggested_sl,
+        "suggested_target": suggested_target,
+        "expiry_label": (opt_quote or {}).get("expiry_label") or "Upcoming Expiry",
+        "market_source": (opt_quote or {}).get("source") or "NSE / Fair Value",
+    })
+
+
+@paper_bp.post("/api/paper/order/execute")
 def paper_order_execute():
     """1-Click manual or external paper trade execution (from options.html / today-options.html / ticket)."""
     data = request.get_json(silent=True) or {}
@@ -688,14 +807,16 @@ def paper_create_profile():
 
 @paper_bp.get("/api/paper/leaderboard")
 def paper_get_leaderboard():
-    """Returns the trader profiles leaderboard ranked by net profit, returns, and win rate."""
+    """Returns the trader profiles leaderboard ranked by net profit, returns, and win rate across 3 modes: mix, ai_only, manual_only."""
     active_param = request.args.get("active_only") or request.args.get("only_active")
     only_active = str(active_param).strip().lower() in ("true", "1", "yes") if active_param is not None else False
-    leaderboard = srv.paper_manager.get_leaderboard(only_active=only_active)
+    mode = request.args.get("mode") or request.args.get("filter_mode") or "mix"
+    leaderboard = srv.paper_manager.get_leaderboard(only_active=only_active, mode=mode)
     return jsonify({
         "leaderboard": leaderboard,
         "total_traders": len(leaderboard),
         "only_active": only_active,
+        "mode": mode,
         "generated_at": srv.get_ist_str()
     })
 
