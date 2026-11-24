@@ -1574,10 +1574,13 @@ from routes.market_routes import (
     system_status,
 )
 
+from routes.broker_routes import broker_bp
+
 app.register_blueprint(skills_bp)
 app.register_blueprint(agent_bp)
 app.register_blueprint(paper_bp)
 app.register_blueprint(market_bp)
+app.register_blueprint(broker_bp)
 
 
 @app.get("/backtest.html")

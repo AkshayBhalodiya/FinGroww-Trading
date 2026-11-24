@@ -2088,6 +2088,83 @@ button[disabled],
     font-size: 12px;
   }
 }
+
+/* Dual Mode Trading Tabs (Paper vs Real) */
+.trading-dual-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px 0;
+  padding: 6px;
+  background: var(--bg-surface, #0d1526);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  max-width: fit-content;
+}
+.dual-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.dual-mode-pill:hover {
+  color: var(--text-main, #f8fafc);
+  background: rgba(255, 255, 255, 0.04);
+}
+.dual-mode-pill.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--accent-blue, #38bdf8);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+}
+.dual-mode-pill.mode-real.active {
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--accent-gold, #fbbf24);
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+}
+.badge-mode-virtual {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.badge-mode-real {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.broker-select-card {
+  background: var(--bg-surface, #0d1526);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.broker-select-card:hover {
+  border-color: var(--accent-blue, #38bdf8);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.15);
+}
 </style>
 </head>
 <body>
@@ -2206,6 +2283,25 @@ button[disabled],
       <span>Open AI Swarm Hub</span> <i class="fa-solid fa-arrow-right"></i>
     </a>
   </div>
+
+  <!-- Dual-Mode Top Navigation: Paper Trading vs Real Live Trading -->
+  <div class="trading-dual-mode-bar">
+    <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('PAPER')" title="Risk-free virtual paper trading with ₹1,00,000 cash">
+      <i class="fa-solid fa-scroll" style="color:var(--accent-blue);"></i>
+      <span>Paper Trading</span>
+      <span class="badge-mode-virtual">VIRTUAL ₹1,00,000</span>
+    </button>
+    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('REAL')" title="Real live money trading with Zerodha, Angel One, or Dhan">
+      <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
+      <span>Real Live Trading</span>
+      <span class="badge-mode-real">ZERODHA · ANGEL ONE · DHAN</span>
+    </button>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 1. PAPER TRADING MAIN VIEW CONTAINER      -->
+  <!-- ========================================== -->
+  <div id="viewPaperTrading">
 
   <!-- Top Hero & Status -->
   <section class="paper-hero">
@@ -3138,6 +3234,234 @@ button[disabled],
     </div>
   </section>
 
+  </div><!-- end viewPaperTrading -->
+
+  <!-- ======================================================== -->
+  <!-- 2. REAL LIVE BROKER TRADING VIEW (Zerodha · Angel · Dhan)  -->
+  <!-- ======================================================== -->
+  <div id="viewRealTrading" style="display:none;">
+    <!-- Real Live Trading Hero -->
+    <section class="paper-hero" style="border-bottom: 1px solid rgba(245, 158, 11, 0.25);">
+      <div class="paper-hero-grid">
+        <div class="hero-title-group">
+          <div class="hero-category-tag" style="background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.35); color: var(--accent-gold);">
+            <i class="fa-solid fa-bolt-lightning"></i> REAL BROKER EXECUTION · LIVE NSE CAPITAL · MULTI-BROKER GATEWAY
+          </div>
+          <h1 class="hero-main-title" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 60%, #ffffff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Real Live Broker Trading Terminal
+          </h1>
+          <p class="hero-subtitle">
+            Deploy FinGroww Institutional AI Algos &amp; Manual Option Execution directly on your personal broker account. Fully integrated with Zerodha Kite, Angel One SmartAPI, and DhanHQ.
+          </p>
+        </div>
+
+        <!-- Broker Connection Status Card -->
+        <div class="hero-status-card" style="border-color: rgba(245,158,11,0.3);">
+          <div class="hero-status-card-top">
+            <span class="hero-status-label"><i class="fa-solid fa-shield-halved"></i> Broker Terminal</span>
+            <div id="brokerLiveStatusBadge" class="engine-status-badge status-idle" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4); color:#f87171;">
+              <span class="status-dot" style="background:#ef4444;" id="brokerLiveStatusDot"></span>
+              <span id="brokerLiveStatusText">DISCONNECTED</span>
+            </div>
+          </div>
+          <div class="hero-session-meta">
+            <span class="hero-session-pill"><i class="fa-solid fa-building-columns" style="color:var(--accent-gold);"></i> <span id="lblBrokerActiveName">No Broker</span></span>
+            <span class="hero-session-pill"><i class="fa-solid fa-id-badge" style="color:var(--accent-blue);"></i> <span id="lblBrokerClientId">--</span></span>
+            <button type="button" class="btn btn-sm btn-outline-cyan" onclick="openConnectBrokerModal()" style="padding:3px 10px; font-size:11px;" id="btnOpenConnectModal">
+              <i class="fa-solid fa-plug"></i> Connect Broker
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Disconnected Broker Setup Hero (Shown when no broker is connected) -->
+    <div id="brokerDisconnectedSetup" style="margin: 28px 0; padding: 28px; background: var(--bg-surface); border: 1px dashed rgba(245,158,11,0.3); border-radius: 16px; text-align: center;">
+      <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(245,158,11,0.15); color: var(--accent-gold); font-size: 24px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+        <i class="fa-solid fa-network-wired"></i>
+      </div>
+      <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">Connect Your Indian Broker to Start Real Trading</h3>
+      <p style="color: var(--text-muted); max-width: 620px; margin: 0 auto 24px auto; font-size: 13px; line-height: 1.6;">
+        Link your existing Zerodha Kite Connect, Angel One SmartAPI, or DhanHQ trading account. Execute AI automated strategies or manual option trades with real exchange fills and mandatory Stop-Loss protection.
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 860px; margin: 0 auto 24px auto; text-align: left;">
+        <!-- Card 1: Zerodha -->
+        <div class="broker-select-card" onclick="openConnectBrokerModal('ZERODHA_KITE')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-weight: 800; font-size: 16px; color: #fff;">Zerodha Kite</span>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(239,68,68,0.18); color: #f87171; font-weight: 700;">Kite Connect v3</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Ultra-low latency execution via Zerodha Kite Connect. Supports Equity Cash, Nifty &amp; Bank Nifty options.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Kite
+          </button>
+        </div>
+
+        <!-- Card 2: Angel One -->
+        <div class="broker-select-card" onclick="openConnectBrokerModal('ANGEL_ONE')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-weight: 800; font-size: 16px; color: #fff;">Angel One</span>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(16,185,129,0.18); color: #34d399; font-weight: 700;">SmartAPI</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Direct TOTP login and free API access. Supports ROBO bracket orders with real-time RMS margin checks.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Angel One
+          </button>
+        </div>
+
+        <!-- Card 3: Dhan -->
+        <div class="broker-select-card" onclick="openConnectBrokerModal('DHAN')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-weight: 800; font-size: 16px; color: #fff;">DhanHQ</span>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.18); color: #fbbf24; font-weight: 700;">DhanHQ API v2</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Built for super-fast Options and F&amp;O trading. Instant webhooks and dedicated live order execution.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect DhanHQ
+          </button>
+        </div>
+      </div>
+
+      <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <i class="fa-solid fa-lock" style="color:var(--accent-green);"></i>
+        <span>Bank-grade encryption: Credentials are never stored on external disk; active only during your session.</span>
+      </div>
+    </div>
+
+    <!-- Connected Broker Live Dashboard (Shown when a broker is active) -->
+    <div id="brokerConnectedTerminal" style="display:none; margin-top:24px;">
+      <!-- Real Broker Funds & Margins HUD Strip -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+        <div class="kpi-card" style="border-left: 3px solid #10b981;">
+          <div class="kpi-label">Available Cash Margin</div>
+          <div class="kpi-value" id="lblRealBrokerCash" style="color:#10b981; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-sub">Ready for live trades</div>
+        </div>
+        <div class="kpi-card" style="border-left: 3px solid #f59e0b;">
+          <div class="kpi-label">Used / Allocated Margin</div>
+          <div class="kpi-value" id="lblRealBrokerUsedMargin" style="color:#f59e0b; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-sub">Committed in active orders</div>
+        </div>
+        <div class="kpi-card" style="border-left: 3px solid #38bdf8;">
+          <div class="kpi-label">Total Account Balance</div>
+          <div class="kpi-value" id="lblRealBrokerTotalBalance" style="color:#38bdf8; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-sub">Cash + Collateral</div>
+        </div>
+        <div class="kpi-card" style="border-left: 3px solid #a855f7;">
+          <div class="kpi-label">Real MTM P&amp;L</div>
+          <div class="kpi-value" id="lblRealBrokerPnl" style="color:var(--text-main); font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-sub" id="lblRealBrokerPositionsCount">0 Open Positions</div>
+        </div>
+      </div>
+
+      <!-- Live Real Controls Bar -->
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 18px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-main);">Active Real Terminal:</span>
+          <span id="badgeActiveBrokerIndicator" style="padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+            <i class="fa-solid fa-circle-check"></i> LIVE
+          </span>
+          <button type="button" class="btn btn-sm btn-outline" onclick="fetchBrokerFunds()" style="padding: 4px 10px; font-size: 11px;" title="Refresh funds from broker">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Funds
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="openManualOrderModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-weight: 700;">
+            <i class="fa-solid fa-hand-holding-dollar"></i> Place Real Manual Trade
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="panicSquareOffRealBroker()" style="color: #ef4444; border-color: rgba(239,68,68,0.4); font-weight: 800;" title="Instantly close all open real broker positions">
+            <i class="fa-solid fa-triangle-exclamation"></i> 🚨 Panic Square-Off All
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" onclick="disconnectBroker()" style="font-size: 11px; padding: 4px 10px;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Disconnect
+          </button>
+        </div>
+      </div>
+
+      <!-- Real Positions Section -->
+      <div class="card" style="margin-bottom: 24px; padding: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-layer-group" style="color:var(--accent-gold);"></i>
+            <span>Real Broker Open Positions</span>
+          </h3>
+          <button type="button" class="btn btn-sm btn-outline" onclick="fetchBrokerPositions()" style="padding: 3px 10px; font-size: 11px;">
+            <i class="fa-solid fa-rotate"></i> Sync Positions
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" style="width: 100%;">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Qty</th>
+                <th>Avg Price</th>
+                <th>LTP</th>
+                <th>Real MTM P&amp;L</th>
+                <th>Product</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tblRealBrokerPositions">
+              <tr>
+                <td colspan="8" style="text-align:center; padding:24px; color:var(--text-dim);">No open real positions on broker terminal.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Real Order Book Section -->
+      <div class="card" style="padding: 18px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-blue);"></i>
+            <span>Today's Real Broker Order Book</span>
+          </h3>
+          <button type="button" class="btn btn-sm btn-outline" onclick="fetchBrokerOrders()" style="padding: 3px 10px; font-size: 11px;">
+            <i class="fa-solid fa-rotate"></i> Refresh Orders
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table" style="width: 100%;">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Type</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tblRealBrokerOrders">
+              <tr>
+                <td colspan="8" style="text-align:center; padding:24px; color:var(--text-dim);">No orders executed yet today.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ======================================================== -->
+
 </main>
 
 <!-- Create Profile Modal -->
@@ -3569,6 +3893,124 @@ button[disabled],
         <i class="fa-solid fa-play"></i> Run Simulation
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Connect Live Broker Modal (Zerodha Kite Connect, Angel One SmartAPI, DhanHQ) -->
+<div id="modalConnectBroker" class="modal-overlay">
+  <div class="modal-box" style="max-width: 620px; width: 95%;">
+    <div class="modal-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <i class="fa-solid fa-plug" style="color:var(--accent-gold);"></i>
+        <span>Connect Live Indian Broker</span>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalConnectBroker')" style="padding:4px 10px; font-size:12px;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div class="modal-desc" style="margin-bottom:14px;">
+      Authenticate with your official broker API for live algo &amp; manual trade execution. Credentials are used only in-memory and never saved to external disks.
+    </div>
+
+    <!-- Broker Selection Tabs -->
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-bottom:18px;">
+      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--accent-gold); background:rgba(245,158,11,0.12); cursor:pointer;">
+        <input type="radio" name="brokerSelectRadio" value="ZERODHA_KITE" checked onchange="onBrokerPlatformRadioChange()" style="display:none;">
+        <span style="font-weight:700; font-size:13px; color:#f87171;"><i class="fa-solid fa-k"></i> Zerodha</span>
+        <span style="font-size:10px; color:var(--text-dim);">Kite Connect v3</span>
+      </label>
+      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
+        <input type="radio" name="brokerSelectRadio" value="ANGEL_ONE" onchange="onBrokerPlatformRadioChange()" style="display:none;">
+        <span style="font-weight:700; font-size:13px; color:#34d399;"><i class="fa-solid fa-a"></i> Angel One</span>
+        <span style="font-size:10px; color:var(--text-dim);">SmartAPI</span>
+      </label>
+      <label class="broker-tab-label" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
+        <input type="radio" name="brokerSelectRadio" value="DHAN" onchange="onBrokerPlatformRadioChange()" style="display:none;">
+        <span style="font-weight:700; font-size:13px; color:#fbbf24;"><i class="fa-solid fa-d"></i> DhanHQ</span>
+        <span style="font-size:10px; color:var(--text-dim);">DhanHQ v2</span>
+      </label>
+    </div>
+
+    <form id="formConnectBroker" onsubmit="event.preventDefault(); submitBrokerConnection();">
+      <!-- Zerodha Form Fields -->
+      <div id="brokerFieldsZerodha">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">Kite API Key</label>
+            <input type="text" id="kiteApiKey" placeholder="e.g. abcd1234efgh5678" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Kite API Secret</label>
+            <input type="password" id="kiteApiSecret" placeholder="••••••••••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">Request Token (Post-Login)</label>
+            <input type="text" id="kiteRequestToken" placeholder="From login redirect URL" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Kite User / Client ID</label>
+            <input type="text" id="kiteUserId" placeholder="e.g. AB1234" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#f87171; margin-right:4px;"></i>
+          Generate your API key from <a href="https://kite.trade" target="_blank" style="color:#60a5fa; text-decoration:underline;">kite.trade</a>. After logging in, copy the <code>request_token</code> from your redirect URL.
+        </div>
+      </div>
+
+      <!-- Angel One Form Fields -->
+      <div id="brokerFieldsAngel" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">SmartAPI API Key</label>
+            <input type="text" id="angelApiKey" placeholder="SmartAPI Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Client Code / User ID</label>
+            <input type="text" id="angelClientCode" placeholder="e.g. A123456" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">Trading MPIN / Password</label>
+            <input type="password" id="angelPassword" placeholder="••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">TOTP Token (6 Digits)</label>
+            <input type="text" id="angelTotp" placeholder="e.g. 123456" maxlength="6" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#34d399; margin-right:4px;"></i>
+          Free SmartAPI credentials from <a href="https://smartapi.angelbroking.com" target="_blank" style="color:#60a5fa; text-decoration:underline;">smartapi.angelbroking.com</a>. TOTP is from Google Authenticator.
+        </div>
+      </div>
+
+      <!-- DhanHQ Form Fields -->
+      <div id="brokerFieldsDhan" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Dhan Client ID</label>
+          <input type="text" id="dhanClientId" placeholder="e.g. 1000000001" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">DhanHQ Access Token (JWT)</label>
+          <textarea id="dhanAccessToken" placeholder="Paste your 30-day API access token here..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#fbbf24; margin-right:4px;"></i>
+          Generate instant Access Token from Dhan Web -> Settings &amp; Security -> DhanHQ Trading APIs.
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:16px;">
+        <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalConnectBroker')">Cancel</button>
+        <button type="submit" id="btnSubmitBrokerConnect" class="btn btn-sm btn-primary" style="background:linear-gradient(135deg, #f59e0b, #d97706); border:none; font-weight:800; padding:8px 18px;">
+          <i class="fa-solid fa-link"></i> Authenticate &amp; Connect Broker
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -4144,9 +4586,25 @@ function openManualOrderModal() {
   }
 
   const availEl = document.getElementById("manualAvailBalDisplay");
-  if (availEl && window.currentSessionState && window.currentSessionState.account) {
-    const bal = Number(window.currentSessionState.account.available_balance || 0);
-    availEl.textContent = `₹${bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const btnSubmit = document.getElementById("btnSubmitManualOrder");
+  if (typeof currentTradingMode !== "undefined" && currentTradingMode === "real") {
+    if (availEl) {
+      const realCash = document.getElementById("lblRealBrokerCash")?.textContent || "₹0.00";
+      availEl.textContent = `${realCash} (Real Margin)`;
+    }
+    if (btnSubmit) {
+      btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Place Real Broker Trade`;
+      btnSubmit.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
+    }
+  } else {
+    if (availEl && window.currentSessionState && window.currentSessionState.account) {
+      const bal = Number(window.currentSessionState.account.available_balance || 0);
+      availEl.textContent = `₹${bal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    if (btnSubmit) {
+      btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Place Manual Paper Trade`;
+      btnSubmit.style.background = "linear-gradient(135deg, #10b981, #059669)";
+    }
   }
 
   onManualSymbolChange();
@@ -4474,6 +4932,45 @@ async function submitManualOrder() {
   };
 
   const btn = document.getElementById("btnSubmitManualOrder");
+
+  // Real live broker execution route
+  if (typeof currentTradingMode !== "undefined" && currentTradingMode === "real") {
+    if (!activeBrokerData || !activeBrokerData.connected) {
+      showToast("No active live broker connected. Please connect Zerodha, Angel One, or Dhan first.", "error");
+      return;
+    }
+    const lotSize = (lastManualQuote && lastManualQuote.lot_size) ? Number(lastManualQuote.lot_size) : 25;
+    const totalQty = lots * lotSize;
+    const formattedSym = `${sym} ${strike} ${optType}`;
+
+    return withActionLock("submit_real_order", async () => {
+      const res = await fetchPaperApi("/api/broker/order/place", {
+        method: "POST",
+        body: JSON.stringify({
+          user: currentUserName,
+          symbol: formattedSym,
+          side: "BUY",
+          quantity: totalQty,
+          product: "MIS",
+          order_type: "MARKET",
+          price: prem,
+          stop_loss: sl,
+          target: isAlgo ? 0 : target
+        })
+      });
+
+      if (res && res.success) {
+        closeModal("modalManualOrder");
+        showToast(`⚡ Real broker order placed: ${formattedSym} (${totalQty} Qty, ID: ${res.order_id || 'OK'})`, "success");
+        await Promise.all([fetchBrokerPositions(), fetchBrokerFunds(), fetchBrokerOrders()]);
+      } else {
+        const err = res && res.error ? res.error : "Failed to place order on broker exchange.";
+        showToast(err, "error");
+      }
+    }, btn, "Executing on Broker...");
+  }
+
+  // Paper trading simulation route
   return withActionLock("submit_manual_order", async () => {
     const res = await fetchPaperApi("/api/paper/manual-order", {
       method: "POST",
@@ -6255,10 +6752,372 @@ async function runStrategyBacktest() {
   }, btn, "Simulating...");
 }
 
+// =========================================================================
+// DUAL MODE TRADING CONTROLLER: PAPER SIMULATION VS REAL LIVE BROKER
+// =========================================================================
+let currentTradingMode = localStorage.getItem("fingroww_trading_mode") || "paper";
+let activeBrokerData = null;
+
+function switchTradingMode(mode) {
+  currentTradingMode = mode === "real" ? "real" : "paper";
+  localStorage.setItem("fingroww_trading_mode", currentTradingMode);
+
+  const tabPaper = document.getElementById("tabModePaper");
+  const tabReal = document.getElementById("tabModeReal");
+  const viewPaper = document.getElementById("viewPaperTrading");
+  const viewReal = document.getElementById("viewRealTrading");
+
+  if (currentTradingMode === "real") {
+    if (tabReal) tabReal.classList.add("active");
+    if (tabPaper) tabPaper.classList.remove("active");
+    if (viewPaper) viewPaper.style.display = "none";
+    if (viewReal) viewReal.style.display = "block";
+    refreshBrokerStatus();
+  } else {
+    if (tabPaper) tabPaper.classList.add("active");
+    if (tabReal) tabReal.classList.remove("active");
+    if (viewPaper) viewPaper.style.display = "block";
+    if (viewReal) viewReal.style.display = "none";
+  }
+
+  // Notify backend of mode toggle
+  fetchPaperApi("/api/broker/mode/toggle", {
+    method: "POST",
+    body: JSON.stringify({ user: currentUserName, mode: currentTradingMode.toUpperCase() })
+  }).catch(() => {});
+}
+
+function openConnectBrokerModal(brokerKey) {
+  const modal = document.getElementById("modalConnectBroker");
+  if (!modal) return;
+  modal.classList.add("active");
+
+  const targetKey = brokerKey || "ZERODHA_KITE";
+  const radios = document.getElementsByName("brokerSelectRadio");
+  radios.forEach(r => {
+    if (r.value === targetKey) {
+      r.checked = true;
+    }
+  });
+  onBrokerPlatformRadioChange();
+}
+
+function onBrokerPlatformRadioChange() {
+  const radios = document.getElementsByName("brokerSelectRadio");
+  let selected = "ZERODHA_KITE";
+  radios.forEach(r => {
+    if (r.checked) selected = r.value;
+    const parentLabel = r.closest(".broker-tab-label");
+    if (parentLabel) {
+      if (r.checked) {
+        parentLabel.style.borderColor = "var(--accent-gold)";
+        parentLabel.style.background = "rgba(245,158,11,0.12)";
+      } else {
+        parentLabel.style.borderColor = "var(--border-subtle)";
+        parentLabel.style.background = "var(--bg-surface)";
+      }
+    }
+  });
+
+  const fZerodha = document.getElementById("brokerFieldsZerodha");
+  const fAngel = document.getElementById("brokerFieldsAngel");
+  const fDhan = document.getElementById("brokerFieldsDhan");
+
+  if (fZerodha) fZerodha.style.display = selected === "ZERODHA_KITE" ? "block" : "none";
+  if (fAngel) fAngel.style.display = selected === "ANGEL_ONE" ? "block" : "none";
+  if (fDhan) fDhan.style.display = selected === "DHAN" ? "block" : "none";
+}
+
+async function submitBrokerConnection() {
+  const btn = document.getElementById("btnSubmitBrokerConnect");
+  const radios = document.getElementsByName("brokerSelectRadio");
+  let selected = "ZERODHA_KITE";
+  radios.forEach(r => { if (r.checked) selected = r.value; });
+
+  const credentials = {};
+  if (selected === "ZERODHA_KITE") {
+    credentials.api_key = (document.getElementById("kiteApiKey")?.value || "").trim();
+    credentials.api_secret = (document.getElementById("kiteApiSecret")?.value || "").trim();
+    credentials.request_token = (document.getElementById("kiteRequestToken")?.value || "").trim();
+    credentials.user_id = (document.getElementById("kiteUserId")?.value || "").trim();
+    if (!credentials.api_key || !credentials.request_token) {
+      showToast("Please enter Kite API Key and Request Token.", "error");
+      return;
+    }
+  } else if (selected === "ANGEL_ONE") {
+    credentials.api_key = (document.getElementById("angelApiKey")?.value || "").trim();
+    credentials.client_code = (document.getElementById("angelClientCode")?.value || "").trim();
+    credentials.password = (document.getElementById("angelPassword")?.value || "").trim();
+    credentials.totp = (document.getElementById("angelTotp")?.value || "").trim();
+    if (!credentials.api_key || !credentials.client_code || !credentials.password) {
+      showToast("Please enter SmartAPI Key, Client Code, and Password/MPIN.", "error");
+      return;
+    }
+  } else if (selected === "DHAN") {
+    credentials.client_id = (document.getElementById("dhanClientId")?.value || "").trim();
+    credentials.access_token = (document.getElementById("dhanAccessToken")?.value || "").trim();
+    if (!credentials.client_id || !credentials.access_token) {
+      showToast("Please enter Dhan Client ID and Access Token.", "error");
+      return;
+    }
+  }
+
+  await withActionLock("connect_broker", async () => {
+    try {
+      const res = await fetchPaperApi("/api/broker/connect", {
+        method: "POST",
+        body: JSON.stringify({
+          user: currentUserName,
+          broker: selected,
+          credentials: credentials
+        })
+      });
+
+      if (res && res.success) {
+        closeModal("modalConnectBroker");
+        showToast(`🎉 Connected to ${res.broker_name || selected} successfully!`, "success");
+        await refreshBrokerStatus();
+      } else {
+        showToast(res && res.error ? res.error : "Failed to authenticate with broker.", "error");
+      }
+    } catch (err) {
+      showToast("Network error connecting to broker API.", "error");
+    }
+  }, btn, "Authenticating...");
+}
+
+async function disconnectBroker() {
+  if (!confirm("Are you sure you want to disconnect live broker trading?")) return;
+
+  try {
+    const res = await fetchPaperApi("/api/broker/disconnect", {
+      method: "POST",
+      body: JSON.stringify({ user: currentUserName })
+    });
+    if (res && res.success) {
+      showToast("Live broker disconnected.", "info");
+      await refreshBrokerStatus();
+    }
+  } catch (err) {
+    showToast("Error disconnecting broker.", "error");
+  }
+}
+
+async function refreshBrokerStatus() {
+  try {
+    const res = await fetchPaperApi(`/api/broker/status?user=${encodeURIComponent(currentUserName)}`);
+    const statusDot = document.getElementById("brokerLiveStatusDot");
+    const statusText = document.getElementById("brokerLiveStatusText");
+    const statusBadge = document.getElementById("brokerLiveStatusBadge");
+    const lblBrokerName = document.getElementById("lblBrokerActiveName");
+    const lblClientId = document.getElementById("lblBrokerClientId");
+    const disconnectedHero = document.getElementById("brokerDisconnectedSetup");
+    const connectedTerminal = document.getElementById("brokerConnectedTerminal");
+
+    if (res && res.success && res.connected) {
+      activeBrokerData = res;
+      if (statusDot) statusDot.style.background = "#10b981";
+      if (statusText) statusText.textContent = "CONNECTED (LIVE)";
+      if (statusBadge) {
+        statusBadge.style.background = "rgba(16,185,129,0.15)";
+        statusBadge.style.borderColor = "rgba(16,185,129,0.4)";
+        statusBadge.style.color = "#34d399";
+      }
+      if (lblBrokerName) lblBrokerName.textContent = res.broker_name || res.broker || "Live Broker";
+      if (lblClientId) lblClientId.textContent = res.client_id || "--";
+      if (disconnectedHero) disconnectedHero.style.display = "none";
+      if (connectedTerminal) connectedTerminal.style.display = "block";
+
+      await Promise.all([
+        fetchBrokerFunds(),
+        fetchBrokerPositions(),
+        fetchBrokerOrders()
+      ]);
+    } else {
+      activeBrokerData = null;
+      if (statusDot) statusDot.style.background = "#ef4444";
+      if (statusText) statusText.textContent = "DISCONNECTED";
+      if (statusBadge) {
+        statusBadge.style.background = "rgba(239,68,68,0.15)";
+        statusBadge.style.borderColor = "rgba(239,68,68,0.4)";
+        statusBadge.style.color = "#f87171";
+      }
+      if (lblBrokerName) lblBrokerName.textContent = "No Broker";
+      if (lblClientId) lblClientId.textContent = "--";
+      if (disconnectedHero) disconnectedHero.style.display = "block";
+      if (connectedTerminal) connectedTerminal.style.display = "none";
+    }
+  } catch (e) {
+    console.error("Broker status fetch failed", e);
+  }
+}
+
+async function fetchBrokerFunds() {
+  try {
+    const res = await fetchPaperApi(`/api/broker/funds?user=${encodeURIComponent(currentUserName)}`);
+    if (res && res.success && res.funds) {
+      const f = res.funds;
+      const cashEl = document.getElementById("lblRealBrokerCash");
+      const usedEl = document.getElementById("lblRealBrokerUsedMargin");
+      const totEl = document.getElementById("lblRealBrokerTotalBalance");
+      if (cashEl) cashEl.textContent = `₹${Number(f.available_cash || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (usedEl) usedEl.textContent = `₹${Number(f.used_margin || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      if (totEl) totEl.textContent = `₹${Number(f.total_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  } catch (e) {
+    console.error("Error fetching broker funds", e);
+  }
+}
+
+async function fetchBrokerPositions() {
+  try {
+    const res = await fetchPaperApi(`/api/broker/positions?user=${encodeURIComponent(currentUserName)}`);
+    const tbody = document.getElementById("tblRealBrokerPositions");
+    const countEl = document.getElementById("lblRealBrokerPositionsCount");
+    const pnlEl = document.getElementById("lblRealBrokerPnl");
+    if (!tbody) return;
+
+    if (res && res.success && Array.isArray(res.positions) && res.positions.length > 0) {
+      if (countEl) countEl.textContent = `${res.positions.length} Open Position${res.positions.length > 1 ? 's' : ''}`;
+      let totalPnl = 0;
+      tbody.innerHTML = res.positions.map(p => {
+        const pnl = Number(p.pnl || 0);
+        totalPnl += pnl;
+        const pnlColor = pnl >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+        const pnlSign = pnl >= 0 ? "+" : "";
+        const sideColor = (p.side || "BUY") === "BUY" ? "#34d399" : "#f87171";
+        const sym = (p.symbol || "--").replace(/'/g, "\\'");
+        const prod = (p.product || "MIS").replace(/'/g, "\\'");
+        return `
+          <tr>
+            <td style="font-weight:700;">${p.symbol || "--"}</td>
+            <td><span style="font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; background:${(p.side || 'BUY') === 'BUY' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${sideColor};">${p.side || 'BUY'}</span></td>
+            <td style="font-family:var(--font-mono);">${p.quantity || 0}</td>
+            <td style="font-family:var(--font-mono);">₹${Number(p.average_price || 0).toFixed(2)}</td>
+            <td style="font-family:var(--font-mono);">₹${Number(p.last_price || 0).toFixed(2)}</td>
+            <td style="font-weight:800; font-family:var(--font-mono); color:${pnlColor};">${pnlSign}₹${pnl.toFixed(2)}</td>
+            <td><span style="font-size:10px; color:var(--text-dim);">${p.product || "MIS"}</span></td>
+            <td>
+              <button type="button" class="btn btn-sm btn-outline" onclick="squareOffRealPosition('${sym}', '${prod}', ${p.quantity || 0})" style="padding:2px 8px; font-size:11px; color:#ef4444; border-color:rgba(239,68,68,0.3);">
+                Close
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      if (pnlEl) {
+        const sign = totalPnl >= 0 ? "+" : "";
+        pnlEl.textContent = `${sign}₹${totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        pnlEl.style.color = totalPnl >= 0 ? "var(--accent-green)" : "var(--accent-red)";
+      }
+    } else {
+      if (countEl) countEl.textContent = "0 Open Positions";
+      if (pnlEl) {
+        pnlEl.textContent = "₹0.00";
+        pnlEl.style.color = "var(--text-main)";
+      }
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-dim);">No open real positions on broker terminal.</td></tr>`;
+    }
+  } catch (e) {
+    console.error("Error fetching broker positions", e);
+  }
+}
+
+async function fetchBrokerOrders() {
+  try {
+    const res = await fetchPaperApi(`/api/broker/orders?user=${encodeURIComponent(currentUserName)}`);
+    const tbody = document.getElementById("tblRealBrokerOrders");
+    if (!tbody) return;
+
+    if (res && res.success && Array.isArray(res.orders) && res.orders.length > 0) {
+      tbody.innerHTML = res.orders.map(o => {
+        let statusBadge = `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(59,130,246,0.15); color:#60a5fa; font-weight:700;">${o.status || 'OPEN'}</span>`;
+        if (o.status === "COMPLETE" || o.status === "TRADED") {
+          statusBadge = `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(16,185,129,0.15); color:#34d399; font-weight:700;">COMPLETE</span>`;
+        } else if (o.status === "REJECTED" || o.status === "CANCELLED") {
+          statusBadge = `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(239,68,68,0.15); color:#f87171; font-weight:700;">${o.status}</span>`;
+        }
+        const sideColor = (o.side || "BUY") === "BUY" ? "#34d399" : "#f87171";
+        return `
+          <tr>
+            <td style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${o.order_id || '--'}</td>
+            <td style="font-size:11px; color:var(--text-dim);">${o.order_timestamp ? new Date(o.order_timestamp).toLocaleTimeString() : '--'}</td>
+            <td style="font-weight:700;">${o.symbol || '--'}</td>
+            <td><span style="font-size:10px; font-weight:800; color:${sideColor};">${o.side || 'BUY'}</span></td>
+            <td style="font-family:var(--font-mono);">${o.quantity || 0}</td>
+            <td style="font-family:var(--font-mono);">₹${Number(o.price || 0).toFixed(2)}</td>
+            <td style="font-size:11px; color:var(--text-dim);">${o.order_type || 'MARKET'}</td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join("");
+    } else {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-dim);">No orders executed yet today.</td></tr>`;
+    }
+  } catch (e) {
+    console.error("Error fetching broker orders", e);
+  }
+}
+
+async function panicSquareOffRealBroker() {
+  if (!confirm("🚨 PANIC SQUARE-OFF: Are you sure you want to CLOSE ALL real broker positions immediately at market price?")) return;
+
+  try {
+    const res = await fetchPaperApi("/api/broker/square-off-all", {
+      method: "POST",
+      body: JSON.stringify({ user: currentUserName })
+    });
+    if (res && res.success) {
+      showToast(`Panic square-off completed! Closed ${res.closed_count || 0} positions.`, "warning");
+      await Promise.all([fetchBrokerPositions(), fetchBrokerFunds(), fetchBrokerOrders()]);
+    } else {
+      showToast(res && res.error ? res.error : "Failed to square off broker positions.", "error");
+    }
+  } catch (err) {
+    showToast("Error executing panic square-off.", "error");
+  }
+}
+
+async function squareOffRealPosition(symbol, product, quantity) {
+  if (!confirm(`Square off position ${symbol} (${quantity} qty)?`)) return;
+
+  try {
+    const res = await fetchPaperApi("/api/broker/order/place", {
+      method: "POST",
+      body: JSON.stringify({
+        user: currentUserName,
+        symbol: symbol,
+        side: "SELL",
+        quantity: quantity,
+        product: product,
+        order_type: "MARKET",
+        stop_loss: 1.0
+      })
+    });
+    if (res && res.success) {
+      showToast(`Position squared off: ${symbol}`, "success");
+      await Promise.all([fetchBrokerPositions(), fetchBrokerFunds(), fetchBrokerOrders()]);
+    } else {
+      showToast(res && res.error ? res.error : "Failed to close position.", "error");
+    }
+  } catch (e) {
+    showToast("Error squaring off position.", "error");
+  }
+}
+
 // -------------------------------------------------------------------------
 // INITIALIZATION
 // -------------------------------------------------------------------------
 window.addEventListener("DOMContentLoaded", async () => {
+  // Mode setup: check if user last selected real live broker or paper mode
+  const savedTradingMode = localStorage.getItem("fingroww_trading_mode");
+  if (savedTradingMode === "real") {
+    switchTradingMode("real");
+  } else {
+    // Keep broker status in sync in the background
+    refreshBrokerStatus();
+  }
   // 0. Instant Optimistic Render from LocalStorage Cache (0ms instant page display!)
   try {
     const cachedStr = localStorage.getItem("fingroww_cached_state_" + currentUserName);
