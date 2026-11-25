@@ -325,6 +325,58 @@ class TestBrokerIntegration(unittest.TestCase):
         for u in (u1, u2, u3, u4):
             broker_manager.disconnect_broker(u)
 
+    def test_09_indian_multi_broker_ecosystem(self):
+        """Verifies all 10 additional Indian brokers can authenticate, check funds, and route orders."""
+        brokers_to_test = [
+            ("GROWW", {"client_id": "GW123", "access_token": "gw_tok"}),
+            ("KOTAK_NEO", {"consumer_key": "kn_key", "access_token": "kn_tok"}),
+            ("FYERS", {"app_id": "FY123-100", "access_token": "fy_tok"}),
+            ("SHOONYA", {"user_id": "SH123", "password": "sh_password", "api_key": "sh_key"}),
+            ("ICICI_DIRECT", {"api_key": "icici_key", "session_token": "icici_tok"}),
+            ("HDFC_SKY", {"api_key": "hdfc_key", "access_token": "hdfc_tok"}),
+            ("PAYTM_MONEY", {"api_key": "pm_key", "request_token": "pm_tok"}),
+            ("FIVE_PAISA", {"user_id": "5P123", "user_key": "5p_key"}),
+            ("ALICE_BLUE", {"user_id": "AB123", "api_key": "ab_key"}),
+            ("MOTILAL_OSWAL", {"client_code": "MO123", "api_key": "mo_key"}),
+        ]
+
+        test_user = "IndianBrokerTester"
+        for broker_key, creds in brokers_to_test:
+            broker_manager.disconnect_broker(test_user)
+
+            # 1. Connect via broker_manager
+            ok, msg, profile = broker_manager.connect_broker(test_user, broker_key, creds)
+            self.assertTrue(ok, f"Failed to connect {broker_key}: {msg}")
+            status = broker_manager.get_status(test_user)
+            self.assertTrue(status["is_connected"])
+            self.assertEqual(status["broker_name"], broker_key)
+
+            # 2. Get funds
+            client = broker_manager.get_client(test_user)
+            self.assertIsNotNone(client)
+            ok_f, funds, _ = client.get_funds()
+            self.assertTrue(ok_f)
+            self.assertGreater(funds["available_cash"], 0)
+
+            # 3. Place real order
+            ok_o, order_doc, _ = client.place_order(
+                symbol="NIFTY 24500 CE",
+                quantity=65,
+                side="BUY",
+                order_type="MARKET",
+                price=150.0,
+                stop_loss=120.0
+            )
+            self.assertTrue(ok_o)
+            self.assertEqual(order_doc["status"], "COMPLETE")
+
+            # 4. REST endpoint test
+            res = self.client.get(f"/api/broker/status?user={test_user}").get_json()
+            self.assertTrue(res["connected"])
+            self.assertEqual(res["broker"], broker_key)
+
+        broker_manager.disconnect_broker(test_user)
+
 
 if __name__ == "__main__":
     unittest.main()

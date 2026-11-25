@@ -2090,71 +2090,168 @@ button[disabled],
 }
 
 /* Dual Mode Trading Tabs (Paper vs Real) */
-.trading-dual-mode-bar {
+.trading-dual-mode-wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-start;
   margin: 0 0 24px 0;
+  width: 100%;
+}
+.trading-dual-mode-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px;
-  background: var(--bg-surface, #0d1526);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: 14px;
-  max-width: fit-content;
+  background: rgba(13, 21, 38, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
   z-index: 20;
+  max-width: 100%;
 }
 .dual-mode-pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 10px 22px;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted, #94a3b8);
   font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   outline: none;
+  white-space: nowrap;
 }
 .dual-mode-pill * {
   pointer-events: none;
 }
-.dual-mode-pill:hover {
+.dual-mode-pill:hover:not(.active) {
   color: var(--text-main, #f8fafc);
   background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 .dual-mode-pill.active {
-  background: rgba(56, 189, 248, 0.12) !important;
-  color: var(--accent-blue, #38bdf8) !important;
-  border-color: rgba(56, 189, 248, 0.4) !important;
-  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08)) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .dual-mode-pill.mode-real.active {
-  background: rgba(245, 158, 11, 0.14) !important;
-  color: var(--accent-gold, #fbbf24) !important;
-  border-color: rgba(245, 158, 11, 0.45) !important;
-  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.10)) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .badge-mode-virtual {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 4px;
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.35);
   color: #34d399;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .badge-mode-real {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  background: rgba(245, 158, 11, 0.2);
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
   color: #fbbf24;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.live-dot-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+  animation: livePillPulse 1.8s infinite;
+}
+@keyframes livePillPulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* Broker Gateway Category Filter Buttons */
+.broker-filter-pills {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.broker-filter-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.broker-filter-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+.broker-filter-btn.active {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+}
+
+@media (max-width: 768px) {
+  .trading-dual-mode-wrapper {
+    margin-bottom: 18px;
+  }
+  .trading-dual-mode-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 6px;
+    padding: 5px;
+  }
+  .dual-mode-pill {
+    padding: 9px 8px;
+    font-size: 12px;
+    gap: 6px;
+    width: 100%;
+  }
+  .badge-mode-virtual, .badge-mode-real {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+}
+@media (max-width: 480px) {
+  .dual-mode-pill span.mode-pill-long {
+    display: none;
+  }
+  .dual-mode-pill {
+    padding: 8px 6px;
+    font-size: 11.5px;
+    gap: 5px;
+  }
 }
 .broker-select-card {
   background: var(--bg-surface, #0d1526);
@@ -2292,17 +2389,19 @@ button[disabled],
   </div>
 
   <!-- Dual-Mode Top Navigation: Paper Trading vs Real Live Trading -->
-  <div class="trading-dual-mode-bar">
-    <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('paper')" title="Risk-free virtual paper trading with ₹1,00,000 cash">
-      <i class="fa-solid fa-scroll" style="color:var(--accent-blue);"></i>
-      <span>Paper Trading</span>
-      <span class="badge-mode-virtual">VIRTUAL ₹1,00,000</span>
-    </button>
-    <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" title="Real live money trading with Zerodha, Angel One, Dhan, or Upstox">
-      <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
-      <span>Real Live Trading</span>
-      <span class="badge-mode-real">ZERODHA · ANGEL ONE · DHAN · UPSTOX</span>
-    </button>
+  <div class="trading-dual-mode-wrapper">
+    <div class="trading-dual-mode-bar" role="tablist">
+      <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('paper')" role="tab" aria-selected="true" title="Risk-free virtual paper trading with ₹1,00,000 cash">
+        <i class="fa-solid fa-scroll" style="color:var(--accent-blue);"></i>
+        <span>Paper Trading</span>
+        <span class="badge-mode-virtual"><i class="fa-solid fa-wallet"></i> <span class="mode-pill-long">VIRTUAL </span>₹1,00,000</span>
+      </button>
+      <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" role="tab" aria-selected="false" title="Real live money trading with all Indian Brokers">
+        <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
+        <span>Real Live Trading</span>
+        <span class="badge-mode-real"><span class="live-dot-pulse"></span> <span class="mode-pill-long">ALL </span>14+ BROKERS</span>
+      </button>
+    </div>
   </div>
 
   <!-- ========================================== -->
@@ -3283,25 +3382,46 @@ button[disabled],
     </section>
 
     <!-- Disconnected Broker Setup Hero (Shown when no broker is connected) -->
-    <div id="brokerDisconnectedSetup" style="margin: 28px 0; padding: 28px; background: var(--bg-surface); border: 1px dashed rgba(245,158,11,0.3); border-radius: 16px; text-align: center;">
-      <div style="width: 56px; height: 56px; border-radius: 14px; background: rgba(245,158,11,0.15); color: var(--accent-gold); font-size: 24px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+    <div id="brokerDisconnectedSetup" style="margin: 28px 0; padding: 28px 22px; background: var(--bg-surface); border: 1px dashed rgba(245,158,11,0.3); border-radius: 16px; text-align: center;">
+      <div style="width: 58px; height: 58px; border-radius: 16px; background: rgba(245,158,11,0.15); color: var(--accent-gold); font-size: 26px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 0 20px rgba(245,158,11,0.2);">
         <i class="fa-solid fa-network-wired"></i>
       </div>
-      <h3 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">Connect Your Indian Broker to Start Real Trading</h3>
-      <p style="color: var(--text-muted); max-width: 680px; margin: 0 auto 24px auto; font-size: 13px; line-height: 1.6;">
-        Link your existing Zerodha Kite Connect, Angel One SmartAPI, DhanHQ, or Upstox trading account. Execute AI automated strategies or manual option trades with real exchange fills and mandatory Stop-Loss protection.
+      <h3 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.02em;">
+        Connect Indian Broker Gateway <span style="font-size:13px; font-weight:700; color:var(--accent-gold); background:rgba(245,158,11,0.14); padding:3px 10px; border-radius:12px; border:1px solid rgba(245,158,11,0.3); margin-left:6px; vertical-align:middle;">14+ Brokers Supported</span>
+      </h3>
+      <p style="color: var(--text-muted); max-width: 720px; margin: 0 auto 20px auto; font-size: 13px; line-height: 1.6;">
+        Authenticate your SEBI-registered broker account for real live execution. Execute automated intraday options &amp; cash equity signals or manual orders with mandatory Stop-Loss enforcement and bank-grade in-memory encryption.
       </p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 1040px; margin: 0 auto 24px auto; text-align: left;">
-        <!-- Card 1: Zerodha -->
-        <div class="broker-select-card" onclick="openConnectBrokerModal('ZERODHA_KITE')">
+      <!-- Instant Search & Category Filter Pills -->
+      <div style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin-bottom:24px; max-width:880px; margin-left:auto; margin-right:auto;">
+        <div style="position:relative; flex:1; min-width:260px;">
+          <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:13px;"></i>
+          <input type="text" id="inpSearchBrokers" placeholder="Search broker (Zerodha, Angel, Groww, Kotak, Fyers...)" oninput="filterBrokersList()" style="width:100%; padding:9px 14px 9px 38px; border-radius:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-size:13px; outline:none; transition:all 0.2s ease;">
+        </div>
+        <div class="broker-filter-pills" style="margin-bottom:0;">
+          <button type="button" class="broker-filter-btn active" data-filter="all" onclick="setBrokerCategoryFilter('all', this)">All (14)</button>
+          <button type="button" class="broker-filter-btn" data-filter="discount" onclick="setBrokerCategoryFilter('discount', this)">Discount (7)</button>
+          <button type="button" class="broker-filter-btn" data-filter="zero" onclick="setBrokerCategoryFilter('zero', this)">Zero Brokerage (2)</button>
+          <button type="button" class="broker-filter-btn" data-filter="bank" onclick="setBrokerCategoryFilter('bank', this)">Bank &amp; Pro (5)</button>
+        </div>
+      </div>
+
+      <!-- 14 Indian Brokers Grid -->
+      <div id="brokerCardsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(245px, 1fr)); gap: 16px; max-width: 1140px; margin: 0 auto 24px auto; text-align: left;">
+        
+        <!-- 1. Zerodha Kite -->
+        <div class="broker-select-card" data-category="discount" data-name="zerodha kite kiteconnect v3 nse bse mcx" onclick="openConnectBrokerModal('ZERODHA_KITE')">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <span style="font-weight: 800; font-size: 16px; color: #fff;">Zerodha Kite</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(239,68,68,0.18); color:#f87171; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(239,68,68,0.3);">Z</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Zerodha Kite</span>
+              </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(239,68,68,0.18); color: #f87171; font-weight: 700;">Kite Connect v3</span>
             </div>
             <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
-              Ultra-low latency execution via Zerodha Kite Connect. Supports Equity Cash, Nifty &amp; Bank Nifty options.
+              India's largest retail broker. Ultra-low latency Kite Connect v3 API for Equity Cash, Nifty &amp; Bank Nifty options.
             </p>
           </div>
           <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
@@ -3309,15 +3429,18 @@ button[disabled],
           </button>
         </div>
 
-        <!-- Card 2: Angel One -->
-        <div class="broker-select-card" onclick="openConnectBrokerModal('ANGEL_ONE')">
+        <!-- 2. Angel One -->
+        <div class="broker-select-card" data-category="discount" data-name="angel one smartapi angelbroking totp robo" onclick="openConnectBrokerModal('ANGEL_ONE')">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <span style="font-weight: 800; font-size: 16px; color: #fff;">Angel One</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(16,185,129,0.18); color:#34d399; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(16,185,129,0.3);">A</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Angel One</span>
+              </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(16,185,129,0.18); color: #34d399; font-weight: 700;">SmartAPI</span>
             </div>
             <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
-              Direct TOTP login and free API access. Supports ROBO bracket orders with real-time RMS margin checks.
+              Direct TOTP login &amp; free API access. Supports ROBO bracket orders with real-time RMS margin checks.
             </p>
           </div>
           <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
@@ -3325,15 +3448,18 @@ button[disabled],
           </button>
         </div>
 
-        <!-- Card 3: Dhan -->
-        <div class="broker-select-card" onclick="openConnectBrokerModal('DHAN')">
+        <!-- 3. Dhan -->
+        <div class="broker-select-card" data-category="discount" data-name="dhan dhanhq raise options f&o api v2" onclick="openConnectBrokerModal('DHAN')">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <span style="font-weight: 800; font-size: 16px; color: #fff;">DhanHQ</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(245,158,11,0.18); color:#fbbf24; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(245,158,11,0.3);">D</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">DhanHQ</span>
+              </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.18); color: #fbbf24; font-weight: 700;">DhanHQ API v2</span>
             </div>
             <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
-              Built for super-fast Options and F&amp;O trading. Instant webhooks and dedicated live order execution.
+              Built for super-fast Options &amp; F&amp;O trading. Instant webhooks and dedicated live order execution with 30-day JWT.
             </p>
           </div>
           <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
@@ -3341,11 +3467,14 @@ button[disabled],
           </button>
         </div>
 
-        <!-- Card 4: Upstox -->
-        <div class="broker-select-card" onclick="openConnectBrokerModal('UPSTOX')">
+        <!-- 4. Upstox -->
+        <div class="broker-select-card" data-category="discount" data-name="upstox rksv upstox api v2" onclick="openConnectBrokerModal('UPSTOX')">
           <div>
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-              <span style="font-weight: 800; font-size: 16px; color: #fff;">Upstox</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(168,85,247,0.18); color:#c084fc; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(168,85,247,0.3);">U</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Upstox</span>
+              </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(168,85,247,0.18); color: #c084fc; font-weight: 700;">API v2</span>
             </div>
             <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
@@ -3356,6 +3485,202 @@ button[disabled],
             <i class="fa-solid fa-link"></i> Connect Upstox
           </button>
         </div>
+
+        <!-- 5. Groww -->
+        <div class="broker-select-card" data-category="discount" data-name="groww nextbillion groww api trading" onclick="openConnectBrokerModal('GROWW')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(6,182,212,0.18); color:#22d3ee; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(6,182,212,0.3);">G</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Groww</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(6,182,212,0.18); color: #22d3ee; font-weight: 700;">Groww API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              India's popular investing platform. Fast REST order execution for Equity Cash and F&amp;O intraday trades.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Groww
+          </button>
+        </div>
+
+        <!-- 6. Kotak Neo -->
+        <div class="broker-select-card" data-category="zero" data-name="kotak neo securities zero brokerage youth plan napi" onclick="openConnectBrokerModal('KOTAK_NEO')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(99,102,241,0.18); color:#818cf8; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(99,102,241,0.3);">KN</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Kotak Neo</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,0.18); color: #818cf8; font-weight: 700;">Zero ₹0 Intraday</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              ₹0 Brokerage on Intraday trades with Kotak Neo N-API. Ultra-stable institutional gateway with high throughput.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Kotak Neo
+          </button>
+        </div>
+
+        <!-- 7. Fyers -->
+        <div class="broker-select-card" data-category="bank" data-name="fyers api v3 options pro trading basket" onclick="openConnectBrokerModal('FYERS')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(249,115,22,0.18); color:#fb923c; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(249,115,22,0.3);">F</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Fyers</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(249,115,22,0.18); color: #fb923c; font-weight: 700;">API v3</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Tailored for active derivative traders. Free API v3 access with multi-leg basket orders and tick-by-tick fills.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Fyers
+          </button>
+        </div>
+
+        <!-- 8. Shoonya (Finvasia) -->
+        <div class="broker-select-card" data-category="zero" data-name="shoonya finvasia zero brokerage lifetime noren" onclick="openConnectBrokerModal('SHOONYA')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(132,204,22,0.18); color:#a3e635; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(132,204,22,0.3);">SH</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Shoonya (Finvasia)</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(132,204,22,0.18); color: #a3e635; font-weight: 700;">100% Zero ₹0</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Zero brokerage forever across Equity, Futures &amp; Options. High-speed Noren REST API protocol.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Shoonya
+          </button>
+        </div>
+
+        <!-- 9. ICICI Direct (Breeze) -->
+        <div class="broker-select-card" data-category="bank" data-name="icici direct breeze bank full service 3-in-1" onclick="openConnectBrokerModal('ICICI_DIRECT')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(244,63,94,0.18); color:#fb7185; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(244,63,94,0.3);">IC</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">ICICI Direct</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(244,63,94,0.18); color: #fb7185; font-weight: 700;">Breeze API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Premier 3-in-1 bank backed trading account. Breeze API with institutional grade safety and instant payout.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect ICICI Breeze
+          </button>
+        </div>
+
+        <!-- 10. HDFC Sky -->
+        <div class="broker-select-card" data-category="bank" data-name="hdfc sky securities bank discount api" onclick="openConnectBrokerModal('HDFC_SKY')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(14,165,233,0.18); color:#38bdf8; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(14,165,233,0.3);">HD</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">HDFC Sky</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(14,165,233,0.18); color: #38bdf8; font-weight: 700;">Sky Connect</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Backed by India's largest private bank HDFC. Modern flat-fee trading with dedicated API connectivity.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect HDFC Sky
+          </button>
+        </div>
+
+        <!-- 11. Paytm Money -->
+        <div class="broker-select-card" data-category="discount" data-name="paytm money developer api open api" onclick="openConnectBrokerModal('PAYTM_MONEY')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(59,130,246,0.18); color:#60a5fa; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(59,130,246,0.3);">PM</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Paytm Money</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.18); color: #60a5fa; font-weight: 700;">PM Open API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Algorithmic trading API with simple token flow, automated brackets, and low per-order brokerage fees.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Paytm Money
+          </button>
+        </div>
+
+        <!-- 12. 5Paisa -->
+        <div class="broker-select-card" data-category="discount" data-name="5paisa fivepaisa iifl developer api discount" onclick="openConnectBrokerModal('FIVE_PAISA')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(234,179,8,0.18); color:#facc15; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(234,179,8,0.3);">5P</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">5Paisa</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(234,179,8,0.18); color: #facc15; font-weight: 700;">Developer API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Flat ₹10/₹20 discount trading with 5Paisa Open APIs. Instant order execution and advanced risk controls.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect 5Paisa
+          </button>
+        </div>
+
+        <!-- 13. Alice Blue -->
+        <div class="broker-select-card" data-category="bank" data-name="alice blue ant mobi discount api rest" onclick="openConnectBrokerModal('ALICE_BLUE')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(20,184,166,0.18); color:#2dd4bf; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(20,184,166,0.3);">AB</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Alice Blue</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(20,184,166,0.18); color: #2dd4bf; font-weight: 700;">ANT API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Flat ₹15/order execution with ANT Open API. High leverage and fast multi-exchange order routing.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Alice Blue
+          </button>
+        </div>
+
+        <!-- 14. Motilal Oswal -->
+        <div class="broker-select-card" data-category="bank" data-name="motilal oswal mo trader research institutional full service" onclick="openConnectBrokerModal('MOTILAL_OSWAL')">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:30px; height:30px; border-radius:8px; background:rgba(234,179,8,0.18); color:#fbbf24; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(234,179,8,0.3);">MO</span>
+                <span style="font-weight: 800; font-size: 15px; color: #fff;">Motilal Oswal</span>
+              </div>
+              <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(234,179,8,0.18); color: #fbbf24; font-weight: 700;">MO Open API</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 16px;">
+              Full-service powerhouse with award-winning research. MO Trader Open API for institutional &amp; retail traders.
+            </p>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-cyan" style="width: 100%;">
+            <i class="fa-solid fa-link"></i> Connect Motilal Oswal
+          </button>
+        </div>
+
+      </div>
+
+      <div id="brokerEmptyFilterMsg" style="display:none; padding:30px 20px; color:var(--text-dim); font-size:13px;">
+        <i class="fa-solid fa-filter-circle-xmark" style="font-size:24px; margin-bottom:8px; display:block; color:var(--text-muted);"></i>
+        No brokers match your search criteria. Try a different search term or category.
       </div>
 
       <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -3935,32 +4260,56 @@ button[disabled],
       Authenticate with your official broker API for live algo &amp; manual trade execution. Credentials are used only in-memory and never saved to external disks.
     </div>
 
-    <!-- Broker Selection Tabs -->
-    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:18px;">
-      <label class="broker-tab-label" onclick="selectBrokerTab('ZERODHA_KITE')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--accent-gold); background:rgba(245,158,11,0.12); cursor:pointer;">
-        <input type="radio" name="brokerSelectRadio" value="ZERODHA_KITE" checked onchange="onBrokerPlatformRadioChange()" style="display:none;">
-        <span style="font-weight:700; font-size:13px; color:#f87171;"><i class="fa-solid fa-k"></i> Zerodha</span>
-        <span style="font-size:10px; color:var(--text-dim);">Kite Connect v3</span>
+    <!-- Broker Selection Platform Selector -->
+    <div style="margin-bottom:18px;">
+      <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span>Select Your Broker Platform</span>
+        <span style="font-size:11px; color:var(--accent-gold);"><i class="fa-solid fa-shield-halved"></i> 14+ Indian Brokers</span>
       </label>
-      <label class="broker-tab-label" onclick="selectBrokerTab('ANGEL_ONE')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
-        <input type="radio" name="brokerSelectRadio" value="ANGEL_ONE" onchange="onBrokerPlatformRadioChange()" style="display:none;">
-        <span style="font-weight:700; font-size:13px; color:#34d399;"><i class="fa-solid fa-a"></i> Angel One</span>
-        <span style="font-size:10px; color:var(--text-dim);">SmartAPI</span>
-      </label>
-      <label class="broker-tab-label" onclick="selectBrokerTab('DHAN')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
-        <input type="radio" name="brokerSelectRadio" value="DHAN" onchange="onBrokerPlatformRadioChange()" style="display:none;">
-        <span style="font-weight:700; font-size:13px; color:#fbbf24;"><i class="fa-solid fa-d"></i> DhanHQ</span>
-        <span style="font-size:10px; color:var(--text-dim);">DhanHQ v2</span>
-      </label>
-      <label class="broker-tab-label" onclick="selectBrokerTab('UPSTOX')" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px; border-radius:8px; border:1px solid var(--border-subtle); background:var(--bg-surface); cursor:pointer;">
-        <input type="radio" name="brokerSelectRadio" value="UPSTOX" onchange="onBrokerPlatformRadioChange()" style="display:none;">
-        <span style="font-weight:700; font-size:13px; color:#c084fc;"><i class="fa-solid fa-u"></i> Upstox</span>
-        <span style="font-size:10px; color:var(--text-dim);">API v2</span>
-      </label>
+      <select id="brokerSelectDropdown" class="custom-select" onchange="onBrokerPlatformDropdownChange(this.value)" style="width:100%; padding:10px 14px; font-weight:700; font-size:13px; background:var(--bg-surface); border:1px solid var(--accent-gold); border-radius:10px; color:#fff;">
+        <optgroup label="⚡ Discount Brokers">
+          <option value="ZERODHA_KITE" selected>Zerodha Kite (Kite Connect v3)</option>
+          <option value="ANGEL_ONE">Angel One (SmartAPI)</option>
+          <option value="DHAN">DhanHQ (API v2)</option>
+          <option value="UPSTOX">Upstox (API v2)</option>
+          <option value="GROWW">Groww (Groww API)</option>
+          <option value="PAYTM_MONEY">Paytm Money (PM Open API)</option>
+          <option value="FIVE_PAISA">5Paisa (Developer API)</option>
+        </optgroup>
+        <optgroup label="🆓 Zero Brokerage Brokers">
+          <option value="KOTAK_NEO">Kotak Neo (Zero Brokerage Intraday)</option>
+          <option value="SHOONYA">Shoonya by Finvasia (100% Zero ₹0)</option>
+        </optgroup>
+        <optgroup label="🏛️ Bank &amp; Pro Institutional">
+          <option value="ICICI_DIRECT">ICICI Direct (Breeze API)</option>
+          <option value="HDFC_SKY">HDFC Sky (Sky Connect)</option>
+          <option value="FYERS">Fyers (API v3 Pro)</option>
+          <option value="ALICE_BLUE">Alice Blue (ANT API)</option>
+          <option value="MOTILAL_OSWAL">Motilal Oswal (MO Open API)</option>
+        </optgroup>
+      </select>
+
+      <!-- Quick-Select Chips -->
+      <div style="display:flex; gap:6px; overflow-x:auto; padding:10px 2px 4px 2px; scrollbar-width:thin;" id="brokerQuickPillStrip">
+        <button type="button" class="broker-filter-btn active" onclick="selectBrokerTab('ZERODHA_KITE')">Zerodha</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('ANGEL_ONE')">Angel One</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('DHAN')">DhanHQ</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('UPSTOX')">Upstox</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('GROWW')">Groww</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('KOTAK_NEO')">Kotak Neo</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('FYERS')">Fyers</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('SHOONYA')">Shoonya</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('ICICI_DIRECT')">ICICI Breeze</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('HDFC_SKY')">HDFC Sky</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('PAYTM_MONEY')">Paytm</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('FIVE_PAISA')">5Paisa</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('ALICE_BLUE')">Alice Blue</button>
+        <button type="button" class="broker-filter-btn" onclick="selectBrokerTab('MOTILAL_OSWAL')">Motilal</button>
+      </div>
     </div>
 
     <form id="formConnectBroker" onsubmit="event.preventDefault(); submitBrokerConnection();">
-      <!-- Zerodha Form Fields -->
+      <!-- 1. Zerodha Form Fields -->
       <div id="brokerFieldsZerodha">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
@@ -3988,7 +4337,7 @@ button[disabled],
         </div>
       </div>
 
-      <!-- Angel One Form Fields -->
+      <!-- 2. Angel One Form Fields -->
       <div id="brokerFieldsAngel" style="display:none;">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
@@ -4016,7 +4365,7 @@ button[disabled],
         </div>
       </div>
 
-      <!-- DhanHQ Form Fields -->
+      <!-- 3. DhanHQ Form Fields -->
       <div id="brokerFieldsDhan" style="display:none;">
         <div style="margin-bottom:12px;">
           <label class="form-label">Dhan Client ID</label>
@@ -4032,7 +4381,7 @@ button[disabled],
         </div>
       </div>
 
-      <!-- Upstox Form Fields -->
+      <!-- 4. Upstox Form Fields -->
       <div id="brokerFieldsUpstox" style="display:none;">
         <div style="margin-bottom:12px;">
           <label class="form-label">Upstox User ID / Client ID (Optional)</label>
@@ -4045,6 +4394,238 @@ button[disabled],
         <div style="font-size:11.5px; color:var(--text-dim); background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
           <i class="fa-solid fa-circle-info" style="color:#c084fc; margin-right:4px;"></i>
           Generate your Access Token from <a href="https://service.upstox.com/developer/api-documentation" target="_blank" style="color:#60a5fa; text-decoration:underline;">Upstox Developer Console</a>.
+        </div>
+      </div>
+
+      <!-- 5. Groww Form Fields -->
+      <div id="brokerFieldsGroww" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Groww Client ID / User ID</label>
+          <input type="text" id="growwClientId" placeholder="e.g. GW123456" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Groww API Key / Access Token</label>
+          <textarea id="growwAccessToken" placeholder="Paste your Groww trading token or API key..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#22d3ee; margin-right:4px;"></i>
+          Obtain Groww API credentials from your Groww developer profile or API settings portal.
+        </div>
+      </div>
+
+      <!-- 6. Kotak Neo Form Fields -->
+      <div id="brokerFieldsKotakNeo" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">Consumer Key</label>
+            <input type="text" id="kotakConsumerKey" placeholder="Consumer Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Consumer Secret</label>
+            <input type="password" id="kotakConsumerSecret" placeholder="••••••••••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">Access Token / Session Token</label>
+            <input type="text" id="kotakAccessToken" placeholder="Bearer Session Token" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Registered Mobile / MPIN</label>
+            <input type="text" id="kotakMobile" placeholder="e.g. 9876543210" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#818cf8; margin-right:4px;"></i>
+          Generate Kotak Neo N-API keys from Kotak Neo Trade API Developer Portal.
+        </div>
+      </div>
+
+      <!-- 7. Fyers Form Fields -->
+      <div id="brokerFieldsFyers" style="display:none;">
+        <div style="margin-bottom:12px;">
+          <label class="form-label">Fyers App ID</label>
+          <input type="text" id="fyersAppId" placeholder="e.g. XC12345-100" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Fyers API v3 Access Token</label>
+          <textarea id="fyersAccessToken" placeholder="Paste your Fyers API v3 access token..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#fb923c; margin-right:4px;"></i>
+          Generate API v3 keys directly from <a href="https://myapi.fyers.in" target="_blank" style="color:#60a5fa; text-decoration:underline;">myapi.fyers.in</a>.
+        </div>
+      </div>
+
+      <!-- 8. Shoonya (Finvasia) Form Fields -->
+      <div id="brokerFieldsShoonya" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">User ID / Client Code</label>
+            <input type="text" id="shoonyaUserId" placeholder="e.g. FA12345" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Trading Password</label>
+            <input type="password" id="shoonyaPassword" placeholder="••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">Vendor Code</label>
+            <input type="text" id="shoonyaVendorCode" placeholder="Vendor code (e.g. FA12345_U)" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">API Secret / TOTP Key</label>
+            <input type="password" id="shoonyaApiKey" placeholder="API secret key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(132,204,22,0.08); border:1px solid rgba(132,204,22,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#a3e635; margin-right:4px;"></i>
+          Finvasia Shoonya offers lifetime 100% zero brokerage. Enable API from your Prism dashboard.
+        </div>
+      </div>
+
+      <!-- 9. ICICI Direct Breeze Form Fields -->
+      <div id="brokerFieldsIciciDirect" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">Breeze App Key (API Key)</label>
+            <input type="text" id="iciciApiKey" placeholder="App Key from Breeze portal" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Secret Key</label>
+            <input type="password" id="iciciApiSecret" placeholder="••••••••••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Session Token (API Session)</label>
+          <input type="text" id="iciciSessionToken" placeholder="From login redirect or Breeze token generator" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#fb7185; margin-right:4px;"></i>
+          Get your Breeze API keys from <a href="https://api.icicidirect.com" target="_blank" style="color:#60a5fa; text-decoration:underline;">api.icicidirect.com</a>.
+        </div>
+      </div>
+
+      <!-- 10. HDFC Sky Form Fields -->
+      <div id="brokerFieldsHdfcSky" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">HDFC Sky API Key</label>
+            <input type="text" id="hdfcApiKey" placeholder="API Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">User / Client ID</label>
+            <input type="text" id="hdfcUserId" placeholder="e.g. HDFC12345" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Sky Connect Access Token</label>
+          <textarea id="hdfcAccessToken" placeholder="Paste your Sky Connect access token..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(14,165,233,0.08); border:1px solid rgba(14,165,233,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#38bdf8; margin-right:4px;"></i>
+          Connect using HDFC Sky Developer API credentials from HDFC Securities portal.
+        </div>
+      </div>
+
+      <!-- 11. Paytm Money Form Fields -->
+      <div id="brokerFieldsPaytmMoney" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">API Key</label>
+            <input type="text" id="paytmApiKey" placeholder="API Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">API Secret</label>
+            <input type="password" id="paytmApiSecret" placeholder="••••••••••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Request Token (Post-Login)</label>
+          <input type="text" id="paytmRequestToken" placeholder="Request token from login redirect" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#60a5fa; margin-right:4px;"></i>
+          Generate API keys from Paytm Money Developer Console at <a href="https://developer.paytmmoney.com" target="_blank" style="color:#60a5fa; text-decoration:underline;">developer.paytmmoney.com</a>.
+        </div>
+      </div>
+
+      <!-- 12. 5Paisa Form Fields -->
+      <div id="brokerFieldsFivePaisa" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">Client Code / User ID</label>
+            <input type="text" id="fivePaisaUserId" placeholder="e.g. 50012345" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Password / MPIN</label>
+            <input type="password" id="fivePaisaPassword" placeholder="••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">User Key</label>
+            <input type="text" id="fivePaisaUserKey" placeholder="User Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Encryption Key</label>
+            <input type="password" id="fivePaisaEncryptionKey" placeholder="Encryption Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#facc15; margin-right:4px;"></i>
+          Find your Developer API keys from 5Paisa Trade Station or Developer Portal.
+        </div>
+      </div>
+
+      <!-- 13. Alice Blue Form Fields -->
+      <div id="brokerFieldsAliceBlue" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">User ID / Client Code</label>
+            <input type="text" id="aliceUserId" placeholder="e.g. AB12345" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">API Key</label>
+            <input type="text" id="aliceApiKey" placeholder="ANT API Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label class="form-label">Session Token / Encryption Key</label>
+          <textarea id="aliceSessionToken" placeholder="Paste session token or encryption key..." rows="3" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:11.5px;"></textarea>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(20,184,166,0.08); border:1px solid rgba(20,184,166,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#2dd4bf; margin-right:4px;"></i>
+          Generate ANT API keys from Alice Blue ANT Web portal.
+        </div>
+      </div>
+
+      <!-- 14. Motilal Oswal Form Fields -->
+      <div id="brokerFieldsMotilalOswal" style="display:none;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label class="form-label">Client Code</label>
+            <input type="text" id="motilalClientCode" placeholder="e.g. MO12345" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">Trading Password</label>
+            <input type="password" id="motilalPassword" placeholder="••••••••" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label class="form-label">Open API Key</label>
+            <input type="text" id="motilalApiKey" placeholder="MO Open API Key" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+          <div>
+            <label class="form-label">TOTP (Google Authenticator)</label>
+            <input type="text" id="motilalTotp" placeholder="e.g. 123456" maxlength="6" style="width:100%; padding:8px 12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; color:var(--text-main); font-family:var(--font-mono); font-size:12px;">
+          </div>
+        </div>
+        <div style="font-size:11.5px; color:var(--text-dim); background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.2); border-radius:6px; padding:8px 12px; margin-bottom:14px;">
+          <i class="fa-solid fa-circle-info" style="color:#fbbf24; margin-right:4px;"></i>
+          Generate MO Trader API keys from Motilal Oswal Open API portal.
         </div>
       </div>
 
@@ -6876,13 +7457,94 @@ function switchTradingMode(mode) {
   }).catch(() => {});
 }
 
-function selectBrokerTab(brokerKey) {
-  const targetKey = brokerKey || "ZERODHA_KITE";
-  const radios = document.getElementsByName("brokerSelectRadio");
-  radios.forEach(r => {
-    r.checked = (r.value === targetKey);
+// -------------------------------------------------------------------------
+// INDIAN BROKER ECOSYSTEM & GATEWAY CONTROLLER (14+ BROKERS)
+// -------------------------------------------------------------------------
+
+let currentSelectedBrokerKey = "ZERODHA_KITE";
+
+function setBrokerCategoryFilter(category, btn) {
+  document.querySelectorAll(".broker-filter-pills .broker-filter-btn").forEach(b => b.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+  filterBrokersList(category);
+}
+
+function filterBrokersList(forcedCategory) {
+  const activeBtn = document.querySelector(".broker-filter-pills .broker-filter-btn.active");
+  const category = forcedCategory || (activeBtn ? activeBtn.getAttribute("data-filter") : "all");
+  const query = (document.getElementById("inpSearchBrokers")?.value || "").toLowerCase().trim();
+  const cards = document.querySelectorAll("#brokerCardsGrid .broker-select-card");
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const cardCat = card.getAttribute("data-category") || "";
+    const cardText = ((card.getAttribute("data-name") || "") + " " + card.textContent).toLowerCase();
+
+    const catMatch = (category === "all" || cardCat === category);
+    const searchMatch = (!query || cardText.includes(query));
+
+    if (catMatch && searchMatch) {
+      card.style.display = "flex";
+      visibleCount++;
+    } else {
+      card.style.display = "none";
+    }
   });
-  onBrokerPlatformRadioChange();
+
+  const emptyMsg = document.getElementById("brokerEmptyFilterMsg");
+  if (emptyMsg) {
+    emptyMsg.style.display = visibleCount === 0 ? "block" : "none";
+  }
+}
+
+function selectBrokerTab(brokerKey) {
+  currentSelectedBrokerKey = brokerKey || "ZERODHA_KITE";
+
+  const dropdown = document.getElementById("brokerSelectDropdown");
+  if (dropdown) dropdown.value = currentSelectedBrokerKey;
+
+  // Highlight matching quick chip
+  const chips = document.querySelectorAll("#brokerQuickPillStrip .broker-filter-btn");
+  chips.forEach(chip => {
+    const onclickStr = chip.getAttribute("onclick") || "";
+    if (onclickStr.includes(`'${currentSelectedBrokerKey}'`)) {
+      chip.classList.add("active");
+    } else {
+      chip.classList.remove("active");
+    }
+  });
+
+  renderBrokerFormFields(currentSelectedBrokerKey);
+}
+
+function onBrokerPlatformDropdownChange(val) {
+  selectBrokerTab(val);
+}
+
+function renderBrokerFormFields(brokerKey) {
+  const formMap = {
+    ZERODHA_KITE: "brokerFieldsZerodha",
+    ANGEL_ONE: "brokerFieldsAngel",
+    DHAN: "brokerFieldsDhan",
+    UPSTOX: "brokerFieldsUpstox",
+    GROWW: "brokerFieldsGroww",
+    KOTAK_NEO: "brokerFieldsKotakNeo",
+    FYERS: "brokerFieldsFyers",
+    SHOONYA: "brokerFieldsShoonya",
+    ICICI_DIRECT: "brokerFieldsIciciDirect",
+    HDFC_SKY: "brokerFieldsHdfcSky",
+    PAYTM_MONEY: "brokerFieldsPaytmMoney",
+    FIVE_PAISA: "brokerFieldsFivePaisa",
+    ALICE_BLUE: "brokerFieldsAliceBlue",
+    MOTILAL_OSWAL: "brokerFieldsMotilalOswal"
+  };
+
+  Object.entries(formMap).forEach(([bKey, formId]) => {
+    const el = document.getElementById(formId);
+    if (el) {
+      el.style.display = (bKey === brokerKey) ? "block" : "none";
+    }
+  });
 }
 
 function openConnectBrokerModal(brokerKey) {
@@ -6893,41 +7555,11 @@ function openConnectBrokerModal(brokerKey) {
   selectBrokerTab(brokerKey || "ZERODHA_KITE");
 }
 
-function onBrokerPlatformRadioChange() {
-  const radios = document.getElementsByName("brokerSelectRadio");
-  let selected = "ZERODHA_KITE";
-  radios.forEach(r => {
-    if (r.checked) selected = r.value;
-    const parentLabel = r.closest(".broker-tab-label");
-    if (parentLabel) {
-      if (r.checked) {
-        parentLabel.style.borderColor = "var(--accent-gold)";
-        parentLabel.style.background = "rgba(245,158,11,0.12)";
-      } else {
-        parentLabel.style.borderColor = "var(--border-subtle)";
-        parentLabel.style.background = "var(--bg-surface)";
-      }
-    }
-  });
-
-  const fZerodha = document.getElementById("brokerFieldsZerodha");
-  const fAngel = document.getElementById("brokerFieldsAngel");
-  const fDhan = document.getElementById("brokerFieldsDhan");
-  const fUpstox = document.getElementById("brokerFieldsUpstox");
-
-  if (fZerodha) fZerodha.style.display = selected === "ZERODHA_KITE" ? "block" : "none";
-  if (fAngel) fAngel.style.display = selected === "ANGEL_ONE" ? "block" : "none";
-  if (fDhan) fDhan.style.display = selected === "DHAN" ? "block" : "none";
-  if (fUpstox) fUpstox.style.display = selected === "UPSTOX" ? "block" : "none";
-}
-
 async function submitBrokerConnection() {
   const btn = document.getElementById("btnSubmitBrokerConnect");
-  const radios = document.getElementsByName("brokerSelectRadio");
-  let selected = "ZERODHA_KITE";
-  radios.forEach(r => { if (r.checked) selected = r.value; });
-
+  const selected = currentSelectedBrokerKey || "ZERODHA_KITE";
   const credentials = {};
+
   if (selected === "ZERODHA_KITE") {
     credentials.api_key = (document.getElementById("kiteApiKey")?.value || "").trim();
     credentials.api_secret = (document.getElementById("kiteApiSecret")?.value || "").trim();
@@ -6958,6 +7590,88 @@ async function submitBrokerConnection() {
     credentials.access_token = (document.getElementById("upstoxAccessToken")?.value || "").trim();
     if (!credentials.access_token) {
       showToast("Please enter Upstox API v2 Access Token.", "error");
+      return;
+    }
+  } else if (selected === "GROWW") {
+    credentials.client_id = (document.getElementById("growwClientId")?.value || "").trim();
+    credentials.access_token = (document.getElementById("growwAccessToken")?.value || "").trim();
+    if (!credentials.client_id || !credentials.access_token) {
+      showToast("Please enter Groww Client ID and Access Token / API Key.", "error");
+      return;
+    }
+  } else if (selected === "KOTAK_NEO") {
+    credentials.consumer_key = (document.getElementById("kotakConsumerKey")?.value || "").trim();
+    credentials.consumer_secret = (document.getElementById("kotakConsumerSecret")?.value || "").trim();
+    credentials.access_token = (document.getElementById("kotakAccessToken")?.value || "").trim();
+    credentials.mobile = (document.getElementById("kotakMobile")?.value || "").trim();
+    if (!credentials.consumer_key || !credentials.access_token) {
+      showToast("Please enter Kotak Neo Consumer Key and Access Token.", "error");
+      return;
+    }
+  } else if (selected === "FYERS") {
+    credentials.app_id = (document.getElementById("fyersAppId")?.value || "").trim();
+    credentials.access_token = (document.getElementById("fyersAccessToken")?.value || "").trim();
+    if (!credentials.app_id || !credentials.access_token) {
+      showToast("Please enter Fyers App ID and API v3 Access Token.", "error");
+      return;
+    }
+  } else if (selected === "SHOONYA") {
+    credentials.user_id = (document.getElementById("shoonyaUserId")?.value || "").trim();
+    credentials.password = (document.getElementById("shoonyaPassword")?.value || "").trim();
+    credentials.vendor_code = (document.getElementById("shoonyaVendorCode")?.value || "").trim();
+    credentials.api_key = (document.getElementById("shoonyaApiKey")?.value || "").trim();
+    if (!credentials.user_id || !credentials.password) {
+      showToast("Please enter Shoonya User ID and Password.", "error");
+      return;
+    }
+  } else if (selected === "ICICI_DIRECT") {
+    credentials.api_key = (document.getElementById("iciciApiKey")?.value || "").trim();
+    credentials.api_secret = (document.getElementById("iciciApiSecret")?.value || "").trim();
+    credentials.session_token = (document.getElementById("iciciSessionToken")?.value || "").trim();
+    if (!credentials.api_key || !credentials.session_token) {
+      showToast("Please enter ICICI Breeze API Key and Session Token.", "error");
+      return;
+    }
+  } else if (selected === "HDFC_SKY") {
+    credentials.api_key = (document.getElementById("hdfcApiKey")?.value || "").trim();
+    credentials.user_id = (document.getElementById("hdfcUserId")?.value || "").trim();
+    credentials.access_token = (document.getElementById("hdfcAccessToken")?.value || "").trim();
+    if (!credentials.api_key || !credentials.access_token) {
+      showToast("Please enter HDFC Sky API Key and Access Token.", "error");
+      return;
+    }
+  } else if (selected === "PAYTM_MONEY") {
+    credentials.api_key = (document.getElementById("paytmApiKey")?.value || "").trim();
+    credentials.api_secret = (document.getElementById("paytmApiSecret")?.value || "").trim();
+    credentials.request_token = (document.getElementById("paytmRequestToken")?.value || "").trim();
+    if (!credentials.api_key || !credentials.request_token) {
+      showToast("Please enter Paytm Money API Key and Request Token.", "error");
+      return;
+    }
+  } else if (selected === "FIVE_PAISA") {
+    credentials.user_id = (document.getElementById("fivePaisaUserId")?.value || "").trim();
+    credentials.password = (document.getElementById("fivePaisaPassword")?.value || "").trim();
+    credentials.user_key = (document.getElementById("fivePaisaUserKey")?.value || "").trim();
+    credentials.encryption_key = (document.getElementById("fivePaisaEncryptionKey")?.value || "").trim();
+    if (!credentials.user_id || !credentials.user_key) {
+      showToast("Please enter 5Paisa Client Code and User Key.", "error");
+      return;
+    }
+  } else if (selected === "ALICE_BLUE") {
+    credentials.user_id = (document.getElementById("aliceUserId")?.value || "").trim();
+    credentials.api_key = (document.getElementById("aliceApiKey")?.value || "").trim();
+    credentials.session_token = (document.getElementById("aliceSessionToken")?.value || "").trim();
+    if (!credentials.user_id || !credentials.api_key) {
+      showToast("Please enter Alice Blue User ID and API Key.", "error");
+      return;
+    }
+  } else if (selected === "MOTILAL_OSWAL") {
+    credentials.client_code = (document.getElementById("motilalClientCode")?.value || "").trim();
+    credentials.password = (document.getElementById("motilalPassword")?.value || "").trim();
+    credentials.api_key = (document.getElementById("motilalApiKey")?.value || "").trim();
+    credentials.totp = (document.getElementById("motilalTotp")?.value || "").trim();
+    if (!credentials.client_code || !credentials.api_key) {
+      showToast("Please enter Motilal Oswal Client Code and API Key.", "error");
       return;
     }
   }

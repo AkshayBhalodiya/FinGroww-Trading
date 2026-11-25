@@ -14,6 +14,18 @@ from .zerodha_kite import ZerodhaKiteClient
 from .angel_smartapi import AngelSmartApiClient
 from .dhan_hq import DhanHqClient
 from .upstox import UpstoxClient
+from .indian_brokers import (
+    GrowwClient,
+    KotakNeoClient,
+    FyersClient,
+    FinvasiaShoonyaClient,
+    IciciDirectClient,
+    HdfcSkyClient,
+    PaytmMoneyClient,
+    FivePaisaClient,
+    AliceBlueClient,
+    MotilalOswalClient,
+)
 
 logger = logging.getLogger("FinGroww.BrokerManager")
 
@@ -79,8 +91,28 @@ class BrokerManager:
             client = DhanHqClient()
         elif "UPSTOX" in b_name:
             client = UpstoxClient()
+        elif "GROWW" in b_name:
+            client = GrowwClient()
+        elif "KOTAK" in b_name or "NEO" in b_name:
+            client = KotakNeoClient()
+        elif "FYERS" in b_name:
+            client = FyersClient()
+        elif "SHOONYA" in b_name or "FINVASIA" in b_name:
+            client = FinvasiaShoonyaClient()
+        elif "ICICI" in b_name or "BREEZE" in b_name:
+            client = IciciDirectClient()
+        elif "HDFC" in b_name or "SKY" in b_name:
+            client = HdfcSkyClient()
+        elif "PAYTM" in b_name:
+            client = PaytmMoneyClient()
+        elif "5PAISA" in b_name or "FIVE" in b_name:
+            client = FivePaisaClient()
+        elif "ALICE" in b_name or "BLUE" in b_name:
+            client = AliceBlueClient()
+        elif "MOTILAL" in b_name or "OSWAL" in b_name:
+            client = MotilalOswalClient()
         else:
-            return False, f"Unsupported broker [{broker_name}]. Supported: Zerodha Kite, Angel One, Dhan, Upstox.", {}
+            return False, f"Unsupported broker [{broker_name}].", {}
 
         success, msg, profile = client.authenticate(credentials)
         if success:
