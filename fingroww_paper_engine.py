@@ -1113,12 +1113,36 @@ class PaperTradingSession:
                             raw_entry = float(opt_q["lastPrice"])
                     except Exception as exc:
                         logger.warning("Live option entry quote failed for %s: %s", sym, exc)
+
+                orig_scanned_entry = float(setup.get("entry_price") or 0.0)
+                structural_tp = float(setup.get("target_price") or 0.0)
+
+                # ANTI-CHASING GUARD (OPTIONS):
+                # Reject if option already reached or consumed > 60% of the target,
+                # or if the option price surged > 10% above scan price while queued.
+                if not is_manual and orig_scanned_entry > 0 and structural_tp > orig_scanned_entry:
+                    if raw_entry >= structural_tp:
+                        return None, f"Late entry skipped: {sym} target already reached (LTP ₹{raw_entry:.2f} >= ₹{structural_tp:.2f})."
+                    move_consumed_pct = ((raw_entry - orig_scanned_entry) / (structural_tp - orig_scanned_entry)) * 100.0
+                    price_surge_pct = ((raw_entry - orig_scanned_entry) / orig_scanned_entry) * 100.0
+                    if move_consumed_pct > 60.0 or price_surge_pct > 10.0:
+                        logger.info("Chasing Guard: %s drifted +%.1f%% (consumed %.1f%% of move). Skipping late entry.", sym, price_surge_pct, move_consumed_pct)
+                        return None, f"Late entry skipped: {sym} surged +{price_surge_pct:.1f}% (chasing guard)."
+
                 risk_distance = float(setup.get("risk_distance") or round(raw_entry * 0.25, 2))
                 if risk_distance >= raw_entry:
                     risk_distance = round(raw_entry * 0.25, 2)
                 reward_risk = float(setup.get("reward_risk", self.config.get("min_rr", 1.8)))
-                sl = max(0.05, round(raw_entry - risk_distance, 2))
-                tp = round(raw_entry + (risk_distance * reward_risk), 2)
+
+                # Structural target consistency: maintain original target and dynamically tighten stop loss
+                if structural_tp > raw_entry and reward_risk > 0:
+                    tp = structural_tp
+                    remaining_gain = tp - raw_entry
+                    dynamic_risk = min(risk_distance, remaining_gain / reward_risk)
+                    sl = max(0.05, round(raw_entry - dynamic_risk, 2))
+                else:
+                    sl = max(0.05, round(raw_entry - risk_distance, 2))
+                    tp = round(raw_entry + (risk_distance * reward_risk), 2)
             else:
                 raw_entry = float(live_quote["lastPrice"])
                 raw_sl = float(setup.get("stop_loss", 0.0))
@@ -2978,6 +3002,7 @@ class PaperTradingEngine:
                 "strategy": strat,
                 "confidence_score": score,
                 "status": "VALIDATED",
+                "scanned_at": time.time(),
                 "timestamp": get_ist_str(),
                 "underlying_price": live_price,
                 "underlying_entry_price": live_price,
@@ -3236,11 +3261,23 @@ class PaperTradingEngine:
                     logger.warning("Could not confirm NSE market status: %s", exc)
 
             # Ultra-fast position lifecycle update (< 10ms)
+            closed_count_before = len(self.session.closed_trades)
             self.session.update_positions(
                 self.quote_resolver,
                 market_is_open=market_is_open,
                 option_quote_resolver=self.option_quote_resolver,
             )
+            closed_count_after = len(self.session.closed_trades)
+            position_just_closed = (closed_count_after > closed_count_before)
+
+            # If a position just exited and market is open, immediately trigger a fresh live scan
+            # so the vacated slot is filled with fresh, zero-drift setups instead of stale ones!
+            if position_just_closed and market_is_open and self.session.status == "RUNNING":
+                self.last_scan_at = 0.0
+                try:
+                    self.scan_and_evaluate_setups(force=True)
+                except Exception as ex:
+                    logger.warning("Immediate fresh scan after trade close failed: %s", ex)
 
             # Ultra-fast live setup adaptation (< 5ms): Re-evaluate active suggestions against current quotes
             if self.session.scanned_signals and self.quote_resolver:
@@ -3293,10 +3330,25 @@ class PaperTradingEngine:
                     if can_trade and setups:
                         trading_style = self.session.config.get("trading_style", "HIGH_WINRATE")
                         open_symbols = {p["symbol"] for p in self.session.positions}
+                        now_tick = time.time()
                         viable_setups = [
                             s for s in setups
-                            if s["status"] == "VALIDATED" and s["symbol"] not in open_symbols
+                            if s.get("status") == "VALIDATED"
+                            and s.get("symbol") not in open_symbols
+                            and not s.get("timewise_metrics", {}).get("is_exhausted", False)
+                            and (now_tick - float(s.get("scanned_at") or now_tick) <= 300)
                         ]
+                        if can_trade and not viable_setups and market_is_open:
+                            # No fresh unexhausted setups viable; immediately trigger a fresh scan
+                            self.last_scan_at = 0.0
+                            fresh_setups = self.scan_and_evaluate_setups(force=True)
+                            viable_setups = [
+                                s for s in (fresh_setups or [])
+                                if s.get("status") == "VALIDATED"
+                                and s.get("symbol") not in open_symbols
+                                and not s.get("timewise_metrics", {}).get("is_exhausted", False)
+                            ]
+
                         viable_setups.sort(
                             key=lambda s: self._rank_setup_key(s, trading_style, available_balance=self.session.available_balance),
                             reverse=True,
