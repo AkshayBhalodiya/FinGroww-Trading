@@ -939,7 +939,9 @@ async function fetchApi(path, options = {}) {
                       window.location.hostname === "localhost" || 
                       window.location.protocol === "file:" || 
                       !window.location.hostname;
-  const hosts = [PRIMARY_RENDER_API, isLocalHost ? LOCAL_API : "", CLOUD_API].filter(Boolean);
+  const hosts = isLocalHost 
+    ? [LOCAL_API, CLOUD_API, PRIMARY_RENDER_API] 
+    : [CLOUD_API, PRIMARY_RENDER_API];
 
   for (const host of hosts) {
     try {
@@ -1657,7 +1659,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 <script src="theme.js"></script>
-<script src="api.js"></script>
 
 </body>
 </html>

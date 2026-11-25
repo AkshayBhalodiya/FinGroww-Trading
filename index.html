@@ -90,6 +90,35 @@
   <div class="fg-ambient-mesh"></div>
 </div>
 
+<!-- Global Live Market Ticker Ribbon (Streaming Tick Updates) -->
+<div class="global-ticker-bar" id="globalTickerBar">
+  <div class="ticker-track" id="globalTickerTrack">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,819.25 <span class="up">▲ +1.85%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 63,703.25 <span class="up">▲ +1.79%</span></div>
+    <div class="t-item"><span class="t-val">SENSEX</span> 83,938.28 <span class="up">▲ +1.82%</span></div>
+    <div class="t-item"><span class="t-val">FINNIFTY</span> 28,764.95 <span class="up">▲ +2.17%</span></div>
+    <div class="t-item"><span class="t-val">MIDCPNIFTY</span> 13,800.00 <span class="up">▲ +1.35%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,373.90 <span class="up">▲ +1.70%</span></div>
+    <div class="t-item"><span class="t-val">TCS</span> ₹2,517.30 <span class="up">▲ +2.33%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.20 <span class="up">▲ +3.47%</span></div>
+    <div class="t-item"><span class="t-val">INFY</span> ₹1,130.00 <span class="up">▲ +2.41%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING</span> FREE ₹1,00,000 CREDITS ACTIVE</div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE</span> NIFTY 25,800 CE (ACTIVE)</div>
+    <!-- Duplicate for infinite seamless scroll -->
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,819.25 <span class="up">▲ +1.85%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 63,703.25 <span class="up">▲ +1.79%</span></div>
+    <div class="t-item"><span class="t-val">SENSEX</span> 83,938.28 <span class="up">▲ +1.82%</span></div>
+    <div class="t-item"><span class="t-val">FINNIFTY</span> 28,764.95 <span class="up">▲ +2.17%</span></div>
+    <div class="t-item"><span class="t-val">MIDCPNIFTY</span> 13,800.00 <span class="up">▲ +1.35%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,373.90 <span class="up">▲ +1.70%</span></div>
+    <div class="t-item"><span class="t-val">TCS</span> ₹2,517.30 <span class="up">▲ +2.33%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.20 <span class="up">▲ +3.47%</span></div>
+    <div class="t-item"><span class="t-val">INFY</span> ₹1,130.00 <span class="up">▲ +2.41%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--accent-green)"></i> AI PAPER TRADING</span> FREE ₹1,00,000 CREDITS ACTIVE</div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-bolt" style="color:var(--accent-gold)"></i> 15M GOLDEN ZONE</span> NIFTY 25,800 CE (ACTIVE)</div>
+  </div>
+</div>
+
 <!-- ======================================================== -->
 <!-- 1. HEADER AND NAVIGATION                                -->
 <!-- ======================================================== -->
@@ -193,17 +222,17 @@
       </h1>
 
       <p class="fg-hero-desc">
-        FinGroww is an institutional-grade financial intelligence terminal engineered for Indian equity and options traders. Master market psychology with zero-risk virtual paper trading, track live NSE/BSE market trends, get instant AI Buy/Sell/Hold verdicts with exact Entry, Target & Stop-Loss levels, or deploy autonomous 4-agent algo execution across Zerodha, Angel One, Upstox, and Dhan.
+        FinGroww is an institutional-grade financial intelligence terminal engineered for Indian equity and options traders. Master market psychology with zero-risk virtual paper trading, track live NSE/BSE market trends, get instant AI Buy/Sell/Hold verdicts with exact Entry, Target &amp; Stop-Loss levels, or deploy autonomous 4-agent algo execution across Zerodha, Angel One, Upstox, and Dhan.
       </p>
 
       <div class="fg-hero-cta-cluster">
-        <a href="ai-auto-paper-trading.html" class="btn-hero-primary">
-          <i class="fa-solid fa-robot"></i>
-          <span>Start Free AI Paper Trading (₹1,00,000 Credits)</span>
+        <a href="ai-auto-paper-trading.html" class="btn-hero-secondary" style="border-color:rgba(16,185,129,0.5); color:#34d399 !important; background:rgba(16,185,129,0.08);" title="Start Free AI Paper Trading (₹1,00,000 Virtual Funds)">
+          <i class="fa-solid fa-robot" style="color:var(--accent-green);"></i>
+          <span>Start AI Paper (₹1L Free)</span>
         </a>
-        <a href="#aiScanner" class="btn-hero-secondary">
-          <i class="fa-solid fa-bolt" style="color:var(--accent-gold);"></i>
-          <span>Explore Live Scanned Opportunities</span>
+        <a href="fingroww_trading_intelligence_NSE.html" class="btn-hero-secondary" style="border-color:rgba(245,158,11,0.5); color:#fbbf24 !important; background:rgba(245,158,11,0.08);" title="Check Stock Performance &amp; Buy/Hold/Sell Advice">
+          <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--accent-gold);"></i>
+          <span>Check Stock Performance (Buy/Hold/Sell)</span>
         </a>
         <a href="#algoSwarm" class="btn-hero-secondary">
           <i class="fa-solid fa-network-wired" style="color:var(--accent-purple);"></i>
@@ -230,10 +259,10 @@
         <div class="hcc-body">
           <div class="hcc-grid-top">
             <div>
-              <div class="hcc-sym-title" id="cockpitSym">NIFTY 50 25,350 CE</div>
-              <div class="hcc-sym-sub">Weekly Tuesday Expiry • 0.618 Fib Pullback + VWAP Confluence</div>
-              <div class="hcc-live-badge">
-                <i class="fa-solid fa-arrow-trend-up"></i> +₹3,180.00 (+22.4% Today)
+              <div class="hcc-sym-title" id="cockpitSym">NIFTY 50 25,800 CE</div>
+              <div class="hcc-sym-sub" id="cockpitSymSub">Weekly Tuesday Expiry • 0.618 Fib Pullback + VWAP Confluence</div>
+              <div class="hcc-live-badge" id="cockpitPnl">
+                <i class="fa-solid fa-arrow-trend-up"></i> +₹3,450.00 (+24.1% Today)
               </div>
             </div>
 
@@ -245,7 +274,7 @@
                 <line x1="0" y1="100" x2="340" y2="100" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
 
                 <rect x="0" y="60" width="340" height="26" fill="rgba(245,158,11,0.12)" rx="2"/>
-                <text x="8" y="77" fill="#f59e0b" font-size="8.5" font-family="monospace" font-weight="700">0.618 FIB GOLDEN ZONE (₹180 - ₹188)</text>
+                <text x="8" y="77" fill="#f59e0b" font-size="8.5" font-family="monospace" font-weight="700">0.618 FIB GOLDEN ZONE (₹135 - ₹145)</text>
 
                 <line x1="35" y1="24" x2="35" y2="60" stroke="#f43f5e" stroke-width="1.5"/>
                 <rect x="30" y="30" width="10" height="24" fill="#f43f5e" rx="1.5"/>
@@ -267,8 +296,8 @@
 
                 <path d="M 240 22 Q 285 14, 325 8" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3 3"/>
                 <circle cx="325" cy="8" r="3" fill="#10b981"/>
-                <text x="275" y="10" fill="#10b981" font-size="8.5" font-family="monospace" font-weight="700">T1: ₹248.00</text>
-                <text x="242" y="34" fill="#38bdf8" font-size="8.5" font-family="monospace" font-weight="700">LTP ₹192.50 ▲</text>
+                <text x="275" y="10" fill="#10b981" font-size="8.5" font-family="monospace" font-weight="700">T1: ₹185.00</text>
+                <text x="242" y="34" fill="#38bdf8" font-size="8.5" font-family="monospace" font-weight="700" id="cockpitLtpBadge">LTP ₹142.50 ▲</text>
               </svg>
             </div>
           </div>
@@ -276,19 +305,19 @@
           <div class="hcc-metrics-row">
             <div class="hcc-metric-box">
               <div class="hcc-mb-lbl">Entry Price</div>
-              <div class="hcc-mb-val up" id="cockpitEntry">₹192.50</div>
+              <div class="hcc-mb-val up" id="cockpitEntry">₹142.50</div>
             </div>
             <div class="hcc-metric-box">
               <div class="hcc-mb-lbl">Mandatory SL</div>
-              <div class="hcc-mb-val down" id="cockpitSL">₹154.00</div>
+              <div class="hcc-mb-val down" id="cockpitSL">₹118.00</div>
             </div>
             <div class="hcc-metric-box">
               <div class="hcc-mb-lbl">Target 1 (1.8R)</div>
-              <div class="hcc-mb-val up" id="cockpitT1">₹248.00</div>
+              <div class="hcc-mb-val up" id="cockpitT1">₹185.00</div>
             </div>
             <div class="hcc-metric-box">
               <div class="hcc-mb-lbl">Target 2 (3.2R)</div>
-              <div class="hcc-mb-val" style="color:var(--accent-gold)" id="cockpitT2">₹285.00</div>
+              <div class="hcc-mb-val" style="color:var(--accent-gold)" id="cockpitT2">₹220.00</div>
             </div>
           </div>
 
@@ -297,7 +326,7 @@
               <i class="fa-solid fa-shield-halved" style="color:var(--accent-green);margin-right:4px;"></i>
               <strong>Downside Protection:</strong> Continuous Trailing Stop Loss locks profits automatically as price advances.
             </div>
-            <button type="button" class="btn btn-launch btn-sm" onclick="StockScannerController.executeQuickTrade('NIFTY 50 25,350 CE', 'BUY', 192.50, 154.00, 248.00)">
+            <button type="button" class="btn btn-launch btn-sm" id="cockpitTradeBtn" onclick="StockScannerController.executeQuickTrade('NIFTY 50 25,800 CE', 'BUY', 142.50, 118.00, 185.00)">
               <i class="fa-solid fa-bolt"></i> 1-Click Paper Test Trade
             </button>
           </div>
@@ -344,12 +373,12 @@
         <div class="fg-outlook-box">
           <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;">Market Sentiment Meter</div>
           <div class="fg-gauge-center">
-            <div class="fg-gauge-circle">78%</div>
-            <div style="font-weight:800;font-size:16px;color:var(--accent-green);"><i class="fa-solid fa-arrow-trend-up"></i> Strong Bullish Bias</div>
-            <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">Fear & Greed Index: Greed (74/100)</div>
+            <div class="fg-gauge-circle" id="outlookSentimentGauge">78%</div>
+            <div style="font-weight:800;font-size:16px;color:var(--accent-green);" id="outlookSentimentBias"><i class="fa-solid fa-arrow-trend-up"></i> Strong Bullish Bias</div>
+            <div style="font-size:12px;color:var(--text-dim);margin-top:4px;" id="outlookFearGreed">Fear & Greed Index: Greed (74/100)</div>
           </div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.5;border-top:1px solid var(--border-subtle);padding-top:12px;">
-            Options open interest confirms call writing absorption near 25,300 support with strong retail demand.
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5;border-top:1px solid var(--border-subtle);padding-top:12px;" id="outlookSentimentNote">
+            Institutional accumulation confirmed across Nifty 50 and Bank Nifty with sustained call writing absorption.
           </div>
         </div>
 
@@ -359,22 +388,22 @@
           <div class="fg-cashflow-strip">
             <div class="fg-cf-item">
               <div style="font-size:11px;color:var(--text-dim);">FII Net Inflow (Today)</div>
-              <div style="font-size:16px;font-weight:800;color:var(--accent-green);margin-top:2px;">+₹1,842.50 Cr</div>
+              <div style="font-size:16px;font-weight:800;color:var(--accent-green);margin-top:2px;" id="outlookFiiNet">+₹1,425.80 Cr</div>
             </div>
             <div class="fg-cf-item">
               <div style="font-size:11px;color:var(--text-dim);">DII Net Inflow (Today)</div>
-              <div style="font-size:16px;font-weight:800;color:var(--accent-green);margin-top:2px;">+₹297.80 Cr</div>
+              <div style="font-size:16px;font-weight:800;color:var(--accent-green);margin-top:2px;" id="outlookDiiNet">+₹2,180.45 Cr</div>
             </div>
             <div class="fg-cf-item">
               <div style="font-size:11px;color:var(--text-dim);">NSE Advance / Decline</div>
-              <div style="font-size:16px;font-weight:800;color:var(--text-main);margin-top:2px;">1,420 Adv / 680 Dec</div>
+              <div style="font-size:16px;font-weight:800;color:var(--text-main);margin-top:2px;" id="outlookAdvDec">1,420 Adv / 680 Dec</div>
             </div>
             <div class="fg-cf-item">
               <div style="font-size:11px;color:var(--text-dim);">Nifty Put-Call Ratio (PCR)</div>
-              <div style="font-size:16px;font-weight:800;color:var(--accent-blue);margin-top:2px;">1.18 (Healthy Bullish)</div>
+              <div style="font-size:16px;font-weight:800;color:var(--accent-blue);margin-top:2px;" id="outlookPcr">1.18 (Healthy Bullish)</div>
             </div>
           </div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.5;">
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.5;" id="outlookBreadthNote">
             <i class="fa-solid fa-circle-check" style="color:var(--accent-green);margin-right:4px;"></i>
             Institutional block trades in banking and IT equities provide high-probability support for long intraday setups.
           </div>
@@ -383,22 +412,22 @@
         <!-- Box 3: Sector Leaders -->
         <div class="fg-outlook-box">
           <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px;">Sector Heatmap Leaders</div>
-          <div style="display:flex;flex-direction:column;gap:8px;flex-grow:1;justify-content:center;">
+          <div style="display:flex;flex-direction:column;gap:8px;flex-grow:1;justify-content:center;" id="outlookSectorList">
             <div class="fg-sector-row">
               <span style="font-weight:700;color:var(--text-main);">Nifty Bank</span>
-              <span class="up font-bold">+1.62% ▲</span>
-            </div>
-            <div class="fg-sector-row">
-              <span style="font-weight:700;color:var(--text-main);">Nifty Auto</span>
-              <span class="up font-bold">+1.24% ▲</span>
-            </div>
-            <div class="fg-sector-row">
-              <span style="font-weight:700;color:var(--text-main);">Nifty Energy</span>
-              <span class="up font-bold">+0.95% ▲</span>
+              <span class="up font-bold">+1.79% ▲</span>
             </div>
             <div class="fg-sector-row">
               <span style="font-weight:700;color:var(--text-main);">Nifty IT</span>
-              <span style="color:var(--accent-gold);font-weight:700;">+0.32% (Range)</span>
+              <span class="up font-bold">+2.37% ▲</span>
+            </div>
+            <div class="fg-sector-row">
+              <span style="font-weight:700;color:var(--text-main);">Nifty Auto</span>
+              <span class="up font-bold">+1.45% ▲</span>
+            </div>
+            <div class="fg-sector-row">
+              <span style="font-weight:700;color:var(--text-main);">Nifty Financials</span>
+              <span class="up font-bold">+2.17% ▲</span>
             </div>
             <div class="fg-sector-row">
               <span style="font-weight:700;color:var(--text-main);">Nifty FMCG</span>
@@ -406,6 +435,147 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================== -->
+  <!-- 4.5 LIVE NSE TRADING ARENA & QUANTITATIVE TERMINAL       -->
+  <!-- ======================================================== -->
+  <section class="fg-section" id="tradingArena" style="background: linear-gradient(180deg, rgba(2,132,199,0.06) 0%, rgba(5,8,16,0.95) 100%); border-top: 1px solid rgba(56,189,248,0.18); border-bottom: 1px solid rgba(56,189,248,0.18); padding: 50px 0;">
+    <div class="container">
+      <div class="fg-sec-header">
+        <span class="fg-sec-badge" style="background:rgba(2,132,199,0.14); color:#38bdf8; border:1px solid rgba(2,132,199,0.35);">
+          <i class="fa-solid fa-chart-line"></i> Institutional Quantitative Terminal
+        </span>
+        <h2 class="fg-sec-title">Live NSE Trading Arena &amp; Intelligence Terminal</h2>
+        <p class="fg-sec-subtitle">
+          Real-time tick-by-tick NSE execution arena with 5-depth order books, 11-skill algorithmic confluence scoring, VWAP-Supertrend dynamic confluence, and instant multi-broker routing.
+        </p>
+      </div>
+
+      <!-- Feature Interactive Showcase Deck -->
+      <div class="arena-showcase-card" style="background: var(--bg-card); border: 1px solid rgba(56,189,248,0.25); border-radius: 18px; padding: 26px; box-shadow: 0 16px 45px rgba(0,0,0,0.55); margin-bottom: 24px; position:relative; overflow:hidden;">
+        
+        <!-- Top Control & Status Ribbon -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-subtle);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#0284c7,#2563eb); display:grid; place-items:center; color:#fff; font-size:19px; box-shadow:0 4px 16px rgba(2,132,199,0.4);">
+              <i class="fa-solid fa-chart-candlestick"></i>
+            </div>
+            <div>
+              <div style="font-weight:900; font-size:1.15rem; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                <span>Live NSE Terminal Cockpit</span>
+                <span style="font-size:10px; padding:2px 8px; border-radius:12px; background:rgba(0,230,118,0.15); color:var(--accent-green); font-weight:800; border:1px solid rgba(0,230,118,0.35);">
+                  <span class="fg-live-dot" style="display:inline-block; width:6px; height:6px; margin-right:4px;"></span>STREAMING
+                </span>
+              </div>
+              <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+                Direct Live Access to <strong>fingroww_trading_intelligence_NSE.html</strong> Quantitative Engine
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="background:linear-gradient(135deg,#0284c7,#2563eb); border:none; font-weight:800; padding:10px 22px; box-shadow:0 4px 18px rgba(2,132,199,0.4);" title="Open Complete Live Trading Arena">
+              <i class="fa-solid fa-up-right-from-square"></i> Launch Full Live Arena &rarr;
+            </a>
+          </div>
+        </div>
+
+        <!-- 3-Column Highlights Grid -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; margin-bottom:20px;">
+          
+          <!-- Column 1: Order Book & Market Depth -->
+          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
+            <div style="font-size:12px; font-weight:800; color:#38bdf8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-layer-group"></i> 5-Depth Live Market Depth
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+              Visual bid-ask queues showing institutional order accumulation, liquidity walls, and real-time execution slippage filters.
+            </p>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-family:var(--font-mono); font-size:11px;">
+              <div style="background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.25); border-radius:6px; padding:8px;">
+                <div style="color:var(--text-dim); font-size:9.5px;">TOTAL BIDS</div>
+                <div style="color:#00e676; font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalBids">1,42,850 Qty</div>
+                <div style="color:var(--text-dim); font-size:9px;">58.4% Dominance</div>
+              </div>
+              <div style="background:rgba(255,71,87,0.08); border:1px solid rgba(255,71,87,0.25); border-radius:6px; padding:8px;">
+                <div style="color:var(--text-dim); font-size:9.5px;">TOTAL ASKS</div>
+                <div style="color:#ff4757; font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalAsks">1,01,620 Qty</div>
+                <div style="color:var(--text-dim); font-size:9px;">41.6% Supply</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 2: 11-Skill Confluence Engine -->
+          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
+            <div style="font-size:12px; font-weight:800; color:#fbbf24; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-brain"></i> 11-Skill Confluence Engine
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+              Multi-signal validation algorithm across 0.618 Fibonacci Golden Zones, Supertrend reversals, VWAP momentum, and 9/21 EMA.
+            </p>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:700;">
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+                <span>0.618 Fib Rebound</span>
+                <span class="up" style="color:#00e676;"><i class="fa-solid fa-check"></i> CONFIRMED</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+                <span>Supertrend (10, 2)</span>
+                <span class="up" style="color:#00e676;"><i class="fa-solid fa-check"></i> BULLISH (GREEN)</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+                <span>Confluence Score</span>
+                <span style="color:#38bdf8; font-family:var(--font-mono); font-weight:900;" id="arenaConfluenceScore">94 / 100</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 3: Exact Execution Matrix -->
+          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
+            <div style="font-size:12px; font-weight:800; color:#a78bfa; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-crosshairs"></i> Exact Numeric Levels
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+              Precision decision output with zero ambiguity. Strict Stop-Loss calculation with multi-tier profit targets.
+            </p>
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; text-align:center; font-family:var(--font-mono); font-size:11px;">
+              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+                <div style="font-size:9px; color:var(--text-dim);">ENTRY</div>
+                <div style="color:#38bdf8; font-weight:800; margin-top:2px;" id="arenaEntry">₹142.50</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+                <div style="font-size:9px; color:var(--text-dim);">STOP LOSS</div>
+                <div style="color:#ff4757; font-weight:800; margin-top:2px;" id="arenaSL">₹118.00</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+                <div style="font-size:9px; color:var(--text-dim);">TARGET</div>
+                <div style="color:#00e676; font-weight:800; margin-top:2px;" id="arenaTarget">₹185.00</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Quick Symbol Launch Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:12px; padding:12px 18px;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); font-weight:700;">
+            <i class="fa-solid fa-bolt" style="color:var(--accent-gold);"></i>
+            <span>Launch Active Symbols Directly in Live Arena:</span>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a href="fingroww_trading_intelligence_NSE.html?symbol=NIFTY%2050" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Nifty 50</a>
+            <a href="fingroww_trading_intelligence_NSE.html?symbol=BANK%20NIFTY" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Bank Nifty</a>
+            <a href="fingroww_trading_intelligence_NSE.html?symbol=RELIANCE" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Reliance</a>
+            <a href="fingroww_trading_intelligence_NSE.html?symbol=HDFCBANK" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">HDFC Bank</a>
+            <a href="fingroww_trading_intelligence_NSE.html?symbol=TATAMOTORS" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Tata Motors</a>
+            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-sm btn-primary" style="background:#0284c7; border:none; font-size:11px; padding:4px 12px; font-weight:800;">
+              Open All Symbols in Arena &rarr;
+            </a>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>

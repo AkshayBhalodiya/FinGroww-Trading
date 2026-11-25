@@ -9,9 +9,9 @@ const FinGrowwAPI = (() => {
                   !window.location.hostname;
                   
   const BASE_URLS = [
-    isLocal ? "http://127.0.0.1:8787" : "",
-    "https://fingroww-trading-y3na.onrender.com",
-    ""
+    isLocal ? "http://127.0.0.1:8787" : "https://api.fingroww.tech",
+    "https://api.fingroww.tech",
+    "https://fingroww-trading-y3na.onrender.com"
   ].filter(Boolean);
 
   let activeBase = BASE_URLS[0] || "";
@@ -57,6 +57,8 @@ const FinGrowwAPI = (() => {
     getMarketStatus: () => request("/api/market-status"),
     getMarketTicker: () => request("/api/market/ticker"),
     getQuote: (symbol) => request(`/api/quote?symbol=${encodeURIComponent(symbol)}`),
+    getSignals: () => request("/api/signals"),
+    getInstitutional: () => request("/api/skills/institutional"),
     getSessionScan: () => request("/api/paper/session/scan"),
     getSkillsSuite: (symbol) => request(`/api/skills/suite?symbol=${encodeURIComponent(symbol)}`),
     getSwarmStatus: () => request("/api/agents/status"),

@@ -12,10 +12,9 @@
   const LOCAL_DEV_API = "http://127.0.0.1:8787";
   const CACHE_STORAGE_KEY = "fingroww_active_api_host";
 
-  // Prohibited / suspended / unconfigured legacy domains
+  // Prohibited / suspended legacy domains
   const DEAD_HOST_FRAGMENTS = [
-    "fingroww-trading.onrender.com", // Suspended Render service (returns 503 without CORS)
-    "api.fingroww.tech" // Currently unconfigured API domain (prevents 20s timeout hang)
+    "fingroww-trading.onrender.com" // Suspended Render service (returns 503 without CORS)
   ];
 
   function isHostDead(host) {
@@ -52,16 +51,16 @@
     const isRenderServed = hostname.includes("onrender.com");
     const isLocalDev = hostname === "127.0.0.1" || hostname === "localhost" || protocol === "file:" || !hostname;
 
-    let hosts = [PRIMARY_RENDER_URL];
+    let hosts = [CUSTOM_DOMAIN_API, PRIMARY_RENDER_URL];
     if (isLocalBackendServed) {
-      hosts = ["", LOCAL_DEV_API, PRIMARY_RENDER_URL];
+      hosts = ["", LOCAL_DEV_API, CUSTOM_DOMAIN_API, PRIMARY_RENDER_URL];
     } else if (isRenderServed) {
-      hosts = ["", PRIMARY_RENDER_URL];
+      hosts = ["", PRIMARY_RENDER_URL, CUSTOM_DOMAIN_API];
     } else if (isLocalDev) {
-      hosts = [LOCAL_DEV_API, PRIMARY_RENDER_URL];
+      hosts = [LOCAL_DEV_API, CUSTOM_DOMAIN_API, PRIMARY_RENDER_URL];
     } else {
       // Live production static domain (e.g., fingroww.tech)
-      hosts = [PRIMARY_RENDER_URL];
+      hosts = [CUSTOM_DOMAIN_API, PRIMARY_RENDER_URL];
     }
 
     // Filter out any dead host
@@ -110,7 +109,22 @@
           }
           // Try parsing JSON; fallback to raw response if not JSON
           try {
-            return await res.json();
+            const data = await res.json();
+            if (data && typeof data === "object") {
+              if (typeof data.json !== "function") {
+                data.json = async () => data;
+              }
+              if (typeof data.text !== "function") {
+                data.text = async () => JSON.stringify(data);
+              }
+              if (typeof data.ok === "undefined") {
+                data.ok = res.ok;
+              }
+              if (typeof data.status === "undefined") {
+                data.status = res.status;
+              }
+            }
+            return data;
           } catch (_) {
             return res;
           }
@@ -162,9 +176,11 @@
     return requestApi(path, options);
   };
 
-  window.fetchApi = function(path, options = {}) {
-    return requestApi(path, options);
-  };
+  if (typeof window.fetchApi !== "function") {
+    window.fetchApi = function(path, options = {}) {
+      return requestApi(path, options);
+    };
+  }
 
   window.agentFetch = async function(path, options = {}) {
     const candidateHosts = getCandidateHosts();

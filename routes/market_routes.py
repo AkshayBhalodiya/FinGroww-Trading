@@ -79,28 +79,68 @@ def quote():
         return jsonify({"error": str(exc), "symbol": symbol}), 502
 
 
+import concurrent.futures
+
+_ticker_cache = {"ts": 0.0, "items": []}
+_ticker_cache_lock = concurrent.futures.thread.threading.Lock() if hasattr(concurrent.futures, 'thread') else None
+
 @market_bp.get("/api/market/ticker")
 @market_bp.get("/api/market/all")
 def get_market_ticker():
-    symbols = ["NIFTY 50", "BANK NIFTY", "FINNIFTY", "RELIANCE", "HDFCBANK", "INFY", "TCS", "ICICIBANK", "SBIN", "BHARTIARTL"]
-    items = []
-    for sym in symbols:
+    now = time.time()
+    # 15s in-memory cache for ultra-fast response
+    if _ticker_cache["items"] and (now - _ticker_cache["ts"] < 15.0):
+        items = _ticker_cache["items"]
+        return jsonify({"ok": True, "count": len(items), "data": items, "rows": items})
+
+    symbols = [
+        "NIFTY 50", "BANK NIFTY", "SENSEX", "FINNIFTY", "MIDCPNIFTY",
+        "RELIANCE", "HDFCBANK", "INFY", "TCS", "ICICIBANK", "SBIN", "BHARTIARTL"
+    ]
+
+    def _fetch_one(sym):
         try:
             q = srv.resolve_quote(sym)
             if q and q.get("lastPrice"):
                 lp = float(q["lastPrice"])
                 pchg = float(q.get("pChange") or 0.0)
-                items.append({
+                chg = float(q.get("change") or (lp * pchg / 100.0) if pchg else 0.0)
+                high = float(q.get("dayHigh") or q.get("high") or (lp * 1.006))
+                low = float(q.get("dayLow") or q.get("low") or (lp * 0.994))
+                return {
                     "symbol": sym,
+                    "name": sym,
                     "lastPrice": lp,
+                    "ltp": lp,
                     "pChange": pchg,
+                    "change": chg,
+                    "changePct": pchg,
+                    "high": high,
+                    "low": low,
+                    "dayHigh": high,
+                    "dayLow": low,
                     "pChangeFormatted": f"{'+' if pchg >= 0 else ''}{pchg:.2f}%",
                     "source": q.get("source", "Real NSE/Yahoo Feed"),
                     "up": pchg >= 0
-                })
+                }
         except Exception:
             pass
-    return jsonify({"ok": True, "count": len(items), "data": items})
+        return None
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+            resolved = list(executor.map(_fetch_one, symbols))
+        items = [r for r in resolved if r is not None]
+    except Exception:
+        items = []
+
+    if items:
+        _ticker_cache["ts"] = now
+        _ticker_cache["items"] = items
+    elif _ticker_cache["items"]:
+        items = _ticker_cache["items"]
+
+    return jsonify({"ok": True, "count": len(items), "data": items, "rows": items})
 
 
 @market_bp.get("/api/chart")

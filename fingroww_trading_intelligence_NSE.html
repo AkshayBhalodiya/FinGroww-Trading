@@ -95,25 +95,20 @@ body{
     linear-gradient(180deg,var(--bg2) 0%,var(--bg) 40%);
 }
 
-/* Header HUD */
-header{
-  position:sticky;top:0;z-index:100;
-  background:rgba(5,8,16,.85);backdrop-filter:blur(16px);
+/* Arena Terminal HUD Bar */
+.arena-hud-bar{
+  background:rgba(8,14,28,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-bottom:1px solid var(--line2);
-  padding:12px 20px;
+  padding:8px 20px;
+  position:sticky;top:74px;z-index:90;
+}
+[data-theme="light"] .arena-hud-bar{
+  background:rgba(248,250,252,.95);border-bottom-color:rgba(15,23,42,.1);
+}
+.arena-hud-wrap{
+  max-width:1400px;margin:0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
 }
-.brand{display:flex;align-items:center;gap:10px}
-.brand-icon{
-  width:40px;height:40px;border-radius:12px;
-  background:linear-gradient(135deg,#1e3a5f,#0ea5e9);
-  display:grid;place-items:center;font-size:18px;
-  box-shadow:0 4px 20px rgba(14,165,233,.3);
-}
-.brand-text{font-weight:900;font-size:1.25rem;letter-spacing:-.02em;line-height:1.1}
-.brand-text span{background:linear-gradient(90deg,var(--gold),#ffb300);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.brand-tag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
-.status-hud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .live-pill{
   display:inline-flex;align-items:center;gap:6px;
   padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;
@@ -126,9 +121,9 @@ header{
 .live-pill.loading .dot{background:var(--blue);animation:pulse 1s ease infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
 #clock{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--muted)}
-#dataStatus{font-size:11px;color:var(--muted);max-width:280px;text-align:right;line-height:1.3}
+#dataStatus{font-size:11px;color:var(--muted);max-width:320px;text-align:right;line-height:1.3}
 
-main{max-width:1280px;margin:0 auto;padding:16px 16px 32px}
+main{max-width:1400px;margin:0 auto;padding:16px 16px 32px}
 
 /* Hero ticker */
 .hero{
@@ -437,30 +432,17 @@ td b{font-family:"JetBrains Mono",monospace}
 }
 .btn-approve:hover{box-shadow:0 6px 20px rgba(16,185,129,.45)}
 
-footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;line-height:1.5;opacity:.85}
-
 @media(min-width:768px){
   .deck{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) 108px}
   .chips-wrap{grid-column:1/-1}
   .actions{grid-column:1/-1}
 }
 @media(max-width:767px){
-  header{padding:8px 12px; gap:8px}
-  .status-hud{
-    width:100%;
-    display:flex;
-    overflow-x:auto;
-    flex-wrap:nowrap;
-    padding-bottom:4px;
-    gap:6px;
-    justify-content:flex-start;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-  }
-  .status-hud::-webkit-scrollbar{display:none}
+  .arena-hud-bar{top:64px;padding:6px 12px}
+  .arena-hud-wrap{flex-direction:row;justify-content:space-between;gap:6px}
   .live-pill{flex-shrink:0;font-size:10.5px;padding:4px 10px}
   .chip{flex-shrink:0}
-  #clock, #dataStatus{display:none}
+  #dataStatus{display:none}
   .hero-price{width:100%;text-align:left;margin-top:8px}
   .actions{flex-direction:column}
   .btn-scan{order:-1;width:100%}
@@ -470,33 +452,124 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <div class="brand-icon">📈</div>
-    <div>
-      <div class="brand-text">Fin<span>Groww</span> Arena</div>
-      <div class="brand-tag">Live market • Signal game</div>
+
+<!-- Real-time Live Price & Signal Ticker -->
+<div class="global-ticker-bar">
+  <div class="ticker-track">
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-chart-line" style="color:var(--blue)"></i> LIVE NSE TERMINAL:</span> <span class="up" style="font-weight:800">5-DEPTH ORDER BOOK & 11-SKILL CONFLUENCE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+    <!-- Duplicate for infinite ticker -->
+    <div class="t-item"><span class="t-val">NIFTY 50</span> 25,800.60 <span class="up">▲ +2.27%</span></div>
+    <div class="t-item"><span class="t-val">BANK NIFTY</span> 64,635.20 <span class="up">▲ +4.19%</span></div>
+    <div class="t-item"><span class="t-val">RELIANCE</span> ₹1,377.50 <span class="up">▲ +0.14%</span></div>
+    <div class="t-item"><span class="t-val">HDFCBANK</span> ₹846.00 <span class="up">▲ +2.94%</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-chart-line" style="color:var(--blue)"></i> LIVE NSE TERMINAL:</span> <span class="up" style="font-weight:800">5-DEPTH ORDER BOOK & 11-SKILL CONFLUENCE</span></div>
+    <div class="t-item"><span class="t-val"><i class="fa-solid fa-robot" style="color:var(--green)"></i> AI PAPER TRADING:</span> <span class="up" style="font-weight:800">FREE ₹1,00,000 CREDITS ACTIVE</span></div>
+  </div>
+</div>
+
+<!-- Clean Consistent Site Header -->
+<header class="site-header" id="mainHeader">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand" title="FinGroww Home">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Trading Intelligence</span>
+        </div>
+      </div>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
+      <li>
+        <a href="fingroww_trading_intelligence_NSE.html" class="active" style="color:var(--blue);font-weight:800;" title="Live NSE Trading Arena">
+          <i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Arena
+          <span style="background:rgba(56,189,248,.18);color:var(--blue);border:1px solid rgba(56,189,248,0.4);border-radius:999px;font-size:9px;padding:1px 6px;margin-left:2px;">NSE LIVE</span>
+        </a>
+      </li>
+      <li>
+        <a href="ai-auto-paper-trading.html" style="color:var(--green);font-weight:800;" title="Free AI Paper Trading">
+          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
+          <span style="background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.4);border-radius:999px;font-size:9px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
+        </a>
+      </li>
+      <li>
+        <a href="today-options.html" style="color:var(--gold);font-weight:800;" title="Today's 15m Options Radar">
+          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
+        </a>
+      </li>
+      <li>
+        <a href="backtest.html" style="color:var(--blue);font-weight:800;" title="5-Year Backtest Engine">
+          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
+        </a>
+      </li>
+      <li><a href="options.html" style="color:var(--purple);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper (Free)</span>
+      </a>
+
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
   </div>
-  <div class="status-hud">
-    <a href="index.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--blue);background:rgba(56,189,248,.1);cursor:pointer;" title="FinGroww Home">🏠 Home</a>
-    <a href="ai-auto-paper-trading.html" class="live-pill" style="text-decoration:none;border-color:rgba(16,185,129,.4);color:var(--green);background:rgba(16,185,129,.15);cursor:pointer;font-weight:800;" title="AI Auto Paper Trading Dashboard">🤖 AI Auto Paper</a>
-    <a href="today-options.html" class="live-pill" style="text-decoration:none;border-color:rgba(245,158,11,.4);color:var(--gold);background:rgba(245,158,11,.15);cursor:pointer;" title="Today's Options Live Setup Radar">🔥 Today's Options</a>
-    <a href="backtest.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.4);color:var(--blue);background:rgba(56,189,248,.15);cursor:pointer;font-weight:800;" title="5-Year Strategy Backtest">📊 5Y Backtest</a>
-    <a href="options.html" class="live-pill" style="text-decoration:none;border-color:rgba(168,85,247,.4);color:var(--purple);background:rgba(168,85,247,.15);cursor:pointer;" title="Options Intelligence">🎯 Options Intel</a>
-    <a href="trades.html" class="live-pill" style="text-decoration:none;border-color:rgba(56,189,248,.35);color:var(--text);background:rgba(255,255,255,.05);cursor:pointer;" title="View Possible Trades">📊 Setups</a>
-    <a href="pricing.html" class="live-pill" style="text-decoration:none;border-color:rgba(255,213,79,.35);color:var(--gold);background:rgba(255,213,79,.1);cursor:pointer;" title="Upgrade to Pro">💎 Pro Plans</a>
-    <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme" style="width:32px;height:32px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:inherit;cursor:pointer;display:grid;place-items:center;font-size:15px;margin-left:4px;">
-      <span class="theme-icon">☀️</span>
-    </button>
-    <span id="livePill" class="live-pill loading"><i class="dot"></i><span id="liveLabel">Connecting</span></span>
-    <span id="clock">--:--:--</span>
-    <span id="dataStatus">Start server & scan</span>
-    <span id="dbBadgeTop" class="chip" style="font-size:10px;padding:3px 8px;background:rgba(16,185,129,.15);border:1px solid #10b981;color:#10b981;margin-left:auto;display:inline-flex;align-items:center;gap:4px">
-      <i class="fa-solid fa-database"></i> <span id="dbTopText">MongoDB Atlas: Connected</span>
-    </span>
-  </div>
 </header>
+
+<!-- Mobile Navigation Drawer -->
+<div id="mobileDrawer" class="mobile-drawer">
+  <div class="mobile-nav-list">
+    <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
+    <a href="fingroww_trading_intelligence_NSE.html" class="active" style="color:var(--blue);font-weight:800"><i class="fa-solid fa-chart-line"></i> 📈 Live NSE Arena (Active)</a>
+    <a href="ai-auto-paper-trading.html" style="color:var(--green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
+    <a href="backtest.html"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
+    <a href="options.html" style="color:var(--purple);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> 🔭 Stock Radar</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> 💎 Pro Plans</a>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
+    </div>
+  </div>
+</div>
+
+<!-- Arena HUD Bar (Terminal Sub-Header with Real-Time Latency, Clock, Market Status, and Cloud Database) -->
+<div class="arena-hud-bar">
+  <div class="arena-hud-wrap">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span id="livePill" class="live-pill loading"><i class="dot"></i><span id="liveLabel">Connecting</span></span>
+      <span id="clock">--:--:--</span>
+      <span id="dataStatus">Scanning live feed…</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span class="chip" style="font-size:10px;padding:3px 8px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.3);color:var(--blue);display:inline-flex;align-items:center;gap:4px">
+        <i class="fa-solid fa-microchip"></i> 11-Skill Quantitative Terminal
+      </span>
+      <span id="dbBadgeTop" class="chip" style="font-size:10px;padding:3px 8px;background:rgba(16,185,129,.15);border:1px solid #10b981;color:#10b981;display:inline-flex;align-items:center;gap:4px">
+        <i class="fa-solid fa-database"></i> <span id="dbTopText">MongoDB Atlas: Connected</span>
+      </span>
+    </div>
+  </div>
+</div>
 
 <main>
   <section class="hero">
@@ -1122,8 +1195,6 @@ footer{text-align:center;color:var(--muted);font-size:10px;padding:24px 16px;lin
       </table>
     </div>
   </section>
-
-  <footer>Live data via local server + NSE indices / Yahoo Finance. For learning only.</footer>
 </main>
 
 <script>
@@ -2267,17 +2338,20 @@ async function fetchApi(path, options = {}) {
   let candidateHosts = [];
   if (activeIntelHost) {
     candidateHosts.push(activeIntelHost);
-  } else {
-    candidateHosts.push("https://fingroww-trading-y3na.onrender.com");
-    if (isLocalHost) candidateHosts.push("http://127.0.0.1:8787");
-    else candidateHosts.push("");
+  } else if (isLocalHost) {
+    candidateHosts.push("http://127.0.0.1:8787");
     candidateHosts.push("https://api.fingroww.tech");
+    candidateHosts.push("https://fingroww-trading-y3na.onrender.com");
+  } else {
+    // Production on fingroww.tech: Direct to fast custom API first
+    candidateHosts.push("https://api.fingroww.tech");
+    candidateHosts.push("https://fingroww-trading-y3na.onrender.com");
   }
 
   for (const host of candidateHosts) {
     try {
       const url = host ? (host + path) : path;
-      const r = await fetchWithTimeout(url, options, 15000);
+      const r = await fetchWithTimeout(url, options, isLocalHost ? 2500 : 10000);
       if (r && (r.ok || (r.status >= 400 && r.status < 500 && r.status !== 404))) {
         if (host) activeIntelHost = host;
         return r;
@@ -2744,12 +2818,15 @@ async function loadLive(){
     const r=await fetchApi("/api/live?symbol="+encodeURIComponent(sym)+"&interval="+encodeURIComponent(tf));
     const payload=await r.json();
     if(!r.ok)throw new Error(payload.error||("HTTP "+r.status));
-    const price=Number(payload.lastPrice);
-    if(!Number.isFinite(price))throw new Error("No valid live price");
-    const rows=(payload.series||[]).map(x=>({o:+x.o,h:+x.h,l:+x.l,c:+x.c,v:+(x.v||0),t:x.t})).filter(x=>[x.o,x.h,x.l,x.c].every(Number.isFinite));
+    const rawCandles = (payload.series && payload.series.length) ? payload.series : 
+                       ((payload.candles && payload.candles.length) ? payload.candles : 
+                       ((payload.chart && payload.chart.candles) ? payload.chart.candles : []));
+    const rows=rawCandles.map(x=>({o:+x.o,h:+x.h,l:+x.l,c:+x.c,v:+(x.v||0),t:x.t})).filter(x=>[x.o,x.h,x.l,x.c].every(Number.isFinite));
+    const price=Number(payload.lastPrice || payload.quote?.lastPrice || (rows.length ? rows[rows.length-1].c : 0));
+    if(!Number.isFinite(price)||price<=0)throw new Error("No valid live price");
     syncHero(sym,price);
     $("priceCard").textContent=round(price);
-    const statusText=(payload.source||"Live")+" • "+sym+" • "+tf;
+    const statusText=(payload.source||"Live NSE")+" • "+sym+" • "+tf;
     setLiveStatus("","Live",statusText+" • ₹"+round(price));
     if(rows.length>=30){
       state.series=rows;state.price=price;calc();
@@ -3415,6 +3492,16 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   if ($("btnSyncAllSkills")) $("btnSyncAllSkills").addEventListener("click", () => fetch11SkillsSuite(activeSymbol()));
 
+  // Mobile Navigation Drawer Toggle
+  const mobBtn = document.getElementById("mobileMenuBtn");
+  const mobDrawer = document.getElementById("mobileDrawer");
+  if (mobBtn && mobDrawer) {
+    mobBtn.addEventListener("click", () => {
+      mobDrawer.classList.toggle("open");
+      mobDrawer.classList.toggle("active");
+    });
+  }
+
   updateChipActive("NIFTY 50");
   loadLive();
 
@@ -3441,13 +3528,67 @@ window.addEventListener("resize",()=>{
 });
 </script>
 
-<!-- Statutory SEBI Regulatory Disclosure -->
-<div style="max-width:1400px;margin:30px auto 20px;padding:0 16px;">
-  <div class="sebi-disclaimer-box" style="background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:14px 18px;font-size:11.5px;color:var(--muted);line-height:1.6;">
-    <strong style="color:var(--text);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
-    Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+<!-- ======================================================== -->
+<!-- SITE FOOTER                                              -->
+<!-- ======================================================== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="index.html" class="brand" style="margin-bottom:12px;text-decoration:none;">
+          <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+          <div>
+            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-meta">
+              <span class="live-feed-dot"></span>
+              <span class="brand-badge">Trading Intelligence</span>
+            </div>
+          </div>
+        </a>
+        <p style="margin-top:12px;font-size:13px;color:var(--muted);line-height:1.6;max-width:320px;">
+          India's institutional-grade quantitative live trading terminal and AI paper trading arena for NSE stocks, indices, and derivatives.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h5>Core Terminals</h5>
+        <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html" style="color:var(--blue);font-weight:700;"><i class="fa-solid fa-chart-line" style="font-size:11px;color:var(--blue);"></i> Live NSE Trading Arena</a></li>
+          <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--green);"></i> AI Paper Terminal (₹1L Free)</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--gold);"></i> Today's Options (15m Radar)</a></li>
+          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--blue);"></i> 5Y Strategy Backtest</a></li>
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--purple);"></i> Options Chain & Greeks</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h5>Platform & Support</h5>
+        <ul>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
+          <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
+          <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-file-contract" style="font-size:11px;"></i> Regulatory Compliance</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Statutory SEBI Regulatory Disclosure -->
+    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--radius-sm);padding:14px 18px;font-size:11.5px;color:var(--muted);line-height:1.6;">
+      <strong style="color:var(--text);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is an educational, analytical, and quantitative decision-support terminal created strictly for research and simulated practice. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    </div>
+
+    <div class="footer-bottom" style="border-top:1px solid var(--line2);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);">
+      <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
+      <div style="display:flex;gap:14px;">
+        <a href="disclaimer.html" style="color:var(--muted);text-decoration:none;">Terms & Compliance</a>
+        <a href="contact.html" style="color:var(--muted);text-decoration:none;">Support Desk</a>
+      </div>
+    </div>
   </div>
-</div>
+</footer>
 
 <!-- Floating WhatsApp Support Button -->
 <a href="https://wa.me/917984116859?text=Hi%20Akshay%2C%20I%20have%20a%20question%20about%20FinGroww%20Trading%20Terminal!" target="_blank" class="floating-whatsapp-btn" title="Chat with Akshay on WhatsApp">
@@ -3455,6 +3596,5 @@ window.addEventListener("resize",()=>{
 </a>
 
 <script src="theme.js"></script>
-<script src="api.js"></script>
 </body>
 </html>

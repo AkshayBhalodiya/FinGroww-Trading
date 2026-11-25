@@ -588,6 +588,60 @@
 .fg-verdict-hold { background: var(--accent-gold-dim); color: var(--accent-gold); border: 1px solid rgba(245,158,11,0.35); }
 .fg-verdict-sell { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(244,63,94,0.35); }
 
+/* Multi-timeframe Stock Performance Strip */
+.fg-perf-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 6px 0 8px 0;
+  font-size: 11px;
+}
+.fg-perf-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.fg-perf-lbl {
+  font-size: 8.5px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.fg-perf-val {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 11px;
+}
+.btn-arena-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 12px;
+  margin-top: 6px;
+  border-radius: 8px;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #38bdf8 !important;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.btn-arena-link:hover {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(14, 165, 233, 0.5);
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
 .fg-levels-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
