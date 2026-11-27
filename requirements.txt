@@ -1,4 +1,8 @@
 flask>=3.0
+fastapi>=0.115.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+uvicorn>=0.30.0
 requests>=2.31
 gunicorn>=21.2.0
 pymongo>=4.0

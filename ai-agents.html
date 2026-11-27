@@ -1136,7 +1136,16 @@ setInterval(() => {
   if (document.hidden) return;
   fetchSwarmStatus();
 }, 3500);
-document.addEventListener('DOMContentLoaded', fetchSwarmStatus);
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const u = JSON.parse(localStorage.getItem('fg_auth_user') || 'null');
+    const lbl = document.getElementById('lblSwarmUser');
+    if (lbl && u) {
+      lbl.textContent = u.trading_profile_name || u.full_name || u.username || 'Trader';
+    }
+  } catch(_) {}
+  fetchSwarmStatus();
+});
 </script>
 
 </body>

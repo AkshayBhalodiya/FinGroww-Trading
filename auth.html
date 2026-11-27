@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGroww — Account Authentication & Security Centre</title>
+<meta name="theme-color" content="#030712">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="css/homepage-components.css">
+<style>
+  .auth-page-wrap {
+    min-height: calc(100vh - 140px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    position: relative;
+    z-index: 2;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 28px 26px;
+    box-shadow: 0 24px 55px rgba(0, 0, 0, 0.55);
+  }
+  .auth-card.wide { max-width: 820px; }
+  .auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    background: var(--bg-surface);
+    padding: 5px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    margin-bottom: 20px;
+  }
+  .auth-tab {
+    padding: 9px 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+  .auth-tab.active {
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+  }
+  .fg-field { margin-bottom: 14px; text-align: left; }
+  .fg-field label {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .fg-input, .fg-select {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-size: 13.5px;
+    box-sizing: border-box;
+    outline: none;
+    transition: var(--transition-fast);
+  }
+  .fg-input:focus, .fg-select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+  }
+  .auth-alert {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .auth-alert.error { display: block; background: var(--accent-red-dim); border: 1px solid rgba(244, 63, 94, 0.4); color: #fda4af; }
+  .auth-alert.success { display: block; background: var(--accent-green-dim); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; }
+  .auth-link-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    font-size: 12px;
+  }
+  .auth-link {
+    color: var(--accent-blue);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .auth-link:hover { text-decoration: underline; }
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .session-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  @media (max-width: 640px) {
+    .profile-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="fg-ambient-wrapper"><div class="fg-ambient-mesh"></div></div>
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Security & Account</span>
+        </div>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <a href="index.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-arrow-left"></i> Home</a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch"><i class="fa-solid fa-robot"></i> Paper Terminal</a>
+    </div>
+  </div>
+</header>
+
+<main class="auth-page-wrap">
+  <!-- Guest View: Login / Register / Verify / Reset -->
+  <div class="auth-card" id="guestAuthCard">
+    <div style="text-align:center;margin-bottom:18px;">
+      <span class="fg-sec-badge"><i class="fa-solid fa-shield-halved"></i> Zero-Trust JWT Auth</span>
+      <h1 style="font-size:1.5rem;font-weight:900;color:var(--text-main);margin:4px 0;">FinGroww Account</h1>
+      <p style="font-size:12.5px;color:var(--text-muted);">Secure access to your isolated ₹1,00,000 Paper Trading & AI Terminal</p>
+    </div>
+
+    <div class="auth-tabs" id="authTabBar">
+      <button type="button" class="auth-tab active" onclick="switchAuthMode('login', this)">Sign In</button>
+      <button type="button" class="auth-tab" onclick="switchAuthMode('register', this)">Create Account</button>
+    </div>
+
+    <div class="auth-alert" id="authAlertBox"></div>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="fg-field">
+        <label>Email Address</label>
+        <input type="email" class="fg-input" id="loginEmail" required placeholder="trader@fingroww.tech">
+      </div>
+      <div class="fg-field">
+        <label>Password</label>
+        <input type="password" class="fg-input" id="loginPassword" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn btn-launch" style="width:100%;margin-top:6px;">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In Securely
+      </button>
+      <div class="auth-link-row">
+        <span class="auth-link" onclick="switchAuthMode('forgot')">Forgot Password?</span>
+        <span class="auth-link" onclick="switchAuthMode('verify')">Verify Email OTP</span>
+      </div>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
+      <div class="fg-field">
+        <label>Full Name</label>
+        <input type="text" class="fg-input" id="regName" required placeholder="Akshay Patel">
+      </div>
+      <div class="fg-field">
+        <label>Email Address</label>
+        <input type="email" class="fg-input" id="regEmail" required placeholder="trader@example.com">
+      </div>
+      <div class="fg-field">
+        <label>Password (Min 8 chars, letters + numbers)</label>
+        <input type="password" class="fg-input" id="regPassword" required minlength="8" placeholder="At least 8 characters">
+      </div>
+      <div class="profile-grid">
+        <div class="fg-field">
+          <label>Experience</label>
+          <select class="fg-select" id="regExp">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="pro_algo">Pro Algo</option>
+          </select>
+        </div>
+        <div class="fg-field">
+          <label>Trading Style</label>
+          <select class="fg-select" id="regStyle">
+            <option value="intraday_momentum">Intraday Momentum</option>
+            <option value="scalper">Scalper</option>
+            <option value="swing_trader">Swing Trader</option>
+            <option value="positional">Positional</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-launch" style="width:100%;margin-top:6px;">
+        <i class="fa-solid fa-user-plus"></i> Create Account & Claim ₹1L Paper Cash
+      </button>
+    </form>
+
+    <!-- EMAIL VERIFICATION FORM -->
+    <form id="verifyForm" style="display:none;" onsubmit="handleVerifyEmail(event)">
+      <div class="fg-field">
+        <label>Account Email</label>
+        <input type="email" class="fg-input" id="verifyEmail" required placeholder="trader@example.com">
+      </div>
+      <div class="fg-field">
+        <label>6-Digit Verification OTP</label>
+        <input type="text" class="fg-input" id="verifyOtp" required placeholder="Enter 6-digit code">
+      </div>
+      <button type="submit" class="btn btn-launch" style="width:100%;">Verify Email Address</button>
+      <div class="auth-link-row">
+        <span class="auth-link" onclick="switchAuthMode('login')">Back to Sign In</span>
+        <span class="auth-link" onclick="handleResendOtp()">Resend Code</span>
+      </div>
+    </form>
+
+    <!-- FORGOT / RESET PASSWORD FORM -->
+    <form id="forgotForm" style="display:none;" onsubmit="handleForgotPassword(event)">
+      <div class="fg-field">
+        <label>Registered Email</label>
+        <input type="email" class="fg-input" id="forgotEmail" required placeholder="trader@example.com">
+      </div>
+      <button type="submit" class="btn btn-outline" style="width:100%;margin-bottom:14px;">Generate Reset Token</button>
+      <div class="fg-field">
+        <label>Reset Token</label>
+        <input type="text" class="fg-input" id="resetTokenInput" placeholder="Paste reset token">
+      </div>
+      <div class="fg-field">
+        <label>New Password (8+ chars, letters & numbers)</label>
+        <input type="password" class="fg-input" id="resetNewPw" placeholder="New secure password">
+      </div>
+      <button type="button" class="btn btn-launch" style="width:100%;" onclick="handleResetPassword()">Set New Password</button>
+      <div class="auth-link-row">
+        <span class="auth-link" onclick="switchAuthMode('login')">Back to Sign In</span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Authenticated View: Profile, Sessions & Login History -->
+  <div class="auth-card wide" id="authenticatedView" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--border-subtle);padding-bottom:16px;margin-bottom:20px;">
+      <div>
+        <span class="fg-sec-badge"><i class="fa-solid fa-user-shield"></i> Authenticated Account</span>
+        <h2 style="font-size:1.35rem;font-weight:900;color:var(--text-main);margin:4px 0 0;" id="profTitle">Welcome, Trader</h2>
+        <div style="font-size:12px;color:var(--text-muted);" id="profSubtitle"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="dashboard.html" class="btn btn-sm btn-launch"><i class="fa-solid fa-gauge-high"></i> Open Dashboard</a>
+        <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-robot"></i> Paper Terminal</a>
+        <button type="button" class="btn btn-sm btn-outline" style="border-color:var(--accent-red);color:var(--accent-red);" onclick="handleLogout()">
+          <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+        </button>
+      </div>
+    </div>
+
+    <div class="auth-alert" id="profileAlertBox"></div>
+
+    <form onsubmit="handleProfileSave(event)">
+      <div class="profile-grid">
+        <div class="fg-field">
+          <label>Full Name</label>
+          <input type="text" class="fg-input" id="profFullName">
+        </div>
+        <div class="fg-field">
+          <label>Username</label>
+          <input type="text" class="fg-input" id="profUsername">
+        </div>
+        <div class="fg-field">
+          <label>Trading Style</label>
+          <select class="fg-select" id="profStyle">
+            <option value="scalper">Scalper</option>
+            <option value="intraday_momentum">Intraday Momentum</option>
+            <option value="swing_trader">Swing Trader</option>
+            <option value="positional">Positional</option>
+          </select>
+        </div>
+        <div class="fg-field">
+          <label>Risk Profile</label>
+          <select class="fg-select" id="profRisk">
+            <option value="conservative">Conservative</option>
+            <option value="moderate">Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-sm btn-launch"><i class="fa-solid fa-floppy-disk"></i> Save Profile Changes</button>
+    </form>
+
+    <div style="margin-top:24px;border-top:1px solid var(--border-subtle);padding-top:18px;">
+      <h3 style="font-size:14px;font-weight:800;color:var(--text-main);margin-bottom:10px;">
+        <i class="fa-solid fa-laptop" style="color:var(--accent-blue);margin-right:6px;"></i> Active Sessions
+      </h3>
+      <div id="sessionsListBox">Loading active sessions...</div>
+    </div>
+
+    <div style="margin-top:20px;border-top:1px solid var(--border-subtle);padding-top:18px;">
+      <h3 style="font-size:14px;font-weight:800;color:var(--text-main);margin-bottom:10px;">
+        <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-gold);margin-right:6px;"></i> Recent Login History
+      </h3>
+      <div id="loginHistoryBox">Loading login history...</div>
+    </div>
+  </div>
+</main>
+
+<script src="theme.js"></script>
+<script src="js/components/api-client.js"></script>
+<script src="js/components/auth-client.js"></script>
+<script>
+function showAlert(id, msg, type = "error") {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = "auth-alert " + type;
+  el.textContent = msg;
+}
+
+function switchAuthMode(mode, btn) {
+  document.getElementById("authAlertBox").className = "auth-alert";
+  ["loginForm", "registerForm", "verifyForm", "forgotForm"].forEach(id => {
+    document.getElementById(id).style.display = "none";
+  });
+  document.querySelectorAll(".auth-tab").forEach(t => t.classList.remove("active"));
+  if (btn) btn.classList.add("active");
+
+  if (mode === "login") {
+    document.getElementById("loginForm").style.display = "block";
+    document.querySelectorAll(".auth-tab")[0].classList.add("active");
+  } else if (mode === "register") {
+    document.getElementById("registerForm").style.display = "block";
+    document.querySelectorAll(".auth-tab")[1].classList.add("active");
+  } else if (mode === "verify") {
+    document.getElementById("verifyForm").style.display = "block";
+  } else if (mode === "forgot") {
+    document.getElementById("forgotForm").style.display = "block";
+  }
+}
+
+function getSafeNextUrl() {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (raw && (raw.startsWith("/") || /^[a-zA-Z0-9_\-\.]+(\?.*)?(#.*)?$/.test(raw)) && !raw.startsWith("//")) {
+      return raw;
+    }
+  } catch (_) {}
+  return null;
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  try {
+    const data = await FinGrowwAuth.request("/api/v2/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: document.getElementById("loginEmail").value,
+        password: document.getElementById("loginPassword").value,
+      }),
+    });
+    FinGrowwAuth.saveSession(data);
+    const nextUrl = getSafeNextUrl();
+    if (nextUrl) {
+      window.location.href = nextUrl;
+      return;
+    }
+    renderAuthenticatedDashboard();
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  try {
+    const data = await FinGrowwAuth.request("/api/v2/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        full_name: document.getElementById("regName").value,
+        email: document.getElementById("regEmail").value,
+        password: document.getElementById("regPassword").value,
+        experience_level: document.getElementById("regExp").value,
+        trading_style: document.getElementById("regStyle").value,
+      }),
+    });
+    FinGrowwAuth.saveSession(data);
+    const nextUrl = getSafeNextUrl();
+    if (nextUrl) {
+      window.location.href = nextUrl;
+      return;
+    }
+    if (data.verification_otp_dev) {
+      document.getElementById("verifyEmail").value = data.user.email;
+      document.getElementById("verifyOtp").value = data.verification_otp_dev;
+    }
+    renderAuthenticatedDashboard();
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleVerifyEmail(e) {
+  e.preventDefault();
+  try {
+    const res = await FinGrowwAuth.request("/api/v2/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({
+        email: document.getElementById("verifyEmail").value,
+        otp_or_token: document.getElementById("verifyOtp").value,
+      }),
+    });
+    showAlert("authAlertBox", res.message || "Email verified!", "success");
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleResendOtp() {
+  const email = document.getElementById("verifyEmail").value;
+  if (!email) return showAlert("authAlertBox", "Enter your email first", "error");
+  try {
+    const res = await FinGrowwAuth.request("/api/v2/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    showAlert("authAlertBox", res.verification_otp_dev ? `Dev OTP: ${res.verification_otp_dev}` : res.message, "success");
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  try {
+    const res = await FinGrowwAuth.request("/api/v2/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email: document.getElementById("forgotEmail").value }),
+    });
+    if (res.reset_token_dev) {
+      document.getElementById("resetTokenInput").value = res.reset_token_dev;
+      showAlert("authAlertBox", "Reset token generated and pre-filled for local dev.", "success");
+    } else {
+      showAlert("authAlertBox", res.message, "success");
+    }
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleResetPassword() {
+  try {
+    const res = await FinGrowwAuth.request("/api/v2/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({
+        token: document.getElementById("resetTokenInput").value,
+        new_password: document.getElementById("resetNewPw").value,
+      }),
+    });
+    showAlert("authAlertBox", res.message, "success");
+    setTimeout(() => switchAuthMode("login"), 1200);
+  } catch (err) {
+    showAlert("authAlertBox", err.message, "error");
+  }
+}
+
+async function handleProfileSave(e) {
+  e.preventDefault();
+  try {
+    const res = await FinGrowwAuth.request("/api/v2/users/me", {
+      method: "PUT",
+      body: JSON.stringify({
+        full_name: document.getElementById("profFullName").value,
+        username: document.getElementById("profUsername").value,
+        trading_style: document.getElementById("profStyle").value,
+        risk_profile: document.getElementById("profRisk").value,
+      }),
+    });
+    FinGrowwAuth.saveSession({ user: res.user });
+    showAlert("profileAlertBox", "Profile updated successfully!", "success");
+    renderAuthenticatedDashboard();
+  } catch (err) {
+    showAlert("profileAlertBox", err.message, "error");
+  }
+}
+
+async function handleLogout() {
+  await FinGrowwAuth.logout();
+  document.getElementById("authenticatedView").style.display = "none";
+  document.getElementById("guestAuthCard").style.display = "block";
+}
+
+async function revokeSessionItem(sid) {
+  try {
+    await FinGrowwAuth.request(`/api/v2/users/me/sessions/${sid}`, { method: "DELETE" });
+    loadSessionsAndHistory();
+  } catch (err) {
+    showAlert("profileAlertBox", err.message, "error");
+  }
+}
+
+async function loadSessionsAndHistory() {
+  try {
+    const sesRes = await FinGrowwAuth.request("/api/v2/users/me/sessions");
+    const sesBox = document.getElementById("sessionsListBox");
+    sesBox.innerHTML = (sesRes.sessions || []).map(s => `
+      <div class="session-item">
+        <div>
+          <strong style="color:var(--text-main);">${s.session_id}</strong> ${s.is_current ? '<span class="up">(Current)</span>' : ''}
+          <div style="color:var(--text-dim);font-size:11px;">IP: ${s.ip_address} • Last Active: ${new Date(s.last_used_at).toLocaleString()}</div>
+        </div>
+        ${!s.is_current ? `<button type="button" class="btn btn-sm btn-outline" style="padding:3px 8px;font-size:11px;" onclick="revokeSessionItem('${s.session_id}')">Revoke</button>` : ''}
+      </div>
+    `).join("") || "<div style='color:var(--text-dim);font-size:12px;'>No active sessions</div>";
+
+    const histRes = await FinGrowwAuth.request("/api/v2/users/me/login-history");
+    const histBox = document.getElementById("loginHistoryBox");
+    histBox.innerHTML = (histRes.history || []).slice(0, 6).map(h => `
+      <div class="session-item">
+        <div>
+          <span class="${h.status === 'SUCCESS' ? 'up' : 'down'}" style="font-weight:700;">${h.status}</span>
+          <span style="color:var(--text-muted);margin-left:8px;">IP: ${h.ip_address}</span>
+        </div>
+        <div style="color:var(--text-dim);font-size:11px;">${new Date(h.logged_in_at).toLocaleString()}</div>
+      </div>
+    `).join("") || "<div style='color:var(--text-dim);font-size:12px;'>No recent activity</div>";
+  } catch (_) {}
+}
+
+async function renderAuthenticatedDashboard() {
+  const token = FinGrowwAuth.getAccessToken();
+  if (!token) return;
+  try {
+    const me = await FinGrowwAuth.request("/api/v2/users/me");
+    const u = me.user;
+    FinGrowwAuth.saveSession({ user: u });
+    document.getElementById("guestAuthCard").style.display = "none";
+    document.getElementById("authenticatedView").style.display = "block";
+    document.getElementById("profTitle").textContent = `${u.full_name} (${u.user_id})`;
+    document.getElementById("profSubtitle").textContent = `${u.email} • Plan: ${u.subscription_plan.toUpperCase()} • Role: ${u.role.toUpperCase()} • ${u.is_email_verified ? 'Verified ✓' : 'Unverified'}`;
+    document.getElementById("profFullName").value = u.full_name || "";
+    document.getElementById("profUsername").value = u.username || "";
+    document.getElementById("profStyle").value = u.trading_style || "intraday_momentum";
+    document.getElementById("profRisk").value = u.risk_profile || "moderate";
+    loadSessionsAndHistory();
+  } catch (_) {
+    FinGrowwAuth.clearSession();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (FinGrowwAuth.getAccessToken()) {
+    renderAuthenticatedDashboard();
+  }
+});
+</script>
+</body>
+</html>

@@ -807,7 +807,24 @@ def paper_test_telegram_alert():
 
 @paper_bp.get("/api/paper/profiles")
 def paper_list_profiles():
-    """Returns all registered trader profiles with performance metrics and settings."""
+    """Returns registered trader profiles; isolates normal authenticated users to their own trading profile."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            from backend.services.auth_service import get_user_from_access_token
+            auth_user = get_user_from_access_token(auth_header.split(" ", 1)[1].strip())
+            if auth_user and auth_user.get("role") not in ("admin", "super_admin"):
+                my_name = (
+                    auth_user.get("trading_profile_name")
+                    or auth_user.get("full_name")
+                    or auth_user.get("username")
+                )
+                srv.paper_manager.get_session(my_name)
+                all_profs = srv.paper_manager.list_profiles()
+                own = [p for p in all_profs if p.get("user_name") == my_name]
+                return jsonify({"profiles": own, "count": len(own)})
+        except Exception:
+            pass
     profiles = srv.paper_manager.list_profiles()
     return jsonify({"profiles": profiles, "count": len(profiles)})
 

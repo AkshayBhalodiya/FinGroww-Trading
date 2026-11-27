@@ -1248,13 +1248,25 @@ def tf_to_yahoo(tf):
 # PHASE 2: AUTHENTICATION, SIGNALS & TRADE OUTCOME EVALUATOR APIS
 # -------------------------------------------------------------------------
 def hash_pw(password: str) -> str:
-    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+    from backend.security import hash_password
+    return hash_password(password)
 
 def get_current_user():
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
     token = auth_header.split(" ", 1)[1].strip()
+
+    # Phase 1 Upgrade: Verify cryptographic JWT tokens first
+    try:
+        from backend.services.auth_service import get_user_from_access_token
+        v2_user = get_user_from_access_token(token)
+        if v2_user:
+            return v2_user
+    except Exception:
+        pass
+
+    # Legacy fallback token lookup
     if mongo_db is not None:
         tok = mongo_db["tokens"].find_one({"token": token}, {"_id": 0})
         if tok:
@@ -1588,7 +1600,33 @@ paper_bg_thread = threading.Thread(target=paper_background_worker, daemon=True)
 paper_bg_thread.start()
 
 def get_user_session_and_engine(req):
-    """Helper to extract user name from query string or JSON payload and get user session."""
+    """Helper to extract authenticated user (via JWT) or legacy user parameter and get user session."""
+    auth_header = req.headers.get("Authorization", "")
+    token = None
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    elif req.path == "/api/paper/stream" and req.args.get("token"):
+        token = req.args.get("token", "").strip()
+
+    if token:
+        try:
+            from backend.services.auth_service import get_user_from_access_token
+            auth_user = get_user_from_access_token(token)
+            if auth_user:
+                # Enforce authenticated user isolation unless admin specifies an explicit target user
+                req_target = req.args.get("user") or req.args.get("user_name")
+                if req_target and auth_user.get("role") in ("admin", "super_admin"):
+                    return paper_manager.get_session(req_target)
+                canonical_name = (
+                    auth_user.get("trading_profile_name")
+                    or auth_user.get("full_name")
+                    or auth_user.get("username")
+                    or auth_user.get("user_id")
+                )
+                return paper_manager.get_session(canonical_name)
+        except Exception:
+            pass
+
     user_name = "Akshay"
     try:
         if req.is_json and req.get_json(silent=True):
@@ -1686,12 +1724,80 @@ from routes.market_routes import (
 )
 
 from routes.broker_routes import broker_bp
+from routes.auth_v2_routes import auth_v2_bp
+from routes.dashboard_v2_routes import dashboard_v2_bp
+from routes.phase3_v2_routes import phase3_v2_bp
+from routes.admin_v2_routes import admin_v2_bp
+from routes.phase5_v2_routes import phase5_v2_bp
 
 app.register_blueprint(skills_bp)
 app.register_blueprint(agent_bp)
 app.register_blueprint(paper_bp)
 app.register_blueprint(market_bp)
 app.register_blueprint(broker_bp)
+app.register_blueprint(auth_v2_bp)
+app.register_blueprint(dashboard_v2_bp)
+app.register_blueprint(phase3_v2_bp)
+app.register_blueprint(admin_v2_bp)
+app.register_blueprint(phase5_v2_bp)
+
+
+# =========================================================================
+# ZERO-BYPASS GLOBAL API AUTHENTICATION GUARD
+# =========================================================================
+PUBLIC_API_PATHS = {
+    "/api/health",
+    "/api/ping",
+    "/api/v2/health",
+    "/api/v2/docs",
+    "/api/v2/redoc",
+    "/api/v2/openapi.json",
+    "/api/auth/register",
+    "/api/auth/login",
+    "/api/v2/auth/register",
+    "/api/v2/auth/login",
+    "/api/v2/auth/verify-email",
+    "/api/v2/auth/resend-verification",
+    "/api/v2/auth/google",
+    "/api/v2/auth/refresh",
+    "/api/v2/auth/forgot-password",
+    "/api/v2/auth/reset-password",
+    "/api/v2/subscriptions/plans",
+    "/api/v2/subscriptions/webhook",
+    "/api/v2/academy/courses",
+}
+
+
+@app.before_request
+def enforce_strict_authentication():
+    if request.method == "OPTIONS":
+        return None
+    if not request.path.startswith("/api/"):
+        return None
+    if app.testing and not app.config.get("ENFORCE_STRICT_AUTH_IN_TESTS", False):
+        return None
+    if request.path in PUBLIC_API_PATHS:
+        return None
+
+    token = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+    elif request.path == "/api/paper/stream" and request.args.get("token"):
+        token = request.args.get("token", "").strip()
+
+    if token:
+        from backend.services.auth_service import get_user_from_access_token
+        if get_user_from_access_token(token):
+            return None
+        # Fallback for legacy tokens if present
+        if not token.count(".") == 2 and get_current_user():
+            return None
+
+    return jsonify({
+        "ok": False,
+        "error": "Authentication required. Please log in at /auth.html.",
+    }), 401
 
 
 @app.get("/backtest.html")
@@ -1713,6 +1819,32 @@ def serve_paper_trading_page():
 @app.get("/swarm")
 def serve_ai_agents_page():
     return send_from_directory(".", "ai-agents.html")
+
+
+@app.get("/auth.html")
+@app.get("/login")
+@app.get("/register")
+@app.get("/account")
+def serve_auth_page():
+    return send_from_directory(".", "auth.html")
+
+
+@app.get("/dashboard.html")
+@app.get("/dashboard")
+def serve_dashboard_page():
+    return send_from_directory(".", "dashboard.html")
+
+
+@app.get("/journal.html")
+@app.get("/journal")
+def serve_journal_page():
+    return send_from_directory(".", "journal.html")
+
+
+@app.get("/admin.html")
+@app.get("/admin")
+def serve_admin_page():
+    return send_from_directory(".", "admin.html")
 
 
 @app.get("/")

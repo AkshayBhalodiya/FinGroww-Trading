@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGroww — Super Admin Control Centre</title>
+<meta name="theme-color" content="#030712">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="css/homepage-components.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<div class="fg-ambient-wrapper"><div class="fg-ambient-mesh"></div></div>
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Admin Control Centre</span>
+        </div>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <span class="fg-sec-badge" id="adminActorBadge" style="margin-bottom:0;">ADMIN CONSOLE</span>
+      <a href="dashboard.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-gauge-high"></i> Trader View</a>
+    </div>
+  </div>
+</header>
+
+<!-- Unauthorized / RBAC Guard Screen -->
+<div id="adminDeniedCard" style="max-width:520px;margin:80px auto;padding:28px;background:var(--bg-card);border:1px solid rgba(244,63,94,0.4);border-radius:var(--radius-lg);text-align:center;position:relative;z-index:2;">
+  <div style="width:54px;height:54px;border-radius:50%;background:var(--accent-red-dim);color:var(--accent-red);font-size:24px;display:grid;place-items:center;margin:0 auto 14px;">
+    <i class="fa-solid fa-lock"></i>
+  </div>
+  <h2 style="font-size:1.35rem;font-weight:900;color:var(--text-main);margin-bottom:8px;">Restricted Control Centre</h2>
+  <p id="adminDeniedMsg" style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Verifying administrative RBAC privileges...</p>
+  <div style="display:flex;gap:10px;justify-content:center;">
+    <a href="auth.html" class="btn btn-sm btn-launch">Sign In</a>
+    <a href="index.html" class="btn btn-sm btn-outline">Return Home</a>
+  </div>
+</div>
+
+<!-- Authenticated Admin Workspace -->
+<div class="dash-layout" id="adminWorkspace" style="display:none;">
+  <aside class="dash-sidebar">
+    <div class="dash-nav-group-title">Governance</div>
+    <button type="button" class="dash-nav-btn active" onclick="AdminController.switchTab('overview', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-chart-pie" style="color:var(--accent-green);"></i> Platform Analytics</span>
+    </button>
+    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('users', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-users-gear" style="color:var(--accent-blue);"></i> User Directory</span>
+    </button>
+    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('tickets', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-headset" style="color:var(--accent-gold);"></i> Support Desk</span>
+    </button>
+    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('audit', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-clipboard-list" style="color:var(--accent-purple);"></i> Audit Logs</span>
+    </button>
+  </aside>
+
+  <main class="dash-main">
+    <!-- TAB 1: ANALYTICS & HEALTH -->
+    <section class="dash-tab-panel active" id="tab-overview">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Platform Overview & System Governance</h1>
+          <div class="dash-subtitle" id="admHealthMeta">Checking database & service telemetry...</div>
+        </div>
+      </div>
+
+      <div class="dash-kpi-grid">
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Total Registered Users</span><i class="fa-solid fa-users" style="color:var(--accent-blue);"></i></div>
+          <div class="dk-val" id="admTotalUsers">0</div>
+          <div class="dk-sub" id="admNewReg7d">New (7d): 0</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>DAU / MAU</span><i class="fa-solid fa-bolt" style="color:var(--accent-green);"></i></div>
+          <div class="dk-val" id="admDauMau">0 / 0</div>
+          <div class="dk-sub" id="admActiveSessions">Active JWT Sessions: 0</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Free / Pro Users</span><i class="fa-solid fa-gem" style="color:var(--accent-purple);"></i></div>
+          <div class="dk-val" id="admFreePro">0 / 0</div>
+          <div class="dk-sub" id="admConvChurn">Conv: 0% • Churn: 0%</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Verified Revenue</span><i class="fa-solid fa-indian-rupee-sign" style="color:var(--accent-gold);"></i></div>
+          <div class="dk-val" id="admRevenue">₹0.00</div>
+          <div class="dk-sub" id="admTicketsCount">Open Support Tickets: 0</div>
+        </div>
+      </div>
+
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-toggle-on" style="color:var(--accent-green);"></i> Live Feature Flags</div>
+        </div>
+        <div id="admFlagsList"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: USER DIRECTORY & MODERATION -->
+    <section class="dash-tab-panel" id="tab-users">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">User Directory & Moderation</h1>
+          <div class="dash-subtitle">Search traders, inspect portfolios, suspend accounts, or override subscription tiers.</div>
+        </div>
+      </div>
+
+      <div class="dash-panel">
+        <div class="dash-inline-form">
+          <input type="text" id="admUserSearch" placeholder="Search name, email, username, or USR ID..." style="flex:1;min-width:220px;" oninput="AdminController.loadUsers(1)">
+          <select id="admRoleFilter" onchange="AdminController.loadUsers(1)">
+            <option value="">All Roles</option>
+            <option value="trader">Trader</option>
+            <option value="pro_trader">Pro Trader</option>
+            <option value="support">Support</option>
+            <option value="analyst">Analyst</option>
+            <option value="admin">Admin</option>
+            <option value="super_admin">Super Admin</option>
+          </select>
+          <select id="admStatusFilter" onchange="AdminController.loadUsers(1)">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+          </select>
+        </div>
+
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th class="th-center">Role</th>
+                <th class="th-center">Plan</th>
+                <th class="th-center">Status</th>
+                <th class="th-center">Last Login</th>
+                <th class="th-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admUsersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SUPPORT DESK -->
+    <section class="dash-tab-panel" id="tab-tickets">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Support Tickets Desk</h1>
+          <div class="dash-subtitle">Respond to trader inquiries and resolve billing or technical issues.</div>
+        </div>
+      </div>
+      <div id="admTicketsList"></div>
+    </section>
+
+    <!-- TAB 4: AUDIT LOGS -->
+    <section class="dash-tab-panel" id="tab-audit">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Immutable Security Audit Trail</h1>
+          <div class="dash-subtitle">Tracks all registrations, logins, administrative overrides, and flag modifications.</div>
+        </div>
+      </div>
+      <div class="dash-panel">
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody id="admAuditBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="theme.js"></script>
+<script src="js/components/api-client.js"></script>
+<script src="js/components/auth-client.js"></script>
+<script src="js/components/admin.js"></script>
+</body>
+</html>

@@ -100,6 +100,9 @@ const MarketOverviewController = (() => {
   }
 
   async function syncLiveMarketData() {
+    if (!localStorage.getItem("fg_access_token")) {
+      return;
+    }
     try {
       const tickerData = await FinGrowwAPI.getMarketTicker();
       let rows = tickerData?.rows || tickerData?.data || [];
@@ -157,6 +160,9 @@ const MarketOverviewController = (() => {
   }
 
   async function syncInstitutionalOutlook() {
+    if (!localStorage.getItem("fg_access_token")) {
+      return;
+    }
     try {
       const inst = await FinGrowwAPI.getInstitutional();
       if (!inst) return;

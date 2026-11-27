@@ -408,6 +408,9 @@ const StockScannerController = (() => {
   }
 
   async function syncLiveQuotesAndScans() {
+    if (!localStorage.getItem("fg_access_token")) {
+      return;
+    }
     let hasChanges = false;
 
     // 1. Sync Live Equity Quotes from /api/market/ticker
@@ -541,6 +544,11 @@ const StockScannerController = (() => {
   }
 
   async function executeQuickTrade(sym, side, entry, sl, t1) {
+    if (!localStorage.getItem("fg_access_token")) {
+      window.location.href = "auth.html?next=" + encodeURIComponent("index.html#aiScanner");
+      return;
+    }
+
     if (typeof showToast === "function") {
       showToast(sym, `${side} (1 Lot)`, entry);
     }
@@ -559,13 +567,15 @@ const StockScannerController = (() => {
     }
 
     try {
+      const authUserObj = (() => { try { return JSON.parse(localStorage.getItem("fg_auth_user") || "null"); } catch(_) { return null; } })();
+      const activeTrader = (authUserObj && (authUserObj.trading_profile_name || authUserObj.full_name || authUserObj.username)) || "Trader";
       const res = await FinGrowwAPI.executePaperOrder({
         symbol: sym,
         signal_type: side,
         entry_price: entry,
         stop_loss: sl,
         target_1: t1,
-        user_name: "Akshay"
+        user_name: activeTrader
       });
       if (descEl && res && res.ok) {
         descEl.innerHTML = `<strong>Live Server Synced!</strong> 1 Lot of ${sym} executed in your active AI Paper Trading account.`;
@@ -576,6 +586,10 @@ const StockScannerController = (() => {
   }
 
   function showWatchlistToast(sym) {
+    if (!localStorage.getItem("fg_access_token")) {
+      window.location.href = "auth.html?next=" + encodeURIComponent("index.html#stockResearch");
+      return;
+    }
     if (typeof showToast === "function") {
       showToast(sym, "HOLD ALERT: Added to active watchlist", 0);
     }

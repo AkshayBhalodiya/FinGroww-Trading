@@ -1,6 +1,126 @@
-// FinGroww Global Theme & Interactive Controller
+// FinGroww Global Theme, Auth Gate & Interactive Controller
 (function() {
   const THEME_KEY = 'fingroww_theme';
+  const ACCESS_TOKEN_KEY = 'fg_access_token';
+  const REFRESH_TOKEN_KEY = 'fg_refresh_token';
+
+  // Pages accessible without signing in (Public Landing, Auth, Info & Compliance)
+  const PUBLIC_PAGES = new Set([
+    '',
+    'index.html',
+    'auth.html',
+    'login',
+    'register',
+    'account',
+    'about.html',
+    'contact.html',
+    'disclaimer.html',
+    'pricing.html',
+  ]);
+
+  function getCurrentRouteSlug() {
+    const path = (window.location.pathname || '').replace(/\/+$/, '');
+    const seg = path.split('/').pop() || '';
+    return seg.toLowerCase();
+  }
+
+  function isProtectedPage() {
+    return !PUBLIC_PAGES.has(getCurrentRouteSlug());
+  }
+
+  function redirectToLogin() {
+    const nextUrl = window.location.pathname + window.location.search + window.location.hash;
+    window.location.replace('auth.html?next=' + encodeURIComponent(nextUrl || 'dashboard.html'));
+  }
+
+  // Enforce strict login gate immediately on protected application pages
+  if (isProtectedPage()) {
+    try {
+      const tok = localStorage.getItem(ACCESS_TOKEN_KEY);
+      if (!tok || !tok.trim()) {
+        redirectToLogin();
+        return;
+      }
+    } catch (_) {
+      redirectToLogin();
+      return;
+    }
+  }
+
+  // Global fetch() JWT Bearer injector + auto-refresh + 401 redirect guard
+  if (typeof window.fetch === 'function' && !window.__fgFetchPatched) {
+    const nativeFetch = window.fetch.bind(window);
+    window.__fgFetchPatched = true;
+
+    window.fetch = async function(input, init) {
+      const urlStr = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+      const isApiCall = urlStr.includes('/api/');
+      const isAuthEndpoint = urlStr.includes('/api/v2/auth/login') || urlStr.includes('/api/v2/auth/register') || urlStr.includes('/api/v2/auth/refresh') || urlStr.includes('/api/auth/login') || urlStr.includes('/api/auth/register');
+
+      const nextInit = init ? { ...init } : {};
+      if (isApiCall && !isAuthEndpoint) {
+        const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+        if (token) {
+          const headers = new Headers(nextInit.headers || (input instanceof Request ? input.headers : undefined) || {});
+          if (!headers.has('Authorization')) {
+            headers.set('Authorization', 'Bearer ' + token);
+          }
+          nextInit.headers = headers;
+        }
+      }
+
+      let response = await nativeFetch(input, nextInit);
+
+      if (response.status === 401 && isApiCall && !isAuthEndpoint) {
+        const rt = localStorage.getItem(REFRESH_TOKEN_KEY);
+        if (rt) {
+          try {
+            const refRes = await nativeFetch('/api/v2/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: rt }),
+            });
+            if (refRes.ok) {
+              const refJson = await refRes.json();
+              if (refJson.access_token) localStorage.setItem(ACCESS_TOKEN_KEY, refJson.access_token);
+              if (refJson.refresh_token) localStorage.setItem(REFRESH_TOKEN_KEY, refJson.refresh_token);
+              if (refJson.user) localStorage.setItem('fg_auth_user', JSON.stringify(refJson.user));
+              const retryHeaders = new Headers(nextInit.headers || {});
+              retryHeaders.set('Authorization', 'Bearer ' + refJson.access_token);
+              nextInit.headers = retryHeaders;
+              response = await nativeFetch(input, nextInit);
+            }
+          } catch (_) {}
+        }
+
+        if (response.status === 401 && isProtectedPage()) {
+          localStorage.removeItem(ACCESS_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          localStorage.removeItem('fg_auth_user');
+          redirectToLogin();
+        }
+      }
+
+      return response;
+    };
+  }
+
+  // Global EventSource SSE JWT query injector
+  if (typeof window.EventSource === 'function' && !window.__fgSSEPatched) {
+    const NativeES = window.EventSource;
+    window.__fgSSEPatched = true;
+    window.EventSource = function(url, config) {
+      let targetUrl = url;
+      try {
+        const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+        if (token && typeof targetUrl === 'string' && targetUrl.includes('/api/') && !targetUrl.includes('token=')) {
+          targetUrl += (targetUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+        }
+      } catch (_) {}
+      return new NativeES(targetUrl, config);
+    };
+    window.EventSource.prototype = NativeES.prototype;
+  }
   
   // Initialize theme from storage or system preference
   function getPreferredTheme() {

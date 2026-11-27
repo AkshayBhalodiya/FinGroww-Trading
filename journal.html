@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGroww — Trading Journal, AI Coach & Multi-Account Paper</title>
+<meta name="theme-color" content="#030712">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="css/homepage-components.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<div class="fg-ambient-wrapper"><div class="fg-ambient-mesh"></div></div>
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Journal & AI Coach</span>
+        </div>
+      </div>
+    </a>
+    <div class="nav-actions">
+      <a href="dashboard.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch"><i class="fa-solid fa-robot"></i> Paper Terminal</a>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Tab Bar -->
+<div class="dash-mobile-bar">
+  <button type="button" class="dash-nav-btn active" onclick="JournalController.switchTab('coach', this)">Journal & AI Coach</button>
+  <button type="button" class="dash-nav-btn" onclick="JournalController.switchTab('accounts', this)">Paper Accounts</button>
+  <button type="button" class="dash-nav-btn" onclick="JournalController.switchTab('confluence', this)">3-TF Intelligence</button>
+</div>
+
+<div class="dash-layout">
+  <aside class="dash-sidebar">
+    <div class="dash-nav-group-title">Phase 3 Modules</div>
+    <button type="button" class="dash-nav-btn active" onclick="JournalController.switchTab('coach', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-book-open" style="color:var(--accent-green);"></i> Journal & AI Coach</span>
+    </button>
+    <button type="button" class="dash-nav-btn" onclick="JournalController.switchTab('accounts', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-briefcase" style="color:var(--accent-blue);"></i> Paper Accounts</span>
+    </button>
+    <button type="button" class="dash-nav-btn" onclick="JournalController.switchTab('confluence', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-layer-group" style="color:var(--accent-purple);"></i> 3-TF Confluence</span>
+    </button>
+
+    <div class="dash-nav-group-title">Navigation</div>
+    <a href="dashboard.html" class="dash-nav-btn"><span class="dash-nav-left"><i class="fa-solid fa-gauge-high"></i> Back to Dashboard</span></a>
+    <a href="auth.html" class="dash-nav-btn"><span class="dash-nav-left"><i class="fa-solid fa-user-shield"></i> Profile & Security</span></a>
+  </aside>
+
+  <main class="dash-main">
+    <!-- TAB 1: JOURNAL & AI COACH -->
+    <section class="dash-tab-panel active" id="tab-coach">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Trading Journal & AI Trading Coach</h1>
+          <div class="dash-subtitle">Log emotional discipline, review mistakes, and unlock verifiable rule-compliance feedback.</div>
+        </div>
+      </div>
+
+      <!-- AI Trading Coach Card -->
+      <div class="dash-panel" style="margin-bottom:22px;border-color:rgba(168,85,247,0.35);">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-brain" style="color:var(--accent-purple);"></i> AI Trading Coach Diagnostics</div>
+          <div style="display:flex;gap:14px;font-size:12.5px;">
+            <span>Discipline Score: <strong id="coachDisciplineScore" class="up mono">N/A</strong></span>
+            <span>Emotional Impact: <strong id="coachEmotionalLeak">₹0.00</strong></span>
+          </div>
+        </div>
+        <div id="coachStatsLine" style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Analyzing verified journal & trade history...</div>
+        <div id="coachRecsList"></div>
+      </div>
+
+      <div class="dash-two-col" style="grid-template-columns:1fr 1.35fr;">
+        <!-- Log Entry Form -->
+        <div class="dash-panel">
+          <div class="dash-panel-head">
+            <div class="dash-panel-title"><i class="fa-solid fa-pen-to-square" style="color:var(--accent-green);"></i> Log Trade Reflection</div>
+          </div>
+          <form id="journalForm" onsubmit="JournalController.submitJournal(event)" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Symbol</label>
+                <input type="text" id="jSymbol" required placeholder="NIFTY 50 / RELIANCE" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Side</label>
+                <select id="jSide" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+                  <option value="BUY">BUY</option>
+                  <option value="SELL">SELL</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Net P&L ₹ (Optional)</label>
+                <input type="number" step="0.05" id="jPnl" placeholder="e.g. 2450 or -850" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Timeframe</label>
+                <select id="jTimeframe" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+                  <option value="15m">15m (Primary)</option>
+                  <option value="5m">5m (Entry)</option>
+                  <option value="1h">1h (Trend)</option>
+                  <option value="1d">Daily</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Setup Strategy</label>
+                <input type="text" id="jSetup" value="15m Fib Golden Zone" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Emotional State</label>
+                <select id="jMood" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+                  <option value="disciplined">Disciplined</option>
+                  <option value="calm">Calm</option>
+                  <option value="confident">Confident</option>
+                  <option value="fomo">FOMO</option>
+                  <option value="anxious">Anxious</option>
+                  <option value="revenge">Revenge</option>
+                </select>
+              </div>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-main);cursor:pointer;">
+              <input type="checkbox" id="jRules" checked> Followed 1H/15M/5M setup & SL rules
+            </label>
+
+            <div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Mistake Tags (If Any)</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11.5px;color:var(--text-muted);">
+                <label><input type="checkbox" name="mistakeTag" value="chased_entry"> Chased Entry</label>
+                <label><input type="checkbox" name="mistakeTag" value="moved_stop_loss"> Moved SL</label>
+                <label><input type="checkbox" name="mistakeTag" value="oversized_position"> Oversized</label>
+                <label><input type="checkbox" name="mistakeTag" value="exited_early"> Exited Early</label>
+              </div>
+            </div>
+
+            <div>
+              <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-weight:700;">Notes & Lessons</label>
+              <textarea id="jNotes" rows="3" placeholder="Why did you take this setup?" style="width:100%;padding:8px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;box-sizing:border-box;"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-launch btn-sm"><i class="fa-solid fa-plus"></i> Save Journal Entry</button>
+          </form>
+        </div>
+
+        <!-- Journal Feed -->
+        <div>
+          <div id="journalEntriesList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: MULTI-ACCOUNT PAPER TRADING MANAGER -->
+    <section class="dash-tab-panel" id="tab-accounts">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Multi-Account Virtual Paper Portfolios</h1>
+          <div class="dash-subtitle">Create separate virtual accounts for Scalping, Swing Trading, or Options testing.</div>
+        </div>
+      </div>
+
+      <div class="dash-panel" style="margin-bottom:20px;">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-folder-plus" style="color:var(--accent-blue);"></i> Create New Virtual Paper Account</div>
+        </div>
+        <div id="accErrorBox" style="display:none;background:var(--accent-red-dim);border:1px solid rgba(244,63,94,0.4);color:#fda4af;padding:10px 12px;border-radius:6px;margin-bottom:12px;font-size:12.5px;"></div>
+        <form class="dash-inline-form" onsubmit="JournalController.createAccount(event)">
+          <input type="text" id="accNameInput" placeholder="Account Name (e.g. Nifty Scalping Lab)" required style="flex:1;min-width:200px;">
+          <input type="number" id="accCapInput" min="10000" max="10000000" step="10000" value="100000" required style="width:160px;">
+          <select id="accStyleInput">
+            <option value="intraday_momentum">Intraday Momentum</option>
+            <option value="scalper">Scalper</option>
+            <option value="swing_trader">Swing Trader</option>
+            <option value="positional">Positional</option>
+          </select>
+          <button type="submit" class="btn btn-sm btn-launch"><i class="fa-solid fa-plus"></i> Create Account</button>
+        </form>
+      </div>
+
+      <div id="paperAccountsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
+    </section>
+
+    <!-- TAB 3: 3-TIMEFRAME INTELLIGENCE -->
+    <section class="dash-tab-panel" id="tab-confluence">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">3-Timeframe Confluence Analyzer (1H → 15M → 5M)</h1>
+          <div class="dash-subtitle">Verifiable multi-timeframe trend & signal alignment computed strictly from real historical candles.</div>
+        </div>
+      </div>
+
+      <div class="dash-panel">
+        <form class="dash-inline-form" onsubmit="JournalController.runConfluenceCheck(event)">
+          <input type="text" id="confSymInput" value="NIFTY 50" placeholder="Enter NSE Symbol (e.g. RELIANCE, NIFTY 50)" required style="flex:1;max-width:340px;">
+          <button type="submit" class="btn btn-sm btn-launch"><i class="fa-solid fa-magnifying-glass-chart"></i> Evaluate 3-Timeframe Confluence</button>
+        </form>
+        <div id="confluenceResultsBox"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="theme.js"></script>
+<script src="js/components/api-client.js"></script>
+<script src="js/components/auth-client.js"></script>
+<script src="js/components/journal.js"></script>
+</body>
+</html>

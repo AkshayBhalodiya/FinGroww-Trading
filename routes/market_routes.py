@@ -212,82 +212,62 @@ def live():
 
 
 # -------------------------------------------------------------------------
-# AUTHENTICATION APIS
+# AUTHENTICATION APIS (UPGRADED TO SCRYPT + JWT WITH LEGACY PARITY)
 # -------------------------------------------------------------------------
 @market_bp.post("/api/auth/register")
 def auth_register():
+    from backend.services import auth_service
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
-    name = (data.get("name") or "").strip() or email.split("@")[0]
+    name = (data.get("name") or data.get("full_name") or "").strip() or (email.split("@")[0] if "@" in email else "Trader")
 
     if not email or "@" not in email or len(password) < 6:
         return jsonify({"error": "Valid email and minimum 6-character password required"}), 400
 
-    hashed = srv.hash_pw(password)
-    user_doc = {
-        "user_id": str(uuid.uuid4()),
-        "email": email,
-        "name": name,
-        "password_hash": hashed,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "role": "trader"
-    }
-
-    if srv.mongo_db is not None:
-        try:
-            srv.mongo_db["users"].insert_one(dict(user_doc))
-            user_doc.pop("_id", None)
-        except Exception:
-            return jsonify({"error": "User with this email already exists"}), 409
-    else:
-        if email in srv.local_datastore["users"]:
-            return jsonify({"error": "User with this email already exists"}), 409
-        srv.local_datastore["users"][email] = user_doc
-
-    token = str(uuid.uuid4())
-    token_doc = {"token": token, "email": email, "user_id": user_doc["user_id"]}
-    if srv.mongo_db is not None:
-        srv.mongo_db["tokens"].insert_one(dict(token_doc))
-        token_doc.pop("_id", None)
-    else:
-        srv.local_datastore["tokens"][token] = token_doc
-
-    return jsonify({
-        "ok": True,
-        "message": "User registered successfully",
-        "token": token,
-        "user": {"email": email, "name": name, "user_id": user_doc["user_id"]}
-    }), 201
+    try:
+        res = auth_service.register_user(
+            email=email,
+            password=password,
+            full_name=name,
+            ip_address=request.remote_addr or "unknown",
+            user_agent=request.headers.get("User-Agent", "unknown"),
+        )
+        return jsonify({
+            "ok": True,
+            "message": "User registered successfully",
+            "token": res["access_token"],
+            "access_token": res["access_token"],
+            "refresh_token": res["refresh_token"],
+            "user": res["user"],
+        }), 201
+    except auth_service.AuthError as exc:
+        return jsonify({"error": exc.message}), exc.status_code
 
 
 @market_bp.post("/api/auth/login")
 def auth_login():
+    from backend.services import auth_service
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
-    user = None
-    if srv.mongo_db is not None:
-        user = srv.mongo_db["users"].find_one({"email": email})
-    else:
-        user = srv.local_datastore["users"].get(email)
-
-    if not user or user.get("password_hash") != srv.hash_pw(password):
-        return jsonify({"error": "Invalid email or password"}), 401
-
-    token = str(uuid.uuid4())
-    token_doc = {"token": token, "email": email, "user_id": user.get("user_id")}
-    if srv.mongo_db is not None:
-        srv.mongo_db["tokens"].insert_one(token_doc)
-    else:
-        srv.local_datastore["tokens"][token] = token_doc
-
-    return jsonify({
-        "ok": True,
-        "token": token,
-        "user": {"email": email, "name": user.get("name"), "user_id": user.get("user_id")}
-    })
+    try:
+        res = auth_service.login_user(
+            email=email,
+            password=password,
+            ip_address=request.remote_addr or "unknown",
+            user_agent=request.headers.get("User-Agent", "unknown"),
+        )
+        return jsonify({
+            "ok": True,
+            "token": res["access_token"],
+            "access_token": res["access_token"],
+            "refresh_token": res["refresh_token"],
+            "user": res["user"],
+        })
+    except auth_service.AuthError as exc:
+        return jsonify({"error": exc.message}), exc.status_code
 
 
 @market_bp.get("/api/auth/me")

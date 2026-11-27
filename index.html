@@ -162,6 +162,11 @@
         <span class="theme-icon">☀️</span>
       </button>
 
+      <a href="auth.html" class="btn btn-sm btn-outline" id="headerAuthBtn" title="Sign In or Create FinGroww Account">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Sign In</span>
+      </a>
+
       <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
         <i class="fa-solid fa-robot"></i>
         <span>Start AI Paper (Free)</span>
@@ -1108,6 +1113,7 @@
 <!-- Modular Scripts -->
 <script src="theme.js"></script>
 <script src="js/components/api-client.js"></script>
+<script src="js/components/auth-client.js"></script>
 <script src="js/components/market-overview.js"></script>
 <script src="js/components/stock-scanner.js"></script>
 <script src="js/components/algo-swarm.js"></script>
@@ -1164,8 +1170,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof AlgoSwarmController !== 'undefined') AlgoSwarmController.init();
   if (typeof TradingCalculatorsController !== 'undefined') TradingCalculatorsController.init();
 
-  // Header market status sync
+  // Header market status sync (only when signed in)
   (async function checkHeaderMarketStatus() {
+    if (!localStorage.getItem('fg_access_token')) return;
     try {
       const status = await FinGrowwAPI.getMarketStatus();
       const pillText = document.getElementById('headerMarketStatusText');

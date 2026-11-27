@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinGroww — Personalised Trader Dashboard</title>
+<meta name="theme-color" content="#030712">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="css/homepage-components.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<div class="fg-ambient-wrapper"><div class="fg-ambient-mesh"></div></div>
+
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a href="index.html" class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      <div>
+        <div class="brand-name">Fin<span>Groww</span></div>
+        <div class="brand-meta">
+          <span class="live-feed-dot"></span>
+          <span class="brand-badge">Trader Dashboard</span>
+        </div>
+      </div>
+    </a>
+
+    <div class="nav-actions">
+      <span class="fg-sec-badge" id="dashPlanBadge" style="margin-bottom:0;">FREE PAPER PLAN</span>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch"><i class="fa-solid fa-robot"></i> Paper Terminal</a>
+      <button type="button" class="btn btn-sm btn-outline" onclick="DashboardController.signOut()" title="Sign Out">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Tab Bar -->
+<div class="dash-mobile-bar">
+  <button type="button" class="dash-nav-btn active" data-tab="overview" onclick="DashboardController.switchTab('overview', this)">Overview</button>
+  <button type="button" class="dash-nav-btn" data-tab="positions" onclick="DashboardController.switchTab('positions', this)">Positions</button>
+  <button type="button" class="dash-nav-btn" data-tab="watchlists" onclick="DashboardController.switchTab('watchlists', this)">Watchlists</button>
+  <button type="button" class="dash-nav-btn" data-tab="signals" onclick="DashboardController.switchTab('signals', this)">Saved Signals</button>
+  <button type="button" class="dash-nav-btn" data-tab="notifications" onclick="DashboardController.switchTab('notifications', this)">Alerts</button>
+  <button type="button" class="dash-nav-btn" data-tab="preferences" onclick="DashboardController.switchTab('preferences', this)">Settings</button>
+  <a href="journal.html" class="dash-nav-btn" style="white-space:nowrap;">Journal & Coach</a>
+</div>
+
+<div class="dash-layout">
+  <!-- Desktop Sidebar -->
+  <aside class="dash-sidebar">
+    <div class="dash-nav-group-title">Workspace</div>
+    <button type="button" class="dash-nav-btn active" data-tab="overview" onclick="DashboardController.switchTab('overview', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-gauge-high"></i> Overview</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="positions" onclick="DashboardController.switchTab('positions', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-layer-group"></i> Active Positions</span>
+      <span class="dash-nav-badge" id="badgePosCount">0</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="watchlists" onclick="DashboardController.switchTab('watchlists', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-eye"></i> Watchlists</span>
+      <span class="dash-nav-badge" id="badgeWlCount">0</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="signals" onclick="DashboardController.switchTab('signals', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-bookmark"></i> Saved Signals</span>
+      <span class="dash-nav-badge" id="badgeSigCount">0</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="notifications" onclick="DashboardController.switchTab('notifications', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-bell"></i> Notifications</span>
+      <span class="dash-nav-badge unread" id="badgeNotifCount">0</span>
+    </button>
+
+    <div class="dash-nav-group-title">Configuration</div>
+    <button type="button" class="dash-nav-btn" data-tab="preferences" onclick="DashboardController.switchTab('preferences', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-sliders"></i> Trading Preferences</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="academy" onclick="DashboardController.switchTab('academy', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-graduation-cap" style="color:var(--accent-green);"></i> Academy LMS</span>
+      <span class="dash-nav-badge" id="badgeAcademyPct">0%</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="billing" onclick="DashboardController.switchTab('billing', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-gem" style="color:var(--accent-purple);"></i> Subscription & Billing</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="support" onclick="DashboardController.switchTab('support', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-headset" style="color:var(--accent-blue);"></i> Support Centre</span>
+    </button>
+    <a href="auth.html" class="dash-nav-btn">
+      <span class="dash-nav-left"><i class="fa-solid fa-user-shield"></i> Profile & Security</span>
+    </a>
+
+    <div class="dash-nav-group-title">Terminals & Journal</div>
+    <a href="journal.html" class="dash-nav-btn">
+      <span class="dash-nav-left"><i class="fa-solid fa-book-open" style="color:var(--accent-gold);"></i> Journal & AI Coach</span>
+    </a>
+    <a href="ai-auto-paper-trading.html" class="dash-nav-btn">
+      <span class="dash-nav-left"><i class="fa-solid fa-robot" style="color:var(--accent-green);"></i> AI Paper Terminal</span>
+    </a>
+    <a href="options.html" class="dash-nav-btn">
+      <span class="dash-nav-left"><i class="fa-solid fa-table-cells" style="color:var(--accent-blue);"></i> Option Chain</span>
+    </a>
+    <a href="ai-agents.html" class="dash-nav-btn">
+      <span class="dash-nav-left"><i class="fa-solid fa-network-wired" style="color:var(--accent-purple);"></i> 4-Agent Swarm</span>
+    </a>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div>
+        <h1 class="dash-title" id="dashUserName">Loading Trader Workspace...</h1>
+        <div class="dash-subtitle" id="dashUserMeta">Syncing isolated virtual portfolio & verified analytics</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <a href="index.html#aiScanner" class="btn btn-sm btn-outline"><i class="fa-solid fa-bolt" style="color:var(--accent-gold);"></i> AI Scanner</a>
+        <a href="pricing.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-gem" style="color:var(--accent-purple);"></i> Upgrade Plan</a>
+      </div>
+    </div>
+
+    <!-- TAB 1: OVERVIEW -->
+    <section class="dash-tab-panel active" id="tab-overview">
+      <div class="dash-kpi-grid">
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Virtual Capital</span><i class="fa-solid fa-wallet" style="color:var(--accent-blue);"></i></div>
+          <div class="dk-val" id="kpiVirtualCap">₹1,00,000.00</div>
+          <div class="dk-sub" id="kpiNetEquity">Net Equity: ₹1,00,000.00</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Available Balance</span><i class="fa-solid fa-coins" style="color:var(--accent-green);"></i></div>
+          <div class="dk-val" id="kpiAvailBal">₹1,00,000.00</div>
+          <div class="dk-sub">Free margin for paper trades</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Total Net P&L</span><i class="fa-solid fa-chart-line" style="color:var(--accent-gold);"></i></div>
+          <div class="dk-val" id="kpiTotalPnl">₹0.00</div>
+          <div class="dk-sub" id="kpiPnlSub">Realized: ₹0.00 | Unrealized: ₹0.00</div>
+        </div>
+        <div class="dash-kpi-card">
+          <div class="dk-lbl"><span>Verified Win Rate</span><i class="fa-solid fa-bullseye" style="color:var(--accent-purple);"></i></div>
+          <div class="dk-val" id="kpiWinRate">0.0%</div>
+          <div class="dk-sub" id="kpiMetricsSub">Profit Factor: 0 • Max DD: 0%</div>
+        </div>
+      </div>
+
+      <div class="dash-two-col">
+        <div class="dash-panel">
+          <div class="dash-panel-head">
+            <div class="dash-panel-title"><i class="fa-solid fa-chart-area" style="color:var(--accent-green);"></i> Verified Equity Curve</div>
+            <span style="font-size:11px;color:var(--text-dim);">Calculated strictly from closed trades</span>
+          </div>
+          <div id="dashEquityCurveWrap"></div>
+        </div>
+
+        <div class="dash-panel">
+          <div class="dash-panel-head">
+            <div class="dash-panel-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-blue);"></i> Recent Closed Trades</div>
+            <a href="trades.html" style="font-size:11.5px;color:var(--accent-blue);text-decoration:none;">Full Ledger →</a>
+          </div>
+          <div id="dashRecentTradesList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: ACTIVE POSITIONS -->
+    <section class="dash-tab-panel" id="tab-positions">
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-layer-group" style="color:var(--accent-green);"></i> Active Paper Positions</div>
+          <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch">Manage in Paper Terminal →</a>
+        </div>
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th class="th-center">Side</th>
+                <th class="th-right">Qty</th>
+                <th class="th-right">Entry</th>
+                <th class="th-right">Current LTP</th>
+                <th class="th-right">Unrealized P&L</th>
+              </tr>
+            </thead>
+            <tbody id="dashPositionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: WATCHLISTS & PRICE ALERTS -->
+    <section class="dash-tab-panel" id="tab-watchlists">
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-eye" style="color:var(--accent-blue);"></i> Personal Watchlist & Price Alerts</div>
+        </div>
+        <form class="dash-inline-form" onsubmit="DashboardController.addWatchlistSymbol(event)">
+          <input type="text" id="wlSymbolInput" placeholder="Symbol (e.g. RELIANCE, NIFTY 50)" required style="flex:1;min-width:180px;">
+          <input type="number" step="0.05" id="wlAlertInput" placeholder="Target Alert Price ₹ (Optional)" style="width:200px;">
+          <button type="submit" class="btn btn-sm btn-launch"><i class="fa-solid fa-plus"></i> Add Symbol</button>
+        </form>
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th class="th-right">Live LTP</th>
+                <th class="th-right">Change %</th>
+                <th class="th-right">Alert Threshold</th>
+                <th class="th-center">Action</th>
+              </tr>
+            </thead>
+            <tbody id="dashWatchlistBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SAVED SIGNALS -->
+    <section class="dash-tab-panel" id="tab-signals">
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-bookmark" style="color:var(--accent-gold);"></i> Bookmarked AI Signals</div>
+        </div>
+        <div id="dashSavedSignalsBox" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: NOTIFICATIONS -->
+    <section class="dash-tab-panel" id="tab-notifications">
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-bell" style="color:var(--accent-blue);"></i> Notifications</div>
+          <button type="button" class="btn btn-sm btn-outline" onclick="DashboardController.markNotificationRead(null, true)">Mark All Read</button>
+        </div>
+        <div id="dashNotificationsList"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: TRADING PREFERENCES -->
+    <section class="dash-tab-panel" id="tab-preferences">
+      <div class="dash-panel" style="max-width:680px;">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-sliders" style="color:var(--accent-purple);"></i> Trading Preferences & Risk Configuration</div>
+        </div>
+        <div id="prefSavedMsg" style="display:none;background:var(--accent-green-dim);border:1px solid rgba(16,185,129,0.4);color:#6ee7b7;padding:10px 12px;border-radius:6px;margin-bottom:14px;font-size:12.5px;">
+          Preferences updated successfully!
+        </div>
+        <form onsubmit="DashboardController.savePreferences(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div>
+            <label style="display:block;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Experience Level</label>
+            <select id="prefExp" class="fg-select" style="width:100%;padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="pro_algo">Pro Algo</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Trading Style</label>
+            <select id="prefStyle" class="fg-select" style="width:100%;padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+              <option value="scalper">Scalper</option>
+              <option value="intraday_momentum">Intraday Momentum</option>
+              <option value="swing_trader">Swing Trader</option>
+              <option value="positional">Positional</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Preferred Timeframe</label>
+            <select id="prefTf" class="fg-select" style="width:100%;padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+              <option value="1m">1 Minute</option>
+              <option value="5m">5 Minutes</option>
+              <option value="15m">15 Minutes</option>
+              <option value="1h">1 Hour</option>
+              <option value="1d">Daily</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Risk Profile</label>
+            <select id="prefRisk" class="fg-select" style="width:100%;padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+              <option value="conservative">Conservative</option>
+              <option value="moderate">Moderate</option>
+              <option value="aggressive">Aggressive</option>
+            </select>
+          </div>
+          <div style="grid-column:1 / -1;">
+            <label style="display:block;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;font-weight:700;">Daily Max Drawdown Circuit Breaker (%)</label>
+            <input type="number" id="prefMaxLoss" step="0.5" min="0.5" max="25" value="5.0" style="width:100%;padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;box-sizing:border-box;">
+          </div>
+          <div style="grid-column:1 / -1;">
+            <button type="submit" class="btn btn-launch btn-sm"><i class="fa-solid fa-floppy-disk"></i> Save Trading Preferences</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 7: SUPPORT CENTRE -->
+    <section class="dash-tab-panel" id="tab-support">
+      <div class="dash-panel" style="max-width:740px;">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-headset" style="color:var(--accent-blue);"></i> FinGroww Support Centre</div>
+        </div>
+        <form onsubmit="DashboardController.submitSupportTicket(event)" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:10px;">
+            <input type="text" id="tktSubject" required placeholder="Subject (e.g. Paper Trade Inquiry)" style="padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+            <select id="tktPriority" style="padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;">
+              <option value="low">Low Priority</option>
+              <option value="medium" selected>Medium Priority</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+          <textarea id="tktMessage" required rows="3" placeholder="Describe your question or issue..." style="padding:9px;background:var(--bg-surface);border:1px solid var(--border-card);color:var(--text-main);border-radius:6px;"></textarea>
+          <button type="submit" class="btn btn-launch btn-sm" style="align-self:flex-start;"><i class="fa-solid fa-paper-plane"></i> Submit Support Ticket</button>
+        </form>
+        <div id="dashTicketsList"></div>
+      </div>
+    </section>
+
+    <!-- TAB 8: ACADEMY LMS -->
+    <section class="dash-tab-panel" id="tab-academy">
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-graduation-cap" style="color:var(--accent-green);"></i> 4-Stage FinGroww Trading Academy LMS</div>
+          <span class="fg-sec-badge" id="academyOverallBadge" style="margin-bottom:0;">0% Complete</span>
+        </div>
+        <div id="academyCoursesBox" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 9: SUBSCRIPTION & BILLING CENTRE -->
+    <section class="dash-tab-panel" id="tab-billing">
+      <div class="dash-panel" style="margin-bottom:18px;">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-gem" style="color:var(--accent-purple);"></i> Subscription Centre</div>
+          <span class="fg-sec-badge" id="billingPlanStatus" style="margin-bottom:0;">FREE PLAN</span>
+        </div>
+        <div id="billingPlanDetails" style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="btn btn-sm btn-launch" onclick="DashboardController.upgradeToPro()"><i class="fa-solid fa-bolt"></i> Upgrade to Pro Algo Swarm (₹1,499/mo)</button>
+          <button type="button" class="btn btn-sm btn-outline" id="btnCancelSub" style="display:none;color:var(--accent-red);border-color:rgba(244,63,94,0.4);" onclick="DashboardController.cancelSubscription()">Cancel Paid Plan</button>
+        </div>
+      </div>
+
+      <div class="dash-panel">
+        <div class="dash-panel-head">
+          <div class="dash-panel-title"><i class="fa-solid fa-file-invoice-dollar" style="color:var(--accent-gold);"></i> GST Invoices & Payment History</div>
+        </div>
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>Invoice ID</th>
+                <th>Plan</th>
+                <th class="th-right">Base Amount</th>
+                <th class="th-right">GST (18%)</th>
+                <th class="th-right">Total Paid</th>
+                <th class="th-center">Date</th>
+              </tr>
+            </thead>
+            <tbody id="billingInvoicesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="theme.js"></script>
+<script src="js/components/api-client.js"></script>
+<script src="js/components/auth-client.js"></script>
+<script src="js/components/dashboard.js"></script>
+</body>
+</html>

@@ -15,6 +15,21 @@ broker_bp = Blueprint("broker_bp", __name__)
 
 
 def _extract_user(req) -> str:
+    auth_header = req.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            from backend.services.auth_service import get_user_from_access_token
+            auth_user = get_user_from_access_token(auth_header.split(" ", 1)[1].strip())
+            if auth_user:
+                return (
+                    auth_user.get("trading_profile_name")
+                    or auth_user.get("full_name")
+                    or auth_user.get("username")
+                    or auth_user.get("user_id")
+                )
+        except Exception:
+            pass
+
     user = None
     try:
         if req.is_json and req.get_json(silent=True):

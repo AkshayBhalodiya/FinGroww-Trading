@@ -1588,8 +1588,10 @@ async function execute1ClickFromOptions(btnEl) {
     btnEl.disabled = true;
   }
   try {
+    const authUserObj = (() => { try { return JSON.parse(localStorage.getItem("fg_auth_user") || "null"); } catch(_) { return null; } })();
+    const activeTrader = (authUserObj && (authUserObj.trading_profile_name || authUserObj.full_name || authUserObj.username)) || localStorage.getItem("fingroww_paper_user") || "Trader";
     const payload = {
-      user: "Akshay",
+      user: activeTrader,
       symbol: strikeTitle.replace(/[\s\(\):]/g, ""),
       base_symbol: currentSymbol,
       instrument_type: "INDEX_OPTIONS",

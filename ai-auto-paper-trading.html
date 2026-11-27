@@ -2434,7 +2434,7 @@ button[disabled],
           </div>
         </div>
         <div class="hero-session-meta">
-          <span class="hero-session-pill"><i class="fa-solid fa-user-astronaut" style="color:var(--accent-blue);"></i> <span id="lblSessionUser">Akshay</span></span>
+          <span class="hero-session-pill"><i class="fa-solid fa-user-astronaut" style="color:var(--accent-blue);"></i> <span id="lblSessionUser">Trader</span></span>
           <span id="sseStatusBadge" style="display:none; align-items:center; gap:5px; font-size:11px; font-weight:800; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:20px; padding:3px 10px;"><span style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span> SSE LIVE</span>
           <span class="hero-session-pill"><i class="fa-solid fa-fingerprint" style="color:var(--accent-purple);"></i> <span id="lblSessionId">Active</span></span>
         </div>
@@ -2492,10 +2492,7 @@ button[disabled],
           <span class="profile-hud-title">ACTIVE TRADER PROFILE</span>
           <div class="profile-selector-wrap">
             <select id="selUserProfile" class="profile-dropdown" onchange="onProfileDropdownChange(this.value)">
-              <option value="Akshay">Akshay (Default Portfolio)</option>
-              <option value="Vijay_Options_Pro">Vijay_Options_Pro (Options Scalper)</option>
-              <option value="Rahul_Futures_Swing">Rahul_Futures_Swing (Futures Swing)</option>
-              <option value="Pooja_Equity_Value">Pooja_Equity_Value (Positional Equity)</option>
+              <option value="">Loading Active Profile...</option>
             </select>
             <span id="profileLoadingSpinner" style="display:none;align-items:center;margin-left:8px;color:var(--accent-blue);font-size:14px;" title="Switching profile...">
               <i class="fa-solid fa-spinner fa-spin"></i>
@@ -4710,7 +4707,17 @@ button[disabled],
 // AI AUTO PAPER TRADING CONTROLLER (MULTI-USER & LEADERBOARD SYSTEM)
 // =========================================================================
 
-let currentUserName = localStorage.getItem("fingroww_paper_user") || "Akshay";
+const __fgLoggedInUser = (() => {
+  try { return JSON.parse(localStorage.getItem("fg_auth_user") || "null"); } catch(_) { return null; }
+})();
+let currentUserName = (__fgLoggedInUser && (__fgLoggedInUser.trading_profile_name || __fgLoggedInUser.full_name || __fgLoggedInUser.username))
+  || localStorage.getItem("fingroww_paper_user")
+  || "Trader";
+if (currentUserName) {
+  localStorage.setItem("fingroww_paper_user", currentUserName);
+  const __lbl = document.getElementById("lblSessionUser");
+  if (__lbl) __lbl.textContent = currentUserName;
+}
 let sessionState = null;
 let pollTimer = null;
 let currentHistoryFilter = "ALL";
