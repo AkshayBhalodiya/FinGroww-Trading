@@ -120,18 +120,38 @@ const FinGrowwAuth = (() => {
   }
 
   function syncHeaderUI() {
+    if (typeof window.syncFinGrowwAuthHeader === "function") {
+      window.syncFinGrowwAuthHeader();
+      return;
+    }
     const btn = document.getElementById("headerAuthBtn");
     if (!btn) return;
     const user = getUser();
+    const existingAdm = document.getElementById("headerAdminLinkBtn");
     if (user && getAccessToken()) {
-      const displayName = (user.full_name || user.username || "Trader").split(" ")[0];
-      btn.href = "dashboard.html";
-      btn.innerHTML = `<i class="fa-solid fa-gauge-high" style="color:var(--accent-green);"></i> <span>${displayName}'s Dashboard</span>`;
-      btn.title = `Open Trader Dashboard (${user.email})`;
+      const displayName = (user.full_name || user.trading_profile_name || user.username || "Trader").split(" ")[0];
+      const isAdm = ["super_admin", "admin", "support", "analyst", "content_manager"].includes((user.role || "").toLowerCase());
+      btn.href = "auth.html";
+      btn.innerHTML = `<i class="fa-solid fa-user-pen" style="color:var(--accent-green);"></i> <span>${displayName}</span>`;
+      btn.title = `Account & Profile (${user.email})`;
+
+      if (isAdm && btn.parentElement) {
+        if (!existingAdm) {
+          const adm = document.createElement("a");
+          adm.id = "headerAdminLinkBtn";
+          adm.href = "admin.html";
+          adm.className = "btn btn-sm btn-primary";
+          adm.innerHTML = `<i class="fa-solid fa-shield-halved"></i> <span>${user.role === "super_admin" ? "Super Admin" : "Admin"}</span>`;
+          btn.parentElement.insertBefore(adm, btn);
+        }
+      } else if (existingAdm) {
+        existingAdm.remove();
+      }
     } else {
       btn.href = "auth.html";
       btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>`;
       btn.title = "Sign In or Create FinGroww Account";
+      if (existingAdm) existingAdm.remove();
     }
   }
 

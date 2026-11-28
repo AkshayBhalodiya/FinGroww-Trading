@@ -132,8 +132,8 @@ textarea.form-control { resize: vertical; min-height: 110px; }
 }
 @media (max-width: 600px) {
   .form-box { padding: 22px 18px; }
-  .methods-card { padding: 22px 18px; }
-  .cm-icon { width: 40px; height: 40px; font-size: 18px; }
+  .contact-info-card { padding: 22px 18px; }
+  .cm-icon { width: 40px; height: 40px; font-size: 16px; }
 }
 </style>
 </head>
@@ -160,7 +160,7 @@ textarea.form-control { resize: vertical; min-height: 110px; }
 </div>
 
 <!-- Clean Site Header -->
-<header class="site-header">
+<header class="site-header" id="mainHeader">
   <div class="container nav-wrap">
     <a href="index.html" class="brand" title="FinGroww Home">
       <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
@@ -175,62 +175,64 @@ textarea.form-control { resize: vertical; min-height: 110px; }
 
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-      <li>
-        <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
-          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
-          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
-        </a>
-      </li>
-      <li>
-        <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;" title="Today's 15m Options Radar">
-          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
-        </a>
-      </li>
-      <li>
-        <a href="backtest.html" style="color:var(--accent-blue);font-weight:800;" title="5-Year Backtest Engine">
-          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
-        </a>
-      </li>
-      <li><a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
-      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
-      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
+      <li><a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:700;" title="Live NSE Trading Arena"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Arena</a></li>
+      <li><a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading"><i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper <span class="nav-pill-free">₹1L FREE</span></a></li>
+      <li><a href="today-options.html" style="color:var(--accent-gold);font-weight:700;" title="Today's 15m Options Radar"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options</a></li>
+      <!-- <li><a href="backtest.html" title="5-Year Backtest Engine"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest</a></li> -->
+      <li><a href="options.html" title="Options Chain &amp; Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html" title="Stock Radar Scanner"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html" title="Subscriptions &amp; Plans"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
     </ul>
 
     <div class="nav-actions">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
-        <span class="theme-icon">☀️</span>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Light/Dark Theme" title="Switch Light/Dark Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
-        <i class="fa-solid fa-robot"></i>
-        <span>Start AI Paper (Free)</span>
+      <a href="auth.html" class="btn btn-sm btn-outline" id="headerAuthBtn" title="Sign In or Create FinGroww Account">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Sign In</span>
       </a>
-      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free AI Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
   </div>
 </header>
 
 <!-- Mobile Navigation Drawer -->
-<div id="mobileDrawer" class="mobile-drawer">
+<div id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
-    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
-    <a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
-    <a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain & Greeks</a>
+    <a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:800;"><i class="fa-solid fa-chart-line"></i> Live NSE Trading Arena</a>
+    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;"><i class="fa-solid fa-robot"></i> AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;"><i class="fa-solid fa-bolt"></i> Today's Options Radar</a>
+    <!-- <a href="backtest.html"><i class="fa-solid fa-clock-rotate-left"></i> 5Y Strategy Backtest</a> -->
+    <a href="options.html"><i class="fa-solid fa-layer-group"></i> Options Chain &amp; Greeks</a>
     <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
-    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
-    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="ai-agents.html"><i class="fa-solid fa-network-wired"></i> 4-Agent Algo Swarm</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Verified Accuracy &amp; Audit</a>
+    <a href="dashboard.html"><i class="fa-solid fa-gauge-high"></i> Trader Dashboard</a>
+    <a href="journal.html"><i class="fa-solid fa-book-open"></i> Journal &amp; AI Coach</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions &amp; Plans</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About FinGroww</a>
     <a href="contact.html" class="active"><i class="fa-solid fa-headset"></i> Contact Support</a>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
-        <span class="theme-icon">☀️</span>
+    <a href="disclaimer.html"><i class="fa-solid fa-file-contract"></i> Regulatory Compliance</a>
+    <div class="mobile-drawer-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Theme" title="Switch Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
+      <a href="auth.html" class="btn btn-sm btn-outline mobile-drawer-auth" id="drawerAuthBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>
+      </a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch mobile-drawer-cta">
+        <i class="fa-solid fa-robot"></i> Launch Paper Trade
+      </a>
     </div>
   </div>
-</div>
-</div>
 </div>
 
 <main class="container">
@@ -248,7 +250,7 @@ textarea.form-control { resize: vertical; min-height: 110px; }
     <!-- Info -->
     <div class="contact-info-card">
       <div class="c-method">
-        <div class="cm-icon">💬</div>
+        <div class="cm-icon" style="background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.35);color:#25d366;"><i class="fa-brands fa-whatsapp"></i></div>
         <div class="cm-text">
           <h4>WhatsApp Trading Hotline</h4>
           <p>Instant chat with our senior quantitative analysts during full Indian market hours.</p>
@@ -257,7 +259,7 @@ textarea.form-control { resize: vertical; min-height: 110px; }
       </div>
 
       <div class="c-method">
-        <div class="cm-icon">✉️</div>
+        <div class="cm-icon" style="color:var(--accent-blue);"><i class="fa-solid fa-envelope"></i></div>
         <div class="cm-text">
           <h4>Email Support Desk</h4>
           <p>For broker API integrations, institutional accounts, and general queries.</p>
@@ -266,7 +268,7 @@ textarea.form-control { resize: vertical; min-height: 110px; }
       </div>
 
       <div class="c-method">
-        <div class="cm-icon">📍</div>
+        <div class="cm-icon" style="color:var(--accent-gold);background:var(--accent-gold-dim);border-color:rgba(245,158,11,0.35);"><i class="fa-solid fa-location-dot"></i></div>
         <div class="cm-text">
           <h4>Office Locations</h4>
           <p>FinGroww Technologies Pvt Ltd<br>Bandra-Kurla Complex (BKC), Mumbai & SG Highway, Ahmedabad, India</p>
@@ -378,58 +380,62 @@ textarea.form-control { resize: vertical; min-height: 110px; }
 </main>
 
 <!-- Global Master Footer -->
-<footer class="site-footer">
+<footer class="site-footer" id="mainFooter">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
         <a href="index.html" class="brand" style="margin-bottom:12px;">
           <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
-            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-name">Fin<span>Groww</span></div>
             <div class="brand-meta">
               <span class="live-feed-dot"></span>
               <span class="brand-badge">Trading Intelligence</span>
             </div>
           </div>
         </a>
-        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
-          India's leading zero-risk AI paper trading app and 15m Fibonacci Golden Zone options terminal.
+        <p>
+          India's institutional-grade quantitative AI trading intelligence platform, free risk-isolated paper trading terminal, and multi-agent autonomous algo swarm for NSE stocks and derivatives.
         </p>
       </div>
 
       <div class="footer-col">
-        <h5>Core Tools</h5>
+        <h5>Core Terminals</h5>
         <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;color:var(--accent-blue);"></i> Live NSE Trading Arena</a></li>
           <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
           <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
-          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li>
-          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple,#c084fc);"></i> Options Chain & Greeks</a></li>
+          <!-- <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li> -->
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Chain &amp; Greeks</a></li>
           <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Platform & Support</h5>
+        <h5>Platform &amp; Support</h5>
         <ul>
-          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
+          <li><a href="ai-agents.html"><i class="fa-solid fa-network-wired" style="font-size:11px;color:var(--accent-purple);"></i> 4-Agent Algo Swarm</a></li>
+          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;color:var(--accent-green);"></i> Verified Accuracy &amp; Audit</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions &amp; Plans</a></li>
           <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
           <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-file-contract" style="font-size:11px;"></i> Regulatory Compliance</a></li>
         </ul>
       </div>
     </div>
 
-    <!-- Statutory SEBI Regulatory Disclosure -->
-    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 18px;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
-      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    <div class="sebi-disclaimer-box">
+      <strong style="display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&amp;O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures &amp; Options (F&amp;O), 9 out of 10 traders incur net financial losses. FinGroww is an educational, analytical, and quantitative decision-support terminal created strictly for research and simulated practice. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+    <div class="footer-bottom">
       <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
-      <div style="display:flex;gap:14px;">
-        <a href="disclaimer.html">Terms & Compliance</a>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="disclaimer.html">Terms &amp; Compliance</a>
         <a href="contact.html">Support Desk</a>
+        <a href="auth.html">Trader Account</a>
       </div>
     </div>
   </div>

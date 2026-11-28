@@ -9,7 +9,14 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.database import db_manager
-from backend.services.auth_service import _sanitize_user, record_audit_log
+from backend.security import hash_password
+from backend.services import auth_service
+from backend.services.auth_service import (
+    _resolve_unique_trading_name,
+    _sanitize_user,
+    ensure_paper_and_broker_user,
+    record_audit_log,
+)
 
 
 class AdminServiceError(Exception):
@@ -136,13 +143,29 @@ def list_users_directory(
     page_size: int = 20,
 ) -> Dict[str, Any]:
     users = list(db_manager.collection("users").find({}, {"_id": 0, "password_hash": 0}).sort("registered_at", -1))
+    active_sessions = list(db_manager.collection("sessions").find({"is_revoked": False}, {"_id": 0, "user_id": 1, "last_used_at": 1}))
+    sessions_by_uid: Dict[str, int] = {}
+    for s in active_sessions:
+        uid = s.get("user_id")
+        if uid:
+            sessions_by_uid[uid] = sessions_by_uid.get(uid, 0) + 1
+
+    paper_accs = list(db_manager.collection("paper_accounts").find({}, {"_id": 0, "user_id": 1, "virtual_capital": 1, "available_balance": 1, "is_default": 1}))
+    paper_by_uid: Dict[str, Dict[str, Any]] = {}
+    for pa in paper_accs:
+        uid = pa.get("user_id")
+        if uid and (uid not in paper_by_uid or pa.get("is_default")):
+            paper_by_uid[uid] = pa
 
     q = search.strip().lower()
     filtered = []
     for u in users:
+        st_val = (u.get("account_status") or "active").lower()
+        if not status and st_val == "deleted":
+            continue
         if role and (u.get("role") or "").lower() != role.lower():
             continue
-        if status and (u.get("account_status") or "").lower() != status.lower():
+        if status and st_val != status.lower():
             continue
         if q:
             haystack = " ".join([
@@ -150,10 +173,19 @@ def list_users_directory(
                 str(u.get("email") or ""),
                 str(u.get("username") or ""),
                 str(u.get("full_name") or ""),
+                str(u.get("trading_profile_name") or ""),
             ]).lower()
             if q not in haystack:
                 continue
-        filtered.append(_sanitize_user(u))
+        clean = _sanitize_user(u)
+        uid = clean.get("user_id", "")
+        ses_cnt = sessions_by_uid.get(uid, 0)
+        pa = paper_by_uid.get(uid, {})
+        clean["active_sessions_count"] = ses_cnt
+        clean["is_online"] = ses_cnt > 0
+        clean["paper_capital"] = float(pa.get("virtual_capital", 100000.0))
+        clean["paper_balance"] = float(pa.get("available_balance", 100000.0))
+        filtered.append(clean)
 
     total = len(filtered)
     start = (page - 1) * page_size
@@ -380,3 +412,278 @@ def admin_reply_ticket(actor: Dict[str, Any], ticket_id: str, reply_message: str
 
     record_audit_log(actor["user_id"], actor.get("role", "support"), "TICKET_REPLY", f"support_tickets/{ticket_id}", ip, {"status": new_status})
     return {"ok": True, "ticket": col.find_one({"ticket_id": ticket_id}, {"_id": 0})}
+
+
+# -------------------------------------------------------------------------
+# COMPLETE SUPER ADMIN USER & SESSION CRUD MANAGEMENT
+# -------------------------------------------------------------------------
+def admin_create_user(actor: Dict[str, Any], data: Dict[str, Any], ip: str = "unknown") -> Dict[str, Any]:
+    """Creates a new Trader or Admin user directly from the Super Admin / Admin Control Centre."""
+    target_role = (data.get("role") or "trader").lower()
+    actor_role = (actor.get("role") or "trader").lower()
+    if target_role in ("super_admin", "admin") and actor_role != "super_admin":
+        raise AdminServiceError("Only Super Admin can create Admin or Super Admin accounts", 403)
+
+    try:
+        reg_res = auth_service.register_user(
+            email=data["email"],
+            password=data["password"],
+            full_name=data["full_name"],
+            username=data.get("username"),
+            mobile_number=data.get("mobile_number"),
+            role=target_role,
+            ip_address=f"admin_create:{actor['user_id']}",
+            user_agent="FinGroww Admin Console",
+        )
+    except auth_service.AuthError as exc:
+        raise AdminServiceError(exc.message, exc.status_code)
+
+    created = reg_res["user"]
+    uid = created["user_id"]
+    now_iso = _now_iso()
+    plan_code = (data.get("subscription_plan") or "free").lower()
+    is_verified = bool(data.get("is_email_verified", True))
+    req_trading_name = (data.get("trading_profile_name") or "").strip()
+
+    updates: Dict[str, Any] = {
+        "is_email_verified": is_verified,
+        "subscription_plan": plan_code,
+        "updated_at": now_iso,
+    }
+    if req_trading_name:
+        updates["trading_profile_name"] = _resolve_unique_trading_name(req_trading_name, created["username"], uid)
+
+    db_manager.collection("users").update_one({"user_id": uid}, {"$set": updates})
+
+    cap = float(data.get("virtual_capital") or 100000.0)
+    db_manager.collection("paper_accounts").update_many(
+        {"user_id": uid, "is_default": True},
+        {"$set": {"virtual_capital": cap, "available_balance": cap}},
+    )
+    if plan_code != "free":
+        db_manager.collection("subscriptions").update_many(
+            {"user_id": uid, "status": "active"},
+            {"$set": {"status": "replaced", "ended_at": now_iso}},
+        )
+        db_manager.collection("subscriptions").insert_one({
+            "subscription_id": f"SUB-{uuid.uuid4().hex[:8].upper()}",
+            "user_id": uid,
+            "plan_code": plan_code,
+            "status": "active",
+            "granted_by_admin": actor["user_id"],
+            "reason": "Created via Admin Control Centre",
+            "started_at": now_iso,
+        })
+
+    # Clean up the initial admin-creation synthetic session so user sessions reflect real logins
+    db_manager.collection("sessions").delete_many({"user_id": uid})
+
+    user_doc = db_manager.collection("users").find_one({"user_id": uid}, {"_id": 0, "password_hash": 0})
+    ensure_paper_and_broker_user(user_doc)
+    record_audit_log(
+        actor["user_id"],
+        actor_role,
+        "ADMIN_USER_CREATE",
+        f"users/{uid}",
+        ip,
+        {"email": user_doc.get("email"), "role": target_role, "plan": plan_code},
+    )
+    return {"ok": True, "user": _sanitize_user(user_doc)}
+
+
+def admin_update_user(actor: Dict[str, Any], target_user_id: str, data: Dict[str, Any], ip: str = "unknown") -> Dict[str, Any]:
+    """Updates user details, trading profile, role, status, plan, or password."""
+    col = db_manager.collection("users")
+    target = col.find_one({"user_id": target_user_id})
+    if not target:
+        raise AdminServiceError("Target user not found", 404)
+
+    actor_role = (actor.get("role") or "trader").lower()
+    target_current_role = (target.get("role") or "trader").lower()
+    if target_current_role == "super_admin" and actor_role != "super_admin":
+        raise AdminServiceError("Only a Super Admin can modify a Super Admin account", 403)
+
+    updates: Dict[str, Any] = {}
+    if data.get("role") is not None:
+        new_role = str(data["role"]).lower()
+        if new_role != target_current_role:
+            if new_role in ("super_admin", "admin") and actor_role != "super_admin":
+                raise AdminServiceError("Only Super Admin can assign Admin or Super Admin role", 403)
+            if actor["user_id"] == target_user_id and actor_role == "super_admin" and new_role != "super_admin":
+                raise AdminServiceError("Super Admin cannot demote their own active account", 400)
+            updates["role"] = new_role
+
+    if data.get("account_status") is not None:
+        new_status = str(data["account_status"]).lower()
+        if actor["user_id"] == target_user_id and new_status != "active":
+            raise AdminServiceError("Administrators cannot suspend or ban their own account", 400)
+        updates["account_status"] = new_status
+        if new_status in ("suspended", "banned"):
+            db_manager.collection("sessions").update_many(
+                {"user_id": target_user_id},
+                {"$set": {"is_revoked": True, "revoked_at": _now_iso()}},
+            )
+
+    if data.get("full_name"):
+        updates["full_name"] = str(data["full_name"]).strip()
+        updates["name"] = updates["full_name"]
+
+    if data.get("username"):
+        uname = str(data["username"]).strip().lower()
+        clash = col.find_one({"username": uname})
+        if clash and clash.get("user_id") != target_user_id:
+            raise AdminServiceError("Username is already taken", 409)
+        updates["username"] = uname
+
+    if data.get("trading_profile_name"):
+        updates["trading_profile_name"] = _resolve_unique_trading_name(
+            str(data["trading_profile_name"]).strip(),
+            updates.get("username", target.get("username", "trader")),
+            target_user_id,
+        )
+
+    if data.get("mobile_number") is not None:
+        updates["mobile_number"] = data["mobile_number"]
+
+    if data.get("is_email_verified") is not None:
+        updates["is_email_verified"] = bool(data["is_email_verified"])
+
+    if data.get("new_password"):
+        updates["password_hash"] = hash_password(str(data["new_password"]))
+
+    if data.get("subscription_plan") is not None:
+        new_plan = str(data["subscription_plan"]).lower()
+        if new_plan != target.get("subscription_plan"):
+            now_iso = _now_iso()
+            updates["subscription_plan"] = new_plan
+            db_manager.collection("subscriptions").update_many(
+                {"user_id": target_user_id, "status": "active"},
+                {"$set": {"status": "replaced", "ended_at": now_iso}},
+            )
+            db_manager.collection("subscriptions").insert_one({
+                "subscription_id": f"SUB-{uuid.uuid4().hex[:8].upper()}",
+                "user_id": target_user_id,
+                "plan_code": new_plan,
+                "status": "active",
+                "granted_by_admin": actor["user_id"],
+                "reason": "Updated via Admin Edit Modal",
+                "started_at": now_iso,
+            })
+
+    if updates:
+        updates["updated_at"] = _now_iso()
+        col.update_one({"user_id": target_user_id}, {"$set": updates})
+
+    updated_doc = col.find_one({"user_id": target_user_id}, {"_id": 0, "password_hash": 0})
+    ensure_paper_and_broker_user(updated_doc)
+    record_audit_log(
+        actor["user_id"],
+        actor_role,
+        "ADMIN_USER_UPDATE",
+        f"users/{target_user_id}",
+        ip,
+        {"fields": sorted([k for k in updates.keys() if k != "password_hash"])},
+    )
+    return {"ok": True, "user": _sanitize_user(updated_doc)}
+
+
+def admin_delete_user(actor: Dict[str, Any], target_user_id: str, ip: str = "unknown") -> Dict[str, Any]:
+    """Deletes a user account and cleans up sessions/data safely."""
+    if actor["user_id"] == target_user_id:
+        raise AdminServiceError("Administrators cannot delete their own account", 400)
+
+    col = db_manager.collection("users")
+    target = col.find_one({"user_id": target_user_id})
+    if not target:
+        raise AdminServiceError("Target user not found", 404)
+
+    actor_role = (actor.get("role") or "trader").lower()
+    if (target.get("role") or "").lower() in ("super_admin", "admin") and actor_role != "super_admin":
+        raise AdminServiceError("Only Super Admin can delete Admin or Super Admin accounts", 403)
+
+    if (target.get("role") or "").lower() == "super_admin":
+        active_supers = col.count_documents({"role": "super_admin", "account_status": {"$ne": "deleted"}})
+        if active_supers <= 1:
+            raise AdminServiceError("Cannot delete the last remaining Super Admin account", 400)
+
+    db_manager.collection("sessions").delete_many({"user_id": target_user_id})
+    db_manager.collection("preferences").delete_many({"user_id": target_user_id})
+    db_manager.collection("watchlists").delete_many({"user_id": target_user_id})
+    db_manager.collection("saved_signals").delete_many({"user_id": target_user_id})
+    db_manager.collection("notifications").delete_many({"user_id": target_user_id})
+    db_manager.collection("paper_accounts").delete_many({"user_id": target_user_id})
+    db_manager.collection("trading_journals").delete_many({"user_id": target_user_id})
+    col.delete_one({"user_id": target_user_id})
+
+    record_audit_log(
+        actor["user_id"],
+        actor_role,
+        "ADMIN_USER_DELETE",
+        f"users/{target_user_id}",
+        ip,
+        {"deleted_email": target.get("email"), "deleted_role": target.get("role")},
+    )
+    return {"ok": True, "deleted_user_id": target_user_id, "message": f"User {target.get('email')} deleted."}
+
+
+def list_active_sessions() -> Dict[str, Any]:
+    """Returns all currently logged-in users & active non-revoked JWT sessions."""
+    sessions = list(
+        db_manager.collection("sessions")
+        .find({"is_revoked": False}, {"_id": 0, "refresh_token_hash": 0, "refresh_jti": 0})
+        .sort("last_used_at", -1)
+    )
+    users_col = db_manager.collection("users")
+    all_users = {u.get("user_id"): _sanitize_user(u) for u in users_col.find({}, {"_id": 0, "password_hash": 0})}
+
+    enriched = []
+    unique_online_users: Dict[str, Dict[str, Any]] = {}
+    for s in sessions:
+        uid = s.get("user_id", "")
+        u = all_users.get(uid, {})
+        row = {
+            "session_id": s.get("session_id"),
+            "user_id": uid,
+            "email": u.get("email", "—"),
+            "full_name": u.get("full_name", "Unknown User"),
+            "username": u.get("username", ""),
+            "trading_profile_name": u.get("trading_profile_name", ""),
+            "role": u.get("role", "trader"),
+            "subscription_plan": u.get("subscription_plan", "free"),
+            "ip_address": s.get("ip_address", "unknown"),
+            "user_agent": s.get("user_agent", "unknown"),
+            "created_at": s.get("created_at"),
+            "last_used_at": s.get("last_used_at"),
+        }
+        enriched.append(row)
+        if uid and uid not in unique_online_users:
+            unique_online_users[uid] = row
+
+    return {
+        "ok": True,
+        "active_sessions_count": len(enriched),
+        "logged_in_users_count": len(unique_online_users),
+        "logged_in_users": list(unique_online_users.values()),
+        "sessions": enriched,
+    }
+
+
+def revoke_session_by_id(actor: Dict[str, Any], session_id: str, ip: str = "unknown") -> Dict[str, Any]:
+    col = db_manager.collection("sessions")
+    target = col.find_one({"session_id": session_id, "is_revoked": False})
+    if not target:
+        raise AdminServiceError("Active session not found", 404)
+
+    col.update_one(
+        {"session_id": session_id},
+        {"$set": {"is_revoked": True, "revoked_at": _now_iso(), "revoked_by": actor["user_id"]}},
+    )
+    record_audit_log(
+        actor["user_id"],
+        actor.get("role", "admin"),
+        "ADMIN_SESSION_REVOKE",
+        f"sessions/{session_id}",
+        ip,
+        {"target_user_id": target.get("user_id")},
+    )
+    return {"ok": True, "revoked_session_id": session_id}

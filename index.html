@@ -137,75 +137,62 @@
 
     <ul class="nav-links">
       <li><a href="index.html" class="active"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-      <li>
-        <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
-          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
-          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
-        </a>
-      </li>
-      <li><a href="#marketOverview" style="color:var(--accent-blue);font-weight:700;"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Markets</a></li>
-      <li><a href="#aiScanner" style="color:var(--accent-gold);font-weight:800;"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> AI Radar</a></li>
-      <li><a href="#algoSwarm" style="color:var(--accent-purple);font-weight:700;"><i class="fa-solid fa-network-wired" style="font-size:11px;"></i> 4-Agent Algo</a></li>
-      <li><a href="#academy"><i class="fa-solid fa-graduation-cap" style="font-size:11px;"></i> Academy</a></li>
-      <li><a href="#tools"><i class="fa-solid fa-calculator" style="font-size:11px;"></i> Tools</a></li>
-      <li><a href="#pricing"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
+      <li><a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:700;" title="Live NSE Trading Arena"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Arena</a></li>
+      <li><a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading"><i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper <span class="nav-pill-free">₹1L FREE</span></a></li>
+      <li><a href="today-options.html" style="color:var(--accent-gold);font-weight:700;" title="Today's 15m Options Radar"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options</a></li>
+      <!-- <li><a href="backtest.html" title="5-Year Backtest Engine"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest</a></li> -->
+      <li><a href="options.html" title="Options Chain &amp; Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html" title="Stock Radar Scanner"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html" title="Subscriptions &amp; Plans"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
     </ul>
 
     <div class="nav-actions">
-      <!-- Live Status Pill -->
-      <div class="fg-header-status-pill" id="headerMarketStatusPill" title="NSE Live Data Engine">
-        <span class="fg-live-dot"></span>
-        <span id="headerMarketStatusText">NSE Live</span>
-      </div>
-
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
-        <span class="theme-icon">☀️</span>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Light/Dark Theme" title="Switch Light/Dark Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-
       <a href="auth.html" class="btn btn-sm btn-outline" id="headerAuthBtn" title="Sign In or Create FinGroww Account">
         <i class="fa-solid fa-right-to-bracket"></i>
         <span>Sign In</span>
       </a>
-
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free AI Paper Trading">
         <i class="fa-solid fa-robot"></i>
-        <span>Start AI Paper (Free)</span>
+        <span>Start AI Paper</span>
       </a>
-      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
   </div>
 </header>
 
-<!-- Supported Live Broker Gateway Bar -->
-<div class="fg-broker-ticker-bar">
-  <span>Supported Live Execution & Paper Gateways:</span>
-  <span class="fg-broker-tag"><i class="fa-solid fa-circle-check" style="color:var(--accent-green);"></i> Zerodha Kite Connect</span>
-  <span class="fg-broker-tag"><i class="fa-solid fa-circle-check" style="color:var(--accent-green);"></i> Angel One SmartAPI</span>
-  <span class="fg-broker-tag"><i class="fa-solid fa-circle-check" style="color:var(--accent-green);"></i> Upstox API v2</span>
-  <span class="fg-broker-tag"><i class="fa-solid fa-circle-check" style="color:var(--accent-green);"></i> Dhan HQ</span>
-  <span class="fg-broker-tag" style="border-color:var(--accent-blue);color:var(--accent-blue);"><i class="fa-solid fa-shield-halved"></i> FinGroww Virtual Engine</span>
-</div>
-
 <!-- Mobile Navigation Drawer -->
-<div id="mobileDrawer" class="mobile-drawer">
+<div id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
   <div class="mobile-nav-list">
     <a href="index.html" class="active"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
-    <a href="#marketOverview"><i class="fa-solid fa-chart-line"></i> Live Market Overview</a>
-    <a href="#marketOutlook"><i class="fa-solid fa-compass"></i> Today's Market Outlook</a>
-    <a href="#aiScanner" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 AI Stock Scanner</a>
-    <a href="#stockResearch"><i class="fa-solid fa-bullseye"></i> AI Buy/Sell/Hold Research</a>
-    <a href="#algoSwarm" style="color:var(--accent-purple);font-weight:800"><i class="fa-solid fa-network-wired"></i> 🛡️ 4-Agent Algo Swarm</a>
-    <a href="#academy"><i class="fa-solid fa-graduation-cap"></i> Trading Academy</a>
-    <a href="#tools"><i class="fa-solid fa-calculator"></i> Tools & Calculators</a>
-    <a href="#performance"><i class="fa-solid fa-award"></i> Performance & Transparency</a>
-    <a href="#pricing"><i class="fa-solid fa-gem"></i> Pricing Plans</a>
-    <a href="#faq"><i class="fa-solid fa-circle-question"></i> FAQs</a>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
-        <span class="theme-icon">☀️</span>
+    <a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:800;"><i class="fa-solid fa-chart-line"></i> Live NSE Trading Arena</a>
+    <a href="ai-auto-paper-trading.html" style="color:var(--accent-green);font-weight:800;"><i class="fa-solid fa-robot"></i> AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;"><i class="fa-solid fa-bolt"></i> Today's Options Radar</a>
+    <!-- <a href="backtest.html"><i class="fa-solid fa-clock-rotate-left"></i> 5Y Strategy Backtest</a> -->
+    <a href="options.html"><i class="fa-solid fa-layer-group"></i> Options Chain &amp; Greeks</a>
+    <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
+    <a href="ai-agents.html"><i class="fa-solid fa-network-wired"></i> 4-Agent Algo Swarm</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Verified Accuracy &amp; Audit</a>
+    <a href="dashboard.html"><i class="fa-solid fa-gauge-high"></i> Trader Dashboard</a>
+    <a href="journal.html"><i class="fa-solid fa-book-open"></i> Journal &amp; AI Coach</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions &amp; Plans</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About FinGroww</a>
+    <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
+    <a href="disclaimer.html"><i class="fa-solid fa-file-contract"></i> Regulatory Compliance</a>
+    <div class="mobile-drawer-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Theme" title="Switch Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
+      <a href="auth.html" class="btn btn-sm btn-outline mobile-drawer-auth" id="drawerAuthBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>
+      </a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch mobile-drawer-cta">
+        <i class="fa-solid fa-robot"></i> Launch Paper Trade
+      </a>
     </div>
   </div>
 </div>
@@ -216,37 +203,55 @@
   <!-- ======================================================== -->
   <section class="fg-hero" id="hero">
     <div class="fg-hero-container">
-      <a href="ai-auto-paper-trading.html" class="hero-pill-badge">
-        <span class="live-pulse-dot"></span>
-        <span>India's Premier AI Trading Intelligence & Options Terminal • ₹1,00,000 Free Virtual Cash →</span>
-      </a>
+      <div class="fg-hero-bento">
+        <div class="fg-hero-left">
+          <a href="ai-auto-paper-trading.html" class="hero-pill-badge">
+            <span class="live-pulse-dot"></span>
+            <span>₹1,00,000 Free AI Paper Trading &amp; Live NSE Terminal →</span>
+          </a>
 
-      <h1 class="fg-hero-h1">
-        Trade Smarter with AI.<br>
-        <span class="fg-grad-text">Mathematics Over Emotion.</span>
-      </h1>
+          <h1 class="fg-hero-h1">
+            Trade Smarter with AI.<br>
+            <span class="fg-grad-text">Mathematics Over Emotion.</span>
+          </h1>
 
-      <p class="fg-hero-desc">
-        FinGroww is an institutional-grade financial intelligence terminal engineered for Indian equity and options traders. Master market psychology with zero-risk virtual paper trading, track live NSE/BSE market trends, get instant AI Buy/Sell/Hold verdicts with exact Entry, Target &amp; Stop-Loss levels, or deploy autonomous 4-agent algo execution across Zerodha, Angel One, Upstox, and Dhan.
-      </p>
+          <p class="fg-hero-desc">
+            FinGroww is an institutional-grade financial intelligence terminal engineered for Indian equity and options traders. Practice risk-free with ₹1L virtual funds, track live NSE/BSE trends, get exact Entry, Target &amp; Stop-Loss levels, or run 4-agent algo execution across Zerodha, Angel One, Upstox, and Dhan.
+          </p>
 
-      <div class="fg-hero-cta-cluster">
-        <a href="ai-auto-paper-trading.html" class="btn-hero-secondary" style="border-color:rgba(16,185,129,0.5); color:#34d399 !important; background:rgba(16,185,129,0.08);" title="Start Free AI Paper Trading (₹1,00,000 Virtual Funds)">
-          <i class="fa-solid fa-robot" style="color:var(--accent-green);"></i>
-          <span>Start AI Paper (₹1L Free)</span>
-        </a>
-        <a href="fingroww_trading_intelligence_NSE.html" class="btn-hero-secondary" style="border-color:rgba(245,158,11,0.5); color:#fbbf24 !important; background:rgba(245,158,11,0.08);" title="Check Stock Performance &amp; Buy/Hold/Sell Advice">
-          <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--accent-gold);"></i>
-          <span>Check Stock Performance (Buy/Hold/Sell)</span>
-        </a>
-        <a href="#algoSwarm" class="btn-hero-secondary">
-          <i class="fa-solid fa-network-wired" style="color:var(--accent-purple);"></i>
-          <span>4-Agent Algo Swarm</span>
-        </a>
-      </div>
+          <div class="fg-hero-cta-cluster">
+            <a href="ai-auto-paper-trading.html" class="btn btn-launch" title="Start Free AI Paper Trading (₹1,00,000 Virtual Funds)">
+              <i class="fa-solid fa-robot"></i>
+              <span>Start AI Paper (₹1L Free)</span>
+            </a>
+            <a href="fingroww_trading_intelligence_NSE.html" class="btn-hero-secondary" title="Check Stock Performance &amp; Buy/Hold/Sell Advice">
+              <i class="fa-solid fa-magnifying-glass-chart" style="color:var(--accent-gold);"></i>
+              <span>Stock Analysis</span>
+            </a>
+            <a href="#algoSwarm" class="btn-hero-secondary">
+              <i class="fa-solid fa-network-wired" style="color:var(--accent-purple);"></i>
+              <span>4-Agent Algo</span>
+            </a>
+          </div>
 
-      <!-- Live Cockpit Preview Card (With Embedded Interactive SVG Mini-Chart) -->
-      <div class="hero-cockpit-card">
+          <div class="fg-hero-stats-strip">
+            <div class="fg-hero-stat-pill">
+              <strong style="color:var(--accent-green);">₹1,00,000</strong>
+              <span>Free Paper Capital</span>
+            </div>
+            <div class="fg-hero-stat-pill">
+              <strong style="color:var(--accent-blue);">5% Guard</strong>
+              <span>Daily Drawdown Lock</span>
+            </div>
+            <div class="fg-hero-stat-pill">
+              <strong style="color:var(--accent-gold);">4 Brokers</strong>
+              <span>Live API Gateways</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Cockpit Preview Card (Right Column Bento) -->
+        <div class="hero-cockpit-card">
         <div class="hcc-header">
           <div class="hcc-dots">
             <span class="hcc-dot red"></span>
@@ -336,6 +341,7 @@
             </button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </section>
@@ -441,16 +447,17 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </section>
 
   <!-- ======================================================== -->
   <!-- 4.5 LIVE NSE TRADING ARENA & QUANTITATIVE TERMINAL       -->
   <!-- ======================================================== -->
-  <section class="fg-section" id="tradingArena" style="background: linear-gradient(180deg, rgba(2,132,199,0.06) 0%, rgba(5,8,16,0.95) 100%); border-top: 1px solid rgba(56,189,248,0.18); border-bottom: 1px solid rgba(56,189,248,0.18); padding: 50px 0;">
+  <section class="fg-section fg-arena-section" id="tradingArena">
     <div class="container">
       <div class="fg-sec-header">
-        <span class="fg-sec-badge" style="background:rgba(2,132,199,0.14); color:#38bdf8; border:1px solid rgba(2,132,199,0.35);">
+        <span class="fg-sec-badge">
           <i class="fa-solid fa-chart-line"></i> Institutional Quantitative Terminal
         </span>
         <h2 class="fg-sec-title">Live NSE Trading Arena &amp; Intelligence Terminal</h2>
@@ -460,29 +467,29 @@
       </div>
 
       <!-- Feature Interactive Showcase Deck -->
-      <div class="arena-showcase-card" style="background: var(--bg-card); border: 1px solid rgba(56,189,248,0.25); border-radius: 18px; padding: 26px; box-shadow: 0 16px 45px rgba(0,0,0,0.55); margin-bottom: 24px; position:relative; overflow:hidden;">
+      <div class="arena-showcase-card fg-arena-card">
         
         <!-- Top Control & Status Ribbon -->
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--border-subtle);">
           <div style="display:flex; align-items:center; gap:12px;">
-            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#0284c7,#2563eb); display:grid; place-items:center; color:#fff; font-size:19px; box-shadow:0 4px 16px rgba(2,132,199,0.4);">
+            <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg,#0284c7,#2563eb); display:grid; place-items:center; color:#fff; font-size:19px; box-shadow:0 4px 16px rgba(2,132,199,0.3);">
               <i class="fa-solid fa-chart-candlestick"></i>
             </div>
             <div>
               <div style="font-weight:900; font-size:1.15rem; color:var(--text-main); display:flex; align-items:center; gap:8px;">
                 <span>Live NSE Terminal Cockpit</span>
-                <span style="font-size:10px; padding:2px 8px; border-radius:12px; background:rgba(0,230,118,0.15); color:var(--accent-green); font-weight:800; border:1px solid rgba(0,230,118,0.35);">
+                <span style="font-size:10px; padding:2px 8px; border-radius:12px; background:var(--accent-green-dim); color:var(--accent-green); font-weight:800; border:1px solid rgba(16,185,129,0.35);">
                   <span class="fg-live-dot" style="display:inline-block; width:6px; height:6px; margin-right:4px;"></span>STREAMING
                 </span>
               </div>
               <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
-                Direct Live Access to <strong>fingroww_trading_intelligence_NSE.html</strong> Quantitative Engine
+                Direct Live Access to <strong>NSE Quantitative Intelligence Engine</strong>
               </div>
             </div>
           </div>
 
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" style="background:linear-gradient(135deg,#0284c7,#2563eb); border:none; font-weight:800; padding:10px 22px; box-shadow:0 4px 18px rgba(2,132,199,0.4);" title="Open Complete Live Trading Arena">
+            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-primary" title="Open Complete Live Trading Arena">
               <i class="fa-solid fa-up-right-from-square"></i> Launch Full Live Arena &rarr;
             </a>
           </div>
@@ -492,71 +499,71 @@
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:18px; margin-bottom:20px;">
           
           <!-- Column 1: Order Book & Market Depth -->
-          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
-            <div style="font-size:12px; font-weight:800; color:#38bdf8; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <div class="fg-arena-col">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-blue); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
               <i class="fa-solid fa-layer-group"></i> 5-Depth Live Market Depth
             </div>
             <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
               Visual bid-ask queues showing institutional order accumulation, liquidity walls, and real-time execution slippage filters.
             </p>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-family:var(--font-mono); font-size:11px;">
-              <div style="background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.25); border-radius:6px; padding:8px;">
+              <div style="background:var(--accent-green-dim); border:1px solid rgba(16,185,129,0.28); border-radius:var(--radius-sm); padding:8px;">
                 <div style="color:var(--text-dim); font-size:9.5px;">TOTAL BIDS</div>
-                <div style="color:#00e676; font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalBids">1,42,850 Qty</div>
+                <div style="color:var(--accent-green); font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalBids">1,42,850 Qty</div>
                 <div style="color:var(--text-dim); font-size:9px;">58.4% Dominance</div>
               </div>
-              <div style="background:rgba(255,71,87,0.08); border:1px solid rgba(255,71,87,0.25); border-radius:6px; padding:8px;">
+              <div style="background:var(--accent-red-dim); border:1px solid rgba(244,63,94,0.28); border-radius:var(--radius-sm); padding:8px;">
                 <div style="color:var(--text-dim); font-size:9.5px;">TOTAL ASKS</div>
-                <div style="color:#ff4757; font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalAsks">1,01,620 Qty</div>
+                <div style="color:var(--accent-red); font-weight:800; font-size:13px; margin-top:2px;" id="arenaTotalAsks">1,01,620 Qty</div>
                 <div style="color:var(--text-dim); font-size:9px;">41.6% Supply</div>
               </div>
             </div>
           </div>
 
           <!-- Column 2: 11-Skill Confluence Engine -->
-          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
-            <div style="font-size:12px; font-weight:800; color:#fbbf24; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <div class="fg-arena-col">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-gold); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
               <i class="fa-solid fa-brain"></i> 11-Skill Confluence Engine
             </div>
             <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
               Multi-signal validation algorithm across 0.618 Fibonacci Golden Zones, Supertrend reversals, VWAP momentum, and 9/21 EMA.
             </p>
             <div style="display:flex; flex-direction:column; gap:6px; font-size:11px; font-weight:700;">
-              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+              <div class="fg-arena-subrow">
                 <span>0.618 Fib Rebound</span>
-                <span class="up" style="color:#00e676;"><i class="fa-solid fa-check"></i> CONFIRMED</span>
+                <span class="up"><i class="fa-solid fa-check"></i> CONFIRMED</span>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+              <div class="fg-arena-subrow">
                 <span>Supertrend (10, 2)</span>
-                <span class="up" style="color:#00e676;"><i class="fa-solid fa-check"></i> BULLISH (GREEN)</span>
+                <span class="up"><i class="fa-solid fa-check"></i> BULLISH</span>
               </div>
-              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:5px 8px; border-radius:4px;">
+              <div class="fg-arena-subrow">
                 <span>Confluence Score</span>
-                <span style="color:#38bdf8; font-family:var(--font-mono); font-weight:900;" id="arenaConfluenceScore">94 / 100</span>
+                <span style="color:var(--accent-blue); font-family:var(--font-mono); font-weight:900;" id="arenaConfluenceScore">94 / 100</span>
               </div>
             </div>
           </div>
 
           <!-- Column 3: Exact Execution Matrix -->
-          <div style="background:rgba(10,16,32,0.7); border:1px solid var(--border-subtle); border-radius:12px; padding:18px;">
-            <div style="font-size:12px; font-weight:800; color:#a78bfa; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+          <div class="fg-arena-col">
+            <div style="font-size:12px; font-weight:800; color:var(--accent-purple); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
               <i class="fa-solid fa-crosshairs"></i> Exact Numeric Levels
             </div>
             <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
               Precision decision output with zero ambiguity. Strict Stop-Loss calculation with multi-tier profit targets.
             </p>
             <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; text-align:center; font-family:var(--font-mono); font-size:11px;">
-              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+              <div class="fg-arena-lvlbox">
                 <div style="font-size:9px; color:var(--text-dim);">ENTRY</div>
-                <div style="color:#38bdf8; font-weight:800; margin-top:2px;" id="arenaEntry">₹142.50</div>
+                <div style="color:var(--accent-blue); font-weight:800; margin-top:2px;" id="arenaEntry">₹142.50</div>
               </div>
-              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+              <div class="fg-arena-lvlbox">
                 <div style="font-size:9px; color:var(--text-dim);">STOP LOSS</div>
-                <div style="color:#ff4757; font-weight:800; margin-top:2px;" id="arenaSL">₹118.00</div>
+                <div style="color:var(--accent-red); font-weight:800; margin-top:2px;" id="arenaSL">₹118.00</div>
               </div>
-              <div style="background:rgba(255,255,255,0.04); border-radius:6px; padding:6px;">
+              <div class="fg-arena-lvlbox">
                 <div style="font-size:9px; color:var(--text-dim);">TARGET</div>
-                <div style="color:#00e676; font-weight:800; margin-top:2px;" id="arenaTarget">₹185.00</div>
+                <div style="color:var(--accent-green); font-weight:800; margin-top:2px;" id="arenaTarget">₹185.00</div>
               </div>
             </div>
           </div>
@@ -564,7 +571,7 @@
         </div>
 
         <!-- Quick Symbol Launch Bar -->
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:12px; padding:12px 18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px 18px;">
           <div style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); font-weight:700;">
             <i class="fa-solid fa-bolt" style="color:var(--accent-gold);"></i>
             <span>Launch Active Symbols Directly in Live Arena:</span>
@@ -575,8 +582,8 @@
             <a href="fingroww_trading_intelligence_NSE.html?symbol=RELIANCE" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Reliance</a>
             <a href="fingroww_trading_intelligence_NSE.html?symbol=HDFCBANK" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">HDFC Bank</a>
             <a href="fingroww_trading_intelligence_NSE.html?symbol=TATAMOTORS" class="btn btn-sm btn-outline" style="font-size:11px; padding:4px 10px;">Tata Motors</a>
-            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-sm btn-primary" style="background:#0284c7; border:none; font-size:11px; padding:4px 12px; font-weight:800;">
-              Open All Symbols in Arena &rarr;
+            <a href="fingroww_trading_intelligence_NSE.html" class="btn btn-sm btn-primary" style="font-size:11px; padding:4px 12px; font-weight:800;">
+              Open All Symbols &rarr;
             </a>
           </div>
         </div>
@@ -602,19 +609,19 @@
       <div class="fg-scanner-toolbar">
         <div class="opp-filter-tabs" style="margin-bottom:0;">
           <button type="button" class="opp-tab-btn fg-tab-btn active" onclick="StockScannerController.filterCategory('all', this)">
-            🌟 All Setups
+            <i class="fa-solid fa-layer-group"></i> All Setups
           </button>
           <button type="button" class="opp-tab-btn fg-tab-btn" onclick="StockScannerController.filterCategory('options', this)">
-            ⚡ Index Options
+            <i class="fa-solid fa-bolt" style="color:var(--accent-gold);"></i> Index Options
           </button>
           <button type="button" class="opp-tab-btn fg-tab-btn" onclick="StockScannerController.filterCategory('buy', this)">
-            🟢 Long Setups
+            <i class="fa-solid fa-arrow-trend-up" style="color:var(--accent-green);"></i> Long Setups
           </button>
           <button type="button" class="opp-tab-btn fg-tab-btn" onclick="StockScannerController.filterCategory('sell', this)">
-            🔴 Short Setups
+            <i class="fa-solid fa-arrow-trend-down" style="color:var(--accent-red);"></i> Short Setups
           </button>
           <button type="button" class="opp-tab-btn fg-tab-btn" onclick="StockScannerController.filterCategory('hold', this)">
-            🟡 Consolidation / Watchlist
+            <i class="fa-solid fa-clock" style="color:var(--accent-gold);"></i> Consolidation / Watchlist
           </button>
         </div>
 
@@ -795,7 +802,7 @@
             <button type="button" class="risk-btn fg-risk-btn" onclick="TradingCalculatorsController.setRiskPercentage(3.0, this)">Aggressive (3%)</button>
           </div>
 
-          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6;background:var(--bg-card);padding:14px;border-radius:var(--radius-md);border-left:3px solid var(--accent-green);">
+          <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6;background:var(--bg-surface);padding:14px 16px;border-radius:var(--radius-md);border:1px solid rgba(16,185,129,0.3);">
             <i class="fa-solid fa-shield-check" style="color:var(--accent-green);margin-right:6px;"></i>
             <strong>Disciplined Math:</strong> With a 1:3.2 Risk-to-Reward ratio, you only need a 40% win-rate to stay profitable. At our 78.6% model, capital compounds exponentially.
           </div>
@@ -994,6 +1001,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </section>
 </main>
@@ -1055,51 +1063,55 @@
         <a href="index.html" class="brand" style="margin-bottom:12px;">
           <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
-            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-name">Fin<span>Groww</span></div>
             <div class="brand-meta">
               <span class="live-feed-dot"></span>
               <span class="brand-badge">Trading Intelligence</span>
             </div>
           </div>
         </a>
-        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
-          India's leading AI trading intelligence platform, risk-free paper trading terminal, and multi-agent autonomous algo swarm.
+        <p>
+          India's institutional-grade quantitative AI trading intelligence platform, free risk-isolated paper trading terminal, and multi-agent autonomous algo swarm for NSE stocks and derivatives.
         </p>
       </div>
 
       <div class="footer-col">
-        <h5>Core Platforms</h5>
+        <h5>Core Terminals</h5>
         <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;color:var(--accent-blue);"></i> Live NSE Trading Arena</a></li>
           <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
-          <li><a href="#marketOverview"><i class="fa-solid fa-chart-line" style="font-size:11px;color:var(--accent-blue);"></i> Live Market Overview</a></li>
-          <li><a href="#aiScanner"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> AI Stock Scanner</a></li>
-          <li><a href="#algoSwarm"><i class="fa-solid fa-network-wired" style="font-size:11px;color:var(--accent-purple);"></i> Autonomous Algo Swarm</a></li>
-          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Strategy Backtest</a></li>
+          <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
+          <!-- <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li> -->
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Chain &amp; Greeks</a></li>
+          <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Platform & Support</h5>
+        <h5>Platform &amp; Support</h5>
         <ul>
-          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
+          <li><a href="ai-agents.html"><i class="fa-solid fa-network-wired" style="font-size:11px;color:var(--accent-purple);"></i> 4-Agent Algo Swarm</a></li>
+          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;color:var(--accent-green);"></i> Verified Accuracy &amp; Audit</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions &amp; Plans</a></li>
           <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
           <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-file-contract" style="font-size:11px;"></i> Regulatory Compliance</a></li>
         </ul>
       </div>
     </div>
 
-    <!-- Statutory SEBI Regulatory Disclosure -->
-    <div class="fg-sebi-box">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
-      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is an educational, analytical, and quantitative decision-support terminal created strictly for research and simulated practice. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    <div class="sebi-disclaimer-box">
+      <strong style="display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&amp;O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures &amp; Options (F&amp;O), 9 out of 10 traders incur net financial losses. FinGroww is an educational, analytical, and quantitative decision-support terminal created strictly for research and simulated practice. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+    <div class="footer-bottom">
       <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
-      <div style="display:flex;gap:14px;">
-        <a href="disclaimer.html">Terms & Compliance</a>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="disclaimer.html">Terms &amp; Compliance</a>
         <a href="contact.html">Support Desk</a>
+        <a href="auth.html">Trader Account</a>
       </div>
     </div>
   </div>
@@ -1130,7 +1142,7 @@ function showToast(symbol, type, price) {
   toast.innerHTML = `
     <i class="fa-solid fa-circle-check" style="color:var(--accent-green);font-size:16px;"></i>
     <div>
-      <div style="font-weight:800;font-family:var(--font-mono);">⚡ FINGROWW NOTIFICATION</div>
+      <div style="font-weight:800;font-family:var(--font-mono);"><i class="fa-solid fa-bolt" style="color:var(--accent-gold);margin-right:5px;"></i>FINGROWW NOTIFICATION</div>
       <div style="font-size:11.5px;color:var(--text-muted);">${type} • ${symbol} ${price ? '@ ₹' + Number(price).toFixed(2) : ''}</div>
     </div>
   `;
@@ -1155,15 +1167,6 @@ function toggleFaq(el) {
 
 // Global Bootstrap
 document.addEventListener('DOMContentLoaded', () => {
-  // Mobile drawer toggle
-  const mobBtn = document.getElementById('mobileMenuBtn');
-  const mobDrawer = document.getElementById('mobileDrawer');
-  if (mobBtn && mobDrawer) {
-    mobBtn.addEventListener('click', () => {
-      mobDrawer.classList.toggle('active');
-    });
-  }
-
   // Initialize components
   if (typeof MarketOverviewController !== 'undefined') MarketOverviewController.init();
   if (typeof StockScannerController !== 'undefined') StockScannerController.init();

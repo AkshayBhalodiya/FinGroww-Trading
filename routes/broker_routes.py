@@ -21,6 +21,16 @@ def _extract_user(req) -> str:
             from backend.services.auth_service import get_user_from_access_token
             auth_user = get_user_from_access_token(auth_header.split(" ", 1)[1].strip())
             if auth_user:
+                req_target = req.args.get("user") or req.args.get("user_name")
+                if not req_target:
+                    try:
+                        if req.is_json and req.get_json(silent=True):
+                            j = req.get_json(silent=True)
+                            req_target = j.get("user_name") or j.get("user")
+                    except Exception:
+                        pass
+                if req_target and (auth_user.get("role") or "").lower() in ("admin", "super_admin"):
+                    return str(req_target).strip()
                 return (
                     auth_user.get("trading_profile_name")
                     or auth_user.get("full_name")

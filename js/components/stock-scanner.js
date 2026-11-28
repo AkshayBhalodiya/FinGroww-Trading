@@ -39,7 +39,7 @@ const StockScannerController = (() => {
       stop_loss: 2479.50,
       target_1: 2587.80,
       target_2: 2655.75,
-      strategy: "🎯 80%+ Smart Money VWAP & 9/21 EMA Pullback",
+      strategy: "Smart Money VWAP & 9/21 EMA Pullback",
       rationale: "Should you BUY? YES. IT heavyweight breakout with strong institutional accumulation and positive momentum. Target ₹2,587.80 with tight trailing SL.",
       category: "buy equities"
     },

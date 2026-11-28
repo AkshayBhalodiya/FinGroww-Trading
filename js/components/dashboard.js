@@ -10,7 +10,19 @@ const DashboardController = (() => {
       window.location.href = "auth.html";
       return;
     }
-    await Promise.all([loadProfile(), loadOverview(), loadWatchlists(), loadSavedSignals(), loadNotifications(), loadSupportTickets(), loadAcademy(), loadBilling()]);
+    const cached = FinGrowwAuth.getUser();
+    const cachedRole = (cached && cached.role ? cached.role : "").toLowerCase();
+    if (cached && cachedRole === "trader") {
+      window.location.replace("auth.html");
+      return;
+    }
+    await loadProfile();
+    const verified = FinGrowwAuth.getUser();
+    if (!verified || (verified.role || "trader").toLowerCase() === "trader") {
+      window.location.replace("auth.html");
+      return;
+    }
+    await Promise.all([loadOverview(), loadWatchlists(), loadSavedSignals(), loadNotifications(), loadSupportTickets(), loadAcademy(), loadBilling()]);
   }
 
   function switchTab(tabId, btnEl) {
@@ -38,12 +50,23 @@ const DashboardController = (() => {
       const metaEl = document.getElementById("dashUserMeta");
       const planBadge = document.getElementById("dashPlanBadge");
       if (nameEl) nameEl.textContent = `Welcome back, ${u.full_name}`;
-      if (metaEl) metaEl.textContent = `@${u.username} • ${u.email} • Role: ${u.role.toUpperCase()}`;
+      if (metaEl) metaEl.textContent = `@${u.username} • ${u.email} • Paper & Real Profile: ${u.trading_profile_name || u.full_name} • Role: ${u.role.toUpperCase()}`;
       if (planBadge) {
         const isPro = u.subscription_plan !== "free";
         planBadge.textContent = isPro ? "PRO ALGO SWARM" : "FREE PAPER PLAN";
         planBadge.style.borderColor = isPro ? "var(--accent-green)" : "var(--accent-blue)";
         planBadge.style.color = isPro ? "var(--accent-green)" : "var(--accent-blue)";
+      }
+
+      const isAdm = ["super_admin", "admin", "support", "analyst", "content_manager"].includes((u.role || "").toLowerCase());
+      const navActions = document.querySelector("header .nav-actions");
+      if (isAdm && navActions && !document.getElementById("dashAdminConsoleBtn")) {
+        const admLnk = document.createElement("a");
+        admLnk.id = "dashAdminConsoleBtn";
+        admLnk.href = "admin.html";
+        admLnk.className = "btn btn-sm btn-primary";
+        admLnk.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${u.role === "super_admin" ? "Super Admin" : "Admin"}`;
+        navActions.insertBefore(admLnk, navActions.firstChild);
       }
 
       // Populate preferences form

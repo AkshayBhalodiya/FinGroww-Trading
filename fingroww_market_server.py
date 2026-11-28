@@ -203,6 +203,9 @@ def add_cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = origin
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS, PUT, DELETE, PATCH"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Pragma, Cache-Control, X-Requested-With, Origin, Accept"
+    if resp.mimetype in ("text/html", "application/javascript", "text/javascript"):
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
     return resp
 
 
@@ -1613,10 +1616,17 @@ def get_user_session_and_engine(req):
             from backend.services.auth_service import get_user_from_access_token
             auth_user = get_user_from_access_token(token)
             if auth_user:
-                # Enforce authenticated user isolation unless admin specifies an explicit target user
+                # Enforce authenticated user isolation unless admin/super_admin specifies an explicit target user
                 req_target = req.args.get("user") or req.args.get("user_name")
-                if req_target and auth_user.get("role") in ("admin", "super_admin"):
-                    return paper_manager.get_session(req_target)
+                if not req_target:
+                    try:
+                        if req.is_json and req.get_json(silent=True):
+                            j = req.get_json(silent=True)
+                            req_target = j.get("user_name") or j.get("user")
+                    except Exception:
+                        pass
+                if req_target and (auth_user.get("role") or "").lower() in ("admin", "super_admin"):
+                    return paper_manager.get_session(str(req_target).strip())
                 canonical_name = (
                     auth_user.get("trading_profile_name")
                     or auth_user.get("full_name")

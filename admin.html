@@ -4,11 +4,94 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FinGroww — Super Admin Control Centre</title>
-<meta name="theme-color" content="#030712">
+<meta name="theme-color" content="#020617">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="css/homepage-components.css">
 <link rel="stylesheet" href="css/dashboard.css">
+<style>
+  .adm-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-modal-overlay, rgba(2, 6, 23, 0.86));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .adm-modal-overlay.open { display: flex; }
+  .adm-modal-card {
+    background: var(--bg-card-solid, #0f172a);
+    border: 1px solid var(--border-card-hover, rgba(56, 189, 248, 0.4));
+    border-radius: var(--radius-lg, 16px);
+    width: 100%;
+    max-width: 640px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: var(--shadow-floating);
+  }
+  .adm-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .adm-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+  .adm-field input, .adm-field select {
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    color: var(--text-main);
+    font-size: 13px;
+  }
+  .adm-online-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent-green-dim);
+    color: var(--accent-green);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+  .adm-offline-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-dim);
+  }
+  .adm-action-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 640px) {
+    .adm-form-grid { grid-template-columns: 1fr; }
+    header.site-header #adminActorBadge { display: none; }
+    header.site-header .nav-actions .btn span { display: none; }
+  }
+</style>
 </head>
 <body>
 
@@ -22,13 +105,20 @@
         <div class="brand-name">Fin<span>Groww</span></div>
         <div class="brand-meta">
           <span class="live-feed-dot"></span>
-          <span class="brand-badge">Admin Control Centre</span>
+          <span class="brand-badge">Super Admin Control Centre</span>
         </div>
       </div>
     </a>
     <div class="nav-actions">
       <span class="fg-sec-badge" id="adminActorBadge" style="margin-bottom:0;">ADMIN CONSOLE</span>
-      <a href="dashboard.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-gauge-high"></i> Trader View</a>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
+        <span class="theme-icon">☀️</span>
+      </button>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch"><i class="fa-solid fa-robot"></i> Paper &amp; Real Terminal</a>
+      <a href="auth.html" class="btn btn-sm btn-outline"><i class="fa-solid fa-user-shield"></i> Account</a>
+      <button type="button" class="btn btn-sm btn-outline" style="color:var(--accent-red);" onclick="AdminController.signOut()" title="Sign Out">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </button>
     </div>
   </div>
 </header>
@@ -41,37 +131,54 @@
   <h2 style="font-size:1.35rem;font-weight:900;color:var(--text-main);margin-bottom:8px;">Restricted Control Centre</h2>
   <p id="adminDeniedMsg" style="font-size:13px;color:var(--text-muted);margin-bottom:18px;">Verifying administrative RBAC privileges...</p>
   <div style="display:flex;gap:10px;justify-content:center;">
-    <a href="auth.html" class="btn btn-sm btn-launch">Sign In</a>
+    <a href="auth.html?next=admin.html" class="btn btn-sm btn-launch">Sign In as Super Admin</a>
     <a href="index.html" class="btn btn-sm btn-outline">Return Home</a>
   </div>
+</div>
+
+<!-- Mobile Tab Bar -->
+<div class="dash-mobile-bar" id="adminMobileBar" style="display:none;">
+  <button type="button" class="dash-nav-btn active" onclick="AdminController.switchTab('overview', this)">Analytics</button>
+  <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('users', this)">Users CRUD</button>
+  <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('sessions', this)">Logged-In Users</button>
+  <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('tickets', this)">Tickets</button>
+  <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('audit', this)">Audit</button>
 </div>
 
 <!-- Authenticated Admin Workspace -->
 <div class="dash-layout" id="adminWorkspace" style="display:none;">
   <aside class="dash-sidebar">
-    <div class="dash-nav-group-title">Governance</div>
-    <button type="button" class="dash-nav-btn active" onclick="AdminController.switchTab('overview', this)">
+    <div class="dash-nav-group-title">Super Admin Governance</div>
+    <button type="button" class="dash-nav-btn active" data-tab="overview" onclick="AdminController.switchTab('overview', this)">
       <span class="dash-nav-left"><i class="fa-solid fa-chart-pie" style="color:var(--accent-green);"></i> Platform Analytics</span>
     </button>
-    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('users', this)">
-      <span class="dash-nav-left"><i class="fa-solid fa-users-gear" style="color:var(--accent-blue);"></i> User Directory</span>
+    <button type="button" class="dash-nav-btn" data-tab="users" onclick="AdminController.switchTab('users', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-users-gear" style="color:var(--accent-blue);"></i> Users &amp; Admins CRUD</span>
+      <span class="dash-nav-badge" id="admBadgeUsers">0</span>
     </button>
-    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('tickets', this)">
+    <button type="button" class="dash-nav-btn" data-tab="sessions" onclick="AdminController.switchTab('sessions', this)">
+      <span class="dash-nav-left"><i class="fa-solid fa-signal" style="color:var(--accent-green);"></i> Logged-In Users</span>
+      <span class="dash-nav-badge" id="admBadgeOnline">0</span>
+    </button>
+    <button type="button" class="dash-nav-btn" data-tab="tickets" onclick="AdminController.switchTab('tickets', this)">
       <span class="dash-nav-left"><i class="fa-solid fa-headset" style="color:var(--accent-gold);"></i> Support Desk</span>
     </button>
-    <button type="button" class="dash-nav-btn" onclick="AdminController.switchTab('audit', this)">
+    <button type="button" class="dash-nav-btn" data-tab="audit" onclick="AdminController.switchTab('audit', this)">
       <span class="dash-nav-left"><i class="fa-solid fa-clipboard-list" style="color:var(--accent-purple);"></i> Audit Logs</span>
     </button>
   </aside>
 
-  <main class="dash-main">
+  <main class="dash-main" id="main-content">
     <!-- TAB 1: ANALYTICS & HEALTH -->
     <section class="dash-tab-panel active" id="tab-overview">
       <div class="dash-topbar">
         <div>
-          <h1 class="dash-title">Platform Overview & System Governance</h1>
-          <div class="dash-subtitle" id="admHealthMeta">Checking database & service telemetry...</div>
+          <h1 class="dash-title">Platform Overview &amp; System Governance</h1>
+          <div class="dash-subtitle" id="admHealthMeta">Checking database &amp; service telemetry...</div>
         </div>
+        <button type="button" class="btn btn-sm btn-launch" onclick="AdminController.openCreateModal()">
+          <i class="fa-solid fa-user-plus"></i> Create User / Admin
+        </button>
       </div>
 
       <div class="dash-kpi-grid">
@@ -81,7 +188,7 @@
           <div class="dk-sub" id="admNewReg7d">New (7d): 0</div>
         </div>
         <div class="dash-kpi-card">
-          <div class="dk-lbl"><span>DAU / MAU</span><i class="fa-solid fa-bolt" style="color:var(--accent-green);"></i></div>
+          <div class="dk-lbl"><span>Online Users / Sessions</span><i class="fa-solid fa-bolt" style="color:var(--accent-green);"></i></div>
           <div class="dk-val" id="admDauMau">0 / 0</div>
           <div class="dk-sub" id="admActiveSessions">Active JWT Sessions: 0</div>
         </div>
@@ -105,26 +212,29 @@
       </div>
     </section>
 
-    <!-- TAB 2: USER DIRECTORY & MODERATION -->
+    <!-- TAB 2: USER DIRECTORY & FULL CRUD -->
     <section class="dash-tab-panel" id="tab-users">
       <div class="dash-topbar">
         <div>
-          <h1 class="dash-title">User Directory & Moderation</h1>
-          <div class="dash-subtitle">Search traders, inspect portfolios, suspend accounts, or override subscription tiers.</div>
+          <h1 class="dash-title">User &amp; Admin Directory (Full CRUD)</h1>
+          <div class="dash-subtitle">Create Admins or Traders, edit unified Paper/Real trading profiles, manage roles, suspend or delete accounts.</div>
         </div>
+        <button type="button" class="btn btn-sm btn-launch" onclick="AdminController.openCreateModal()">
+          <i class="fa-solid fa-user-plus"></i> Create User / Admin
+        </button>
       </div>
 
       <div class="dash-panel">
         <div class="dash-inline-form">
-          <input type="text" id="admUserSearch" placeholder="Search name, email, username, or USR ID..." style="flex:1;min-width:220px;" oninput="AdminController.loadUsers(1)">
+          <input type="text" id="admUserSearch" placeholder="Search name, email, username, trading profile, or USR ID..." style="flex:1;min-width:220px;" oninput="AdminController.loadUsers(1)">
           <select id="admRoleFilter" onchange="AdminController.loadUsers(1)">
             <option value="">All Roles</option>
+            <option value="super_admin">Super Admin</option>
+            <option value="admin">Admin</option>
             <option value="trader">Trader</option>
             <option value="pro_trader">Pro Trader</option>
             <option value="support">Support</option>
             <option value="analyst">Analyst</option>
-            <option value="admin">Admin</option>
-            <option value="super_admin">Super Admin</option>
           </select>
           <select id="admStatusFilter" onchange="AdminController.loadUsers(1)">
             <option value="">All Statuses</option>
@@ -138,12 +248,12 @@
           <table class="paper-table">
             <thead>
               <tr>
-                <th>User</th>
+                <th>User &amp; Unified Trading Profile</th>
                 <th class="th-center">Role</th>
-                <th class="th-center">Plan</th>
+                <th class="th-center">Session</th>
+                <th class="th-center">Plan / Capital</th>
                 <th class="th-center">Status</th>
-                <th class="th-center">Last Login</th>
-                <th class="th-center">Actions</th>
+                <th class="th-center">CRUD Actions</th>
               </tr>
             </thead>
             <tbody id="admUsersTableBody"></tbody>
@@ -152,7 +262,38 @@
       </div>
     </section>
 
-    <!-- TAB 3: SUPPORT DESK -->
+    <!-- TAB 3: LIVE LOGGED-IN USERS & ACTIVE SESSIONS -->
+    <section class="dash-tab-panel" id="tab-sessions">
+      <div class="dash-topbar">
+        <div>
+          <h1 class="dash-title">Live Logged-In Users &amp; Active JWT Sessions</h1>
+          <div class="dash-subtitle" id="admSessionsSummary">Real-time list of authenticated traders and admins currently signed into the platform.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" onclick="AdminController.loadSessions()">
+          <i class="fa-solid fa-rotate"></i> Refresh Sessions
+        </button>
+      </div>
+
+      <div class="dash-panel">
+        <div class="table-responsive">
+          <table class="paper-table">
+            <thead>
+              <tr>
+                <th>Logged-In User</th>
+                <th class="th-center">Unified Paper &amp; Real Profile</th>
+                <th class="th-center">Role / Plan</th>
+                <th class="th-center">IP Address</th>
+                <th class="th-center">Last Active</th>
+                <th class="th-center">Control</th>
+              </tr>
+            </thead>
+            <tbody id="admSessionsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SUPPORT DESK -->
     <section class="dash-tab-panel" id="tab-tickets">
       <div class="dash-topbar">
         <div>
@@ -163,12 +304,12 @@
       <div id="admTicketsList"></div>
     </section>
 
-    <!-- TAB 4: AUDIT LOGS -->
+    <!-- TAB 5: AUDIT LOGS -->
     <section class="dash-tab-panel" id="tab-audit">
       <div class="dash-topbar">
         <div>
           <h1 class="dash-title">Immutable Security Audit Trail</h1>
-          <div class="dash-subtitle">Tracks all registrations, logins, administrative overrides, and flag modifications.</div>
+          <div class="dash-subtitle">Tracks all registrations, logins, administrative overrides, CRUD changes, and flag modifications.</div>
         </div>
       </div>
       <div class="dash-panel">
@@ -189,6 +330,95 @@
       </div>
     </section>
   </main>
+</div>
+
+<!-- Create / Edit User Modal -->
+<div class="adm-modal-overlay" id="admUserModal" role="dialog" aria-modal="true" aria-labelledby="admModalTitle">
+  <div class="adm-modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 id="admModalTitle" style="font-size:1.15rem;font-weight:900;color:var(--text-main);">Create User / Admin</h2>
+      <button type="button" class="btn btn-sm btn-outline" onclick="AdminController.closeUserModal()" aria-label="Close modal">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form id="admUserForm" onsubmit="AdminController.submitUserForm(event)">
+      <input type="hidden" id="admEditUserId" value="">
+      <div class="adm-form-grid">
+        <div class="adm-field">
+          <label for="admInpFullName">Full Name *</label>
+          <input type="text" id="admInpFullName" required placeholder="e.g. Rahul Patel">
+        </div>
+        <div class="adm-field">
+          <label for="admInpEmail">Email Address *</label>
+          <input type="email" id="admInpEmail" required placeholder="user@fingroww.tech">
+        </div>
+        <div class="adm-field">
+          <label for="admInpUsername">Username (optional)</label>
+          <input type="text" id="admInpUsername" placeholder="auto-generated if empty">
+        </div>
+        <div class="adm-field">
+          <label for="admInpTradingProfile">Paper &amp; Real Trading Profile Name</label>
+          <input type="text" id="admInpTradingProfile" placeholder="Same as display name by default">
+        </div>
+        <div class="adm-field">
+          <label for="admInpPassword" id="admLblPassword">Password (min 8 chars, letters + numbers) *</label>
+          <input type="password" id="admInpPassword" placeholder="Enter password">
+        </div>
+        <div class="adm-field">
+          <label for="admInpRole">Role</label>
+          <select id="admInpRole">
+            <option value="trader">Normal Trader</option>
+            <option value="pro_trader">Pro Trader</option>
+            <option value="support">Support Staff</option>
+            <option value="analyst">Quant Analyst</option>
+            <option value="content_manager">Content Manager</option>
+            <option value="admin" data-super-only="1">Admin</option>
+            <option value="super_admin" data-super-only="1">Super Admin</option>
+          </select>
+        </div>
+        <div class="adm-field">
+          <label for="admInpPlan">Subscription Plan</label>
+          <select id="admInpPlan">
+            <option value="free">Free AI Paper (₹0)</option>
+            <option value="pro_algo_swarm">Pro Algo Swarm</option>
+            <option value="enterprise">Enterprise Desk</option>
+          </select>
+        </div>
+        <div class="adm-field" id="admStatusWrap" style="display:none;">
+          <label for="admInpStatus">Account Status</label>
+          <select id="admInpStatus">
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+          </select>
+        </div>
+        <div class="adm-field" id="admCapitalWrap">
+          <label for="admInpCapital">Initial Paper Capital (₹)</label>
+          <input type="number" id="admInpCapital" value="100000" min="1000" step="10000">
+        </div>
+      </div>
+
+      <div id="admFormError" style="display:none;margin-top:12px;padding:8px 12px;border-radius:8px;background:var(--accent-red-dim);color:var(--accent-red);font-size:12px;font-weight:700;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+        <button type="button" class="btn btn-sm btn-outline" onclick="AdminController.closeUserModal()">Cancel</button>
+        <button type="submit" class="btn btn-sm btn-launch" id="admSubmitBtn">Save User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Inspect User Modal -->
+<div class="adm-modal-overlay" id="admInspectModal" role="dialog" aria-modal="true" aria-labelledby="admInspectTitle">
+  <div class="adm-modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h2 id="admInspectTitle" style="font-size:1.15rem;font-weight:900;color:var(--text-main);">User &amp; Trading Account Inspector</h2>
+      <button type="button" class="btn btn-sm btn-outline" onclick="AdminController.closeInspectModal()" aria-label="Close inspector">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="admInspectBody" style="font-size:12.5px;color:var(--text-muted);line-height:1.6;">Loading details...</div>
+  </div>
 </div>
 
 <script src="theme.js"></script>

@@ -243,6 +243,55 @@ class AdminUserRoleUpdateRequest(BaseModel):
     role: Literal["super_admin", "admin", "support", "analyst", "content_manager", "pro_trader", "trader"]
 
 
+class AdminCreateUserRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=254)
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: str = Field(..., min_length=2, max_length=100)
+    username: Optional[str] = Field(default=None, min_length=3, max_length=32)
+    trading_profile_name: Optional[str] = Field(default=None, min_length=2, max_length=60)
+    mobile_number: Optional[str] = Field(default=None, max_length=20)
+    role: Literal["super_admin", "admin", "support", "analyst", "content_manager", "pro_trader", "trader"] = "trader"
+    subscription_plan: Literal["free", "pro_algo_swarm", "enterprise"] = "free"
+    virtual_capital: float = Field(default=100000.0, ge=1000.0, le=100000000.0)
+    is_email_verified: bool = True
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        val = v.strip().lower()
+        if "@" not in val or "." not in val.split("@")[-1]:
+            raise ValueError("Please enter a valid email address")
+        return val
+
+    @field_validator("password")
+    @classmethod
+    def validate_pw(cls, v: str) -> str:
+        if len(v) < 8 or not any(c.isalpha() for c in v) or not any(c.isdigit() for c in v):
+            raise ValueError("Password must be at least 8 characters with letters and numbers")
+        return v
+
+
+class AdminUserUpdateRequest(BaseModel):
+    full_name: Optional[str] = Field(default=None, min_length=2, max_length=100)
+    username: Optional[str] = Field(default=None, min_length=3, max_length=32)
+    trading_profile_name: Optional[str] = Field(default=None, min_length=2, max_length=60)
+    mobile_number: Optional[str] = Field(default=None, max_length=20)
+    role: Optional[Literal["super_admin", "admin", "support", "analyst", "content_manager", "pro_trader", "trader"]] = None
+    account_status: Optional[Literal["active", "suspended", "banned"]] = None
+    subscription_plan: Optional[Literal["free", "pro_algo_swarm", "enterprise"]] = None
+    is_email_verified: Optional[bool] = None
+    new_password: Optional[str] = Field(default=None, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_optional_pw(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if len(v) < 8 or not any(c.isalpha() for c in v) or not any(c.isdigit() for c in v):
+            raise ValueError("New password must be at least 8 characters with letters and numbers")
+        return v
+
+
 class AdminSubscriptionUpdateRequest(BaseModel):
     plan_code: Literal["free", "pro_algo_swarm", "enterprise"]
     reason: str = Field(default="Admin override", max_length=300)

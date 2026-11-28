@@ -12,6 +12,7 @@ const AlgoSwarmController = (() => {
       status: "ONLINE",
       badge: "High-Probability Filter",
       color: "var(--accent-green)",
+      dimColor: "var(--accent-green-dim)",
       icon: "fa-compass"
     },
     {
@@ -22,6 +23,7 @@ const AlgoSwarmController = (() => {
       status: "ACTIVE",
       badge: "Sub-Second Sniper",
       color: "var(--accent-gold)",
+      dimColor: "var(--accent-gold-dim)",
       icon: "fa-bolt"
     },
     {
@@ -32,6 +34,7 @@ const AlgoSwarmController = (() => {
       status: "ARMED",
       badge: "Multi-Broker Gateway",
       color: "var(--accent-blue)",
+      dimColor: "var(--accent-blue-dim)",
       icon: "fa-crosshairs"
     },
     {
@@ -42,6 +45,7 @@ const AlgoSwarmController = (() => {
       status: "GUARDING",
       badge: "5% Circuit Breaker",
       color: "var(--accent-purple)",
+      dimColor: "var(--accent-purple-dim)",
       icon: "fa-shield-halved"
     }
   ];
@@ -58,7 +62,7 @@ const AlgoSwarmController = (() => {
     container.innerHTML = AGENTS.map(agent => `
       <div class="fg-agent-card" id="${agent.id}">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-          <div class="fg-agent-avatar" style="background:${agent.color}22;color:${agent.color};">
+          <div class="fg-agent-avatar" style="background:${agent.dimColor};color:${agent.color};">
             <i class="fa-solid ${agent.icon}"></i>
           </div>
           <span style="font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--accent-green);font-weight:800;">

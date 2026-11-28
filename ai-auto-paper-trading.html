@@ -74,19 +74,19 @@ if (typeof LightweightCharts === "undefined") {
    ========================================================================= */
 
 :root {
-  /* Dynamic Canvas & Surfaces */
-  --bg-canvas: #030712;
-  --bg-surface: rgba(15, 23, 42, 0.65);
-  --bg-surface-elevated: rgba(30, 41, 59, 0.7);
-  --bg-card-gradient: linear-gradient(145deg, rgba(15, 23, 42, 0.85) 0%, rgba(11, 18, 33, 0.7) 100%);
+  /* Dynamic Canvas & Surfaces — OLED Institutional Obsidian */
+  --bg-canvas: #020617;
+  --bg-surface: rgba(15, 23, 42, 0.78);
+  --bg-surface-elevated: rgba(30, 41, 59, 0.84);
+  --bg-card-gradient: linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(11, 18, 33, 0.78) 100%);
   --bg-card-hero-profit: linear-gradient(145deg, rgba(16, 185, 129, 0.16) 0%, rgba(15, 23, 42, 0.92) 80%);
   --bg-card-hero-loss: linear-gradient(145deg, rgba(244, 63, 94, 0.16) 0%, rgba(15, 23, 42, 0.92) 80%);
 
   /* Borders & Accents */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-card: rgba(255, 255, 255, 0.12);
-  --border-card-hover: rgba(56, 189, 248, 0.45);
-  --border-accent-glow: rgba(56, 189, 248, 0.25);
+  --border-subtle: rgba(148, 163, 184, 0.11);
+  --border-card: rgba(148, 163, 184, 0.17);
+  --border-card-hover: rgba(56, 189, 248, 0.5);
+  --border-accent-glow: rgba(56, 189, 248, 0.28);
 
   /* Color System */
   --accent-green: #10b981;
@@ -104,9 +104,9 @@ if (typeof LightweightCharts === "undefined") {
 
   /* Typography */
   --text-main: #f8fafc;
-  --text-muted: #cbd5e1;
-  --text-dim: #94a3b8;
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --text-muted: #a3b3c6;
+  --text-dim: #8b9bb4;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
 
   /* Elevations & Shadows */
@@ -117,9 +117,9 @@ if (typeof LightweightCharts === "undefined") {
   --glow-green: 0 0 22px -2px rgba(16, 185, 129, 0.35);
 
   /* Border Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
   --radius-pill: 9999px;
 
   /* Transitions */
@@ -190,7 +190,7 @@ body {
    GLOBAL LIVE TICKER BAR
    ------------------------------------------------------------------------- */
 .global-ticker-bar {
-  background: rgba(11, 18, 34, 0.88);
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   padding: 7px 0;
   overflow: hidden;
@@ -201,6 +201,7 @@ body {
   z-index: 50;
   font-size: 11.5px;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .ticker-track {
   display: inline-flex;
@@ -235,114 +236,18 @@ body {
 }
 
 /* -------------------------------------------------------------------------
-   TOP NAVBAR
-   ------------------------------------------------------------------------- */
-.site-header {
-  position: sticky;
-  top: 0;
-  z-index: 999;
-  background: rgba(8, 14, 28, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background 0.25s ease, border-color 0.25s ease;
-}
-.nav-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 68px;
-  gap: 16px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: var(--text-main);
-}
-.brand-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0ea5e9, #10b981);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 16px;
-  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.4);
-}
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.nav-links a {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  transition: var(--transition-fast);
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 11px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  text-decoration: none;
-}
-.nav-links a:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.05);
-}
-.nav-links a.active {
-  color: var(--accent-green) !important;
-  font-weight: 700;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
-}
-.nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.theme-toggle-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-.theme-toggle-btn:hover {
-  color: var(--accent-blue);
-  border-color: var(--border-card-hover);
-  transform: rotate(15deg);
-}
-
-/* -------------------------------------------------------------------------
    PAPER HERO SECTION
    ------------------------------------------------------------------------- */
 .paper-dashboard {
-  width: min(100% - 32px, 1360px);
-  max-width: 1360px;
+  width: min(100% - 32px, 1380px);
+  max-width: 1380px;
   margin: 0 auto;
+  padding-top: 4px;
   position: relative;
   z-index: 1;
 }
 .paper-hero {
-  padding: clamp(26px, 3.2vw, 40px) 0 20px;
+  padding: 16px 0 18px;
   border-bottom: 1px solid var(--border-subtle);
   position: relative;
 }
@@ -350,7 +255,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 28px;
+  gap: 24px;
 }
 .hero-title-group {
   flex: 1;
@@ -360,20 +265,19 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--accent-blue);
   background: rgba(56, 189, 248, 0.08);
   border: 1px solid rgba(56, 189, 248, 0.32);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.12);
-  padding: 5px 14px;
+  padding: 4px 12px;
   border-radius: var(--radius-pill);
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .hero-main-title {
-  font-size: clamp(1.85rem, 3.2vw, 2.65rem);
+  font-size: clamp(1.7rem, 2.8vw, 2.35rem);
   font-weight: 900;
   letter-spacing: -0.035em;
   background: linear-gradient(135deg, #ffffff 15%, #cbd5e1 55%, #38bdf8 100%);
@@ -381,37 +285,36 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1.15;
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
 }
 .hero-subtitle {
   color: var(--text-muted);
-  font-size: 0.96rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.55;
   margin: 0;
-  max-width: 660px;
+  max-width: 640px;
 }
 
 /* Hero Status HUD Card */
 .hero-status-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   background: var(--bg-card-gradient);
   border: 1px solid var(--border-card);
-  border-top: 2px solid var(--accent-blue);
   border-radius: var(--radius-lg);
-  padding: 18px 22px;
+  padding: 14px 18px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  min-width: min(340px, 38%);
+  min-width: min(330px, 36%);
   flex-shrink: 0;
-  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .hero-status-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: var(--border-card-hover);
-  box-shadow: var(--shadow-hover), var(--glow-blue);
+  box-shadow: var(--shadow-hover);
 }
 .hero-status-card-top {
   display: flex;
@@ -590,53 +493,64 @@ body {
    ACTIVE TRADER PROFILE HUD BAR
    ------------------------------------------------------------------------- */
 .profile-hud-bar {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(15, 23, 42, 0.92) 65%);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1) 0%, rgba(15, 23, 42, 0.9) 65%);
+  border: 1px solid rgba(56, 189, 248, 0.26);
   border-radius: var(--radius-lg);
-  padding: 16px 22px;
-  margin: 22px 0 26px;
+  padding: 13px 18px;
+  margin: 16px 0 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-wrap: nowrap;
+  gap: 14px;
   box-shadow: var(--shadow-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
+[data-theme="light"] .profile-hud-bar {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, #ffffff 70%);
+  border-color: rgba(2, 132, 199, 0.22);
+}
+[data-theme="light"] .hero-main-title {
+  background: linear-gradient(135deg, #0f172a 20%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .profile-hud-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
+  flex: 1 1 auto;
   min-width: 0;
 }
 .profile-badge-pill {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 .profile-avatar-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #0ea5e9, #6366f1);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 21px;
+  font-size: 18px;
   color: #fff;
-  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 .profile-meta-text {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 .profile-hud-title {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -645,19 +559,19 @@ body {
 .profile-selector-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .profile-dropdown {
   background: var(--bg-surface);
   border: 1px solid var(--border-card-hover);
   color: var(--text-main);
   font-weight: 800;
-  font-size: 14px;
-  padding: 8px 16px;
+  font-size: 13px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   outline: none;
   cursor: pointer;
-  max-width: min(430px, 55vw);
+  max-width: min(260px, 46vw);
   text-overflow: ellipsis;
   transition: var(--transition-fast);
 }
@@ -668,17 +582,17 @@ body {
 .profile-tags-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 .prof-tag {
-  padding: 5px 12px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 .prof-tag-inst {
   background: var(--accent-purple-dim);
@@ -698,9 +612,21 @@ body {
 .profile-hud-right {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
   min-width: 0;
+}
+@media (max-width: 1220px) {
+  .profile-hud-bar {
+    flex-wrap: wrap;
+  }
+  .profile-hud-right {
+    flex-wrap: wrap;
+    width: 100%;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-subtle);
+  }
 }
 .btn-outline-cyan {
   background: var(--accent-blue-dim);
@@ -769,29 +695,12 @@ body {
   -webkit-backdrop-filter: blur(14px);
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease, box-shadow 0.22s ease;
 }
-.acc-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, rgba(148, 163, 184, 0.5), transparent);
-  opacity: 0.9;
-}
-.acc-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent-blue), transparent); }
-.acc-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent-gold), transparent); }
-.acc-card:nth-child(4)::before { background: linear-gradient(90deg, var(--accent-green), transparent); }
-.acc-card:nth-child(5)::before { background: linear-gradient(90deg, #06b6d4, transparent); }
-.acc-card:nth-child(6)::before { background: linear-gradient(90deg, var(--accent-gold), transparent); }
-.acc-card:nth-child(7)::before { background: linear-gradient(90deg, var(--accent-green), var(--accent-blue), var(--accent-gold)); }
-
 .acc-card:nth-child(2) {
-  border-color: rgba(var(--accent-blue-rgb), 0.38);
-  background: linear-gradient(145deg, rgba(var(--accent-blue-rgb), 0.1), rgba(15, 23, 42, 0.85) 72%);
+  border-color: rgba(var(--accent-blue-rgb), 0.35);
+  background: var(--bg-card-gradient);
 }
 .acc-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   border-color: var(--border-card-hover);
   box-shadow: var(--shadow-hover);
 }
@@ -926,7 +835,7 @@ body {
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.18);
 }
 .cfg-block {
-  background: rgba(11, 18, 35, 0.65);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -1039,7 +948,7 @@ body {
 .input-with-symbol input, .custom-select {
   width: 100%;
   padding: 10px 12px 10px 32px;
-  background: rgba(8, 14, 28, 0.7);
+  background: var(--bg-surface);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-sm);
   color: var(--text-main);
@@ -1052,7 +961,7 @@ body {
 .custom-select { padding-left: 12px; font-family: var(--font-sans); }
 .input-with-symbol input:focus, .custom-select:focus {
   border-color: var(--accent-blue);
-  background: rgba(15, 23, 42, 0.95);
+  background: var(--bg-surface-elevated);
   box-shadow: 0 0 0 3px var(--accent-blue-dim);
 }
 #selStyle {
@@ -1075,7 +984,7 @@ body {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  background: rgba(8, 14, 28, 0.7);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1133,7 +1042,7 @@ body {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  background: rgba(8, 14, 28, 0.7);
+  background: var(--bg-surface);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1199,7 +1108,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(8, 14, 28, 0.7);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   font-size: 12px;
@@ -1232,7 +1141,7 @@ body {
 }
 .risk-card {
   padding: 12px 10px;
-  background: rgba(8, 14, 28, 0.7);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -1774,7 +1683,7 @@ button[disabled],
   pointer-events: none;
 }
 .toast-item {
-  background: #0b1124;
+  background: var(--bg-surface-elevated);
   border: 1px solid var(--border-card-hover);
   border-left: 4px solid var(--accent-blue);
   color: var(--text-main);
@@ -2089,43 +1998,55 @@ button[disabled],
   }
 }
 
-/* Dual Mode Trading Tabs (Paper vs Real) */
+/* Dual Mode Trading Tabs (Paper vs Real) + Workspace Section Tabs */
 .trading-dual-mode-wrapper {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  margin: 0 0 24px 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 14px 0 8px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
   width: 100%;
 }
 .trading-dual-mode-bar {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
-  background: rgba(13, 21, 38, 0.88);
+  gap: 6px;
+  padding: 5px;
+  background: var(--bg-surface-elevated);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
   position: relative;
   z-index: 20;
   max-width: 100%;
+}
+.dual-mode-meta-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 600;
 }
 .dual-mode-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 10px 22px;
-  border-radius: 12px;
+  gap: 9px;
+  padding: 9px 18px;
+  border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--text-muted, #94a3b8);
-  font-size: 13.5px;
+  color: var(--text-muted);
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   outline: none;
   white-space: nowrap;
@@ -2134,47 +2055,171 @@ button[disabled],
   pointer-events: none;
 }
 .dual-mode-pill:hover:not(.active) {
-  color: var(--text-main, #f8fafc);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  background: rgba(56, 189, 248, 0.06);
+  border-color: var(--border-subtle);
 }
 .dual-mode-pill.active {
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(14, 165, 233, 0.08)) !important;
-  color: #38bdf8 !important;
+  color: var(--accent-blue) !important;
   border-color: rgba(56, 189, 248, 0.5) !important;
-  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.18);
 }
 .dual-mode-pill.mode-real.active {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.10)) !important;
-  color: #fbbf24 !important;
-  border-color: rgba(245, 158, 11, 0.6) !important;
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: var(--accent-gold) !important;
+  border-color: rgba(245, 158, 11, 0.55) !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.2);
 }
 .badge-mode-virtual {
   font-size: 10.5px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(16, 185, 129, 0.18);
+  background: rgba(16, 185, 129, 0.16);
   border: 1px solid rgba(16, 185, 129, 0.35);
-  color: #34d399;
+  color: var(--accent-green);
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 .badge-mode-real {
   font-size: 10.5px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(245, 158, 11, 0.38);
+  color: var(--accent-gold);
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+}
+
+/* Workspace Section Switcher Tabs */
+.paper-ws-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  margin: 0 0 22px 0;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.paper-ws-tabs-scroll {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+}
+.paper-ws-tabs-scroll::-webkit-scrollbar { display: none; }
+.paper-ws-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+}
+.paper-ws-tab:hover {
+  color: var(--text-main);
+  background: rgba(56, 189, 248, 0.06);
+}
+.paper-ws-tab.active {
+  background: var(--accent-blue-dim);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: var(--accent-blue);
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.14);
+}
+.paper-ws-tab .ws-count-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+.paper-ws-tab.active .ws-count-pill {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.45);
+  color: var(--accent-blue);
+}
+.ws-tab-hidden {
+  display: none !important;
+}
+
+/* Segmented Leaderboard Filters */
+.lb-seg-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+}
+.lb-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+.lb-seg-btn:hover {
+  color: var(--text-main);
+}
+.lb-seg-btn.active {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  font-weight: 800;
+}
+.lb-seg-btn.active-green {
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  font-weight: 800;
+}
+
+[data-theme="light"] .trading-dual-mode-bar,
+[data-theme="light"] .paper-ws-tabs-bar,
+[data-theme="light"] .lb-seg-group {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.12);
+}
+[data-theme="light"] .dual-mode-pill.active {
+  background: rgba(2, 132, 199, 0.1) !important;
+  color: #0284c7 !important;
+}
+[data-theme="light"] .dual-mode-pill.mode-real.active {
+  background: rgba(217, 119, 6, 0.1) !important;
+  color: #b45309 !important;
 }
 .live-dot-pulse {
   width: 6px;
@@ -2203,8 +2248,8 @@ button[disabled],
 .broker-filter-btn {
   padding: 6px 14px;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-card);
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 700;
@@ -2212,8 +2257,8 @@ button[disabled],
   transition: all 0.2s ease;
 }
 .broker-filter-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+  background: var(--bg-surface-elevated);
 }
 .broker-filter-btn.active {
   background: rgba(245, 158, 11, 0.18);
@@ -2221,9 +2266,13 @@ button[disabled],
   color: #fbbf24;
 }
 
+@media (max-width: 900px) {
+  .dual-mode-meta-hint { display: none; }
+}
 @media (max-width: 768px) {
   .trading-dual-mode-wrapper {
-    margin-bottom: 18px;
+    margin: 10px 0 6px;
+    padding-bottom: 10px;
   }
   .trading-dual-mode-bar {
     display: grid;
@@ -2241,6 +2290,18 @@ button[disabled],
   .badge-mode-virtual, .badge-mode-real {
     font-size: 9px;
     padding: 2px 6px;
+  }
+  .paper-ws-tabs-bar {
+    padding: 5px;
+    gap: 6px;
+  }
+  .paper-ws-tab {
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+  .lb-seg-group {
+    max-width: 100%;
+    overflow-x: auto;
   }
 }
 @media (max-width: 480px) {
@@ -2297,7 +2358,7 @@ button[disabled],
 </div>
 
 <!-- Clean Site Header -->
-<header class="site-header">
+<header class="site-header" id="mainHeader">
   <div class="container nav-wrap">
     <a href="index.html" class="brand" title="FinGroww Home">
       <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
@@ -2312,62 +2373,64 @@ button[disabled],
 
     <ul class="nav-links">
       <li><a href="index.html"><i class="fa-solid fa-house" style="font-size:11px;"></i> Home</a></li>
-      <li>
-        <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading">
-          <i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper
-          <span style="background:var(--accent-green-dim);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);border-radius:var(--radius-pill);font-size:9.5px;padding:1px 6px;margin-left:2px;">₹1L FREE</span>
-        </a>
-      </li>
-      <li>
-        <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;" title="Today's 15m Options Radar">
-          <i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options
-        </a>
-      </li>
-      <li>
-        <a href="backtest.html" style="color:var(--accent-blue);font-weight:800;" title="5-Year Backtest Engine">
-          <i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest
-        </a>
-      </li>
-      <li><a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800;" title="Options Chain & Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
-      <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
-      <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
+      <li><a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:700;" title="Live NSE Trading Arena"><i class="fa-solid fa-chart-line" style="font-size:11px;"></i> Live Arena</a></li>
+      <li><a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800;" title="Free AI Paper Trading"><i class="fa-solid fa-robot" style="font-size:11px;"></i> AI Paper <span class="nav-pill-free">₹1L FREE</span></a></li>
+      <li><a href="today-options.html" style="color:var(--accent-gold);font-weight:700;" title="Today's 15m Options Radar"><i class="fa-solid fa-bolt" style="font-size:11px;"></i> Today's Options</a></li>
+      <!-- <li><a href="backtest.html" title="5-Year Backtest Engine"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;"></i> 5Y Backtest</a></li> -->
+      <li><a href="options.html" title="Options Chain &amp; Greeks"><i class="fa-solid fa-layer-group" style="font-size:11px;"></i> Options Chain</a></li>
+      <li><a href="trades.html" title="Stock Radar Scanner"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar</a></li>
+      <li><a href="pricing.html" title="Subscriptions &amp; Plans"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Plans</a></li>
     </ul>
 
     <div class="nav-actions">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light/Dark Theme">
-        <span class="theme-icon">☀️</span>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Light/Dark Theme" title="Switch Light/Dark Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free Paper Trading">
-        <i class="fa-solid fa-robot"></i>
-        <span>Start AI Paper (Free)</span>
+      <a href="auth.html" class="btn btn-sm btn-outline" id="headerAuthBtn" title="Sign In or Create FinGroww Account">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        <span>Sign In</span>
       </a>
-      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation"><i class="fa-solid fa-bars"></i></button>
+      <a href="ai-auto-paper-trading.html" class="btn btn-launch btn-sm" title="Launch Free AI Paper Trading">
+        <i class="fa-solid fa-robot"></i>
+        <span>Start AI Paper</span>
+      </a>
+      <button type="button" class="mobile-toggle" id="mobileMenuBtn" aria-label="Toggle navigation" aria-expanded="false">
+        <i class="fa-solid fa-bars"></i>
+      </button>
     </div>
   </div>
 </header>
 
 <!-- Mobile Navigation Drawer -->
-<div id="mobileDrawer" class="mobile-drawer">
+<div id="mobileDrawer" class="mobile-drawer" aria-hidden="true">
   <div class="mobile-nav-list">
     <a href="index.html"><i class="fa-solid fa-house"></i> Home</a>
-    <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800"><i class="fa-solid fa-robot"></i> 🤖 AI Auto Paper (₹1L Free)</a>
-    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800"><i class="fa-solid fa-bolt"></i> 🔥 Today's Options Radar</a>
-    <a href="backtest.html" style="color:var(--accent-blue);font-weight:800"><i class="fa-solid fa-clock-rotate-left"></i> 📊 5Y Strategy Backtest</a>
-    <a href="options.html" style="color:var(--accent-purple,#c084fc);font-weight:800"><i class="fa-solid fa-layer-group"></i> 🎯 Options Chain & Greeks</a>
+    <a href="fingroww_trading_intelligence_NSE.html" style="color:var(--accent-blue);font-weight:800;"><i class="fa-solid fa-chart-line"></i> Live NSE Trading Arena</a>
+    <a href="ai-auto-paper-trading.html" class="active" style="color:var(--accent-green);font-weight:800;"><i class="fa-solid fa-robot"></i> AI Auto Paper (₹1L Free)</a>
+    <a href="today-options.html" style="color:var(--accent-gold);font-weight:800;"><i class="fa-solid fa-bolt"></i> Today's Options Radar</a>
+    <!-- <a href="backtest.html"><i class="fa-solid fa-clock-rotate-left"></i> 5Y Strategy Backtest</a> -->
+    <a href="options.html"><i class="fa-solid fa-layer-group"></i> Options Chain &amp; Greeks</a>
     <a href="trades.html"><i class="fa-solid fa-crosshairs"></i> Stock Radar (500+ Scanned)</a>
-    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions</a>
-    <a href="about.html"><i class="fa-solid fa-compass"></i> About Us</a>
+    <a href="ai-agents.html"><i class="fa-solid fa-network-wired"></i> 4-Agent Algo Swarm</a>
+    <a href="accuracy.html"><i class="fa-solid fa-bullseye"></i> Verified Accuracy &amp; Audit</a>
+    <a href="dashboard.html"><i class="fa-solid fa-gauge-high"></i> Trader Dashboard</a>
+    <a href="journal.html"><i class="fa-solid fa-book-open"></i> Journal &amp; AI Coach</a>
+    <a href="pricing.html"><i class="fa-solid fa-gem"></i> Subscriptions &amp; Plans</a>
+    <a href="about.html"><i class="fa-solid fa-compass"></i> About FinGroww</a>
     <a href="contact.html"><i class="fa-solid fa-headset"></i> Contact Support</a>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);">
-      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Switch Theme">
-        <span class="theme-icon">☀️</span>
+    <a href="disclaimer.html"><i class="fa-solid fa-file-contract"></i> Regulatory Compliance</a>
+    <div class="mobile-drawer-actions">
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Switch Theme" title="Switch Theme">
+        <span class="theme-icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
       </button>
-      <a href="ai-auto-paper-trading.html" class="btn btn-launch" style="flex:1;text-align:center;">🤖 Start Free Paper Trade</a>
+      <a href="auth.html" class="btn btn-sm btn-outline mobile-drawer-auth" id="drawerAuthBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>
+      </a>
+      <a href="ai-auto-paper-trading.html" class="btn btn-sm btn-launch mobile-drawer-cta">
+        <i class="fa-solid fa-robot"></i> Launch Paper Trade
+      </a>
     </div>
   </div>
-</div>
-</div>
 </div>
 
 <main class="container paper-dashboard">
@@ -2394,13 +2457,19 @@ button[disabled],
       <button type="button" id="tabModePaper" class="dual-mode-pill active" onclick="switchTradingMode('paper')" role="tab" aria-selected="true" title="Risk-free virtual paper trading with ₹1,00,000 cash">
         <i class="fa-solid fa-scroll" style="color:var(--accent-blue);"></i>
         <span>Paper Trading</span>
-        <span class="badge-mode-virtual"><i class="fa-solid fa-wallet"></i> <span class="mode-pill-long">VIRTUAL </span>₹1,00,000</span>
+        <span class="badge-mode-virtual"><i class="fa-solid fa-wallet"></i> <span class="mode-pill-long">VIRTUAL </span>₹1L</span>
       </button>
       <button type="button" id="tabModeReal" class="dual-mode-pill mode-real" onclick="switchTradingMode('real')" role="tab" aria-selected="false" title="Real live money trading with all Indian Brokers">
         <i class="fa-solid fa-bolt-lightning" style="color:var(--accent-gold);"></i>
         <span>Real Live Trading</span>
-        <span class="badge-mode-real"><span class="live-dot-pulse"></span> <span class="mode-pill-long">ALL </span>14+ BROKERS</span>
+        <span class="badge-mode-real"><span class="live-dot-pulse"></span> <span class="mode-pill-long">14+ </span>BROKERS</span>
       </button>
+    </div>
+
+    <div class="dual-mode-meta-hint">
+      <span><i class="fa-solid fa-shield-halved" style="color:var(--accent-green);"></i> Isolated Execution</span>
+      <span style="color:var(--border-card);">|</span>
+      <span><i class="fa-solid fa-clock" style="color:var(--accent-blue);"></i> Auto Risk Guardrails Active</span>
     </div>
   </div>
 
@@ -2494,9 +2563,17 @@ button[disabled],
             <select id="selUserProfile" class="profile-dropdown" onchange="onProfileDropdownChange(this.value)">
               <option value="">Loading Active Profile...</option>
             </select>
+            <button type="button" id="btnEditMyNameHud" class="btn btn-sm btn-outline" onclick="openInlineNameEdit()" title="Edit Your Display Name" style="padding:5px 9px;font-size:11.5px;border-radius:8px;display:none;">
+              <i class="fa-solid fa-pen"></i>
+            </button>
             <span id="profileLoadingSpinner" style="display:none;align-items:center;margin-left:8px;color:var(--accent-blue);font-size:14px;" title="Switching profile...">
               <i class="fa-solid fa-spinner fa-spin"></i>
             </span>
+          </div>
+          <div id="inlineNameEditRow" style="display:none;align-items:center;gap:6px;margin-top:6px;">
+            <input type="text" id="inpInlineMyName" placeholder="Your name" minlength="2" maxlength="100" style="padding:5px 10px;font-size:12px;border-radius:6px;background:var(--bg-input);border:1px solid var(--border-card);color:var(--text-main);width:170px;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveInlineMyName()" style="padding:5px 10px;font-size:11px;">Save</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="closeInlineNameEdit()" style="padding:5px 8px;font-size:11px;"><i class="fa-solid fa-xmark"></i></button>
           </div>
         </div>
       </div>
@@ -2513,15 +2590,15 @@ button[disabled],
       <button type="button" class="btn btn-sm btn-primary" onclick="openManualOrderModal()" style="background:linear-gradient(135deg, #10b981, #059669);border:none;font-weight:700;" title="Execute manual option trade with custom strike & mandatory SL">
         <i class="fa-solid fa-hand-holding-dollar"></i> Manual Trade
       </button>
-      <button type="button" class="btn btn-sm btn-outline-cyan" onclick="openCreateProfileModal()" title="Create New Trader Profile">
+      <button type="button" id="btnNewPaperProfile" class="btn btn-sm btn-outline-cyan" onclick="openCreateProfileModal()" title="Create New Trader Profile">
         <i class="fa-solid fa-user-plus"></i> New Profile
       </button>
-      <a href="#leaderboardSection" class="btn btn-sm btn-gradient-gold" title="View Trader Profit Rankings">
-        <i class="fa-solid fa-trophy"></i> Trader Leaderboard
-      </a>
+      <button type="button" class="btn btn-sm btn-gradient-gold" onclick="switchPaperWorkspaceTab('leaderboard', null, true)" title="View Trader Profit Rankings">
+        <i class="fa-solid fa-trophy"></i> Leaderboard
+      </button>
       <div class="db-sync-indicator" title="Paper trading data is saved to the configured database">
         <span class="db-dot"></span>
-        <span>Database Persistence</span>
+        <span>DB Sync</span>
       </div>
     </div>
   </div>
@@ -2583,8 +2660,39 @@ button[disabled],
     </div>
   </section>
 
+  <!-- Workspace Section Tabs Bar (Clean Navigation across Paper Modules) -->
+  <nav class="paper-ws-tabs-bar" id="paperWorkspaceTabs" aria-label="Paper Trading Workspace Tabs">
+    <div class="paper-ws-tabs-scroll" role="tablist">
+      <button type="button" class="paper-ws-tab active" data-ws-tab="desk" onclick="switchPaperWorkspaceTab('desk', this)">
+        <i class="fa-solid fa-sliders"></i>
+        <span>Trading Desk</span>
+      </button>
+      <button type="button" class="paper-ws-tab" data-ws-tab="positions" onclick="switchPaperWorkspaceTab('positions', this)">
+        <i class="fa-solid fa-crosshairs" style="color:var(--accent-green);"></i>
+        <span>Open Positions</span>
+        <span class="ws-count-pill" id="tabOpenPosBadge">0</span>
+      </button>
+      <button type="button" class="paper-ws-tab" data-ws-tab="analytics" onclick="switchPaperWorkspaceTab('analytics', this)">
+        <i class="fa-solid fa-chart-pie" style="color:var(--accent-gold);"></i>
+        <span>Performance &amp; Charts</span>
+      </button>
+      <button type="button" class="paper-ws-tab" data-ws-tab="history" onclick="switchPaperWorkspaceTab('history', this)">
+        <i class="fa-solid fa-list-check" style="color:var(--accent-blue);"></i>
+        <span>Trade History</span>
+      </button>
+      <button type="button" class="paper-ws-tab" data-ws-tab="leaderboard" onclick="switchPaperWorkspaceTab('leaderboard', this)">
+        <i class="fa-solid fa-trophy" style="color:var(--accent-gold);"></i>
+        <span>Leaderboard</span>
+      </button>
+    </div>
+    <button type="button" class="paper-ws-tab" data-ws-tab="all" onclick="switchPaperWorkspaceTab('all', this)" title="Show all workspace sections together">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>All Views</span>
+    </button>
+  </nav>
+
   <!-- 2. Workspace Grid: Config & Controls (Left) vs AI Decision Stream (Right) -->
-  <section class="workspace-grid">
+  <section class="workspace-grid" id="secWorkspaceDesk">
 
     <!-- Configuration & Control Panel (Redesigned Modular Command Center) -->
     <div class="panel-card">
@@ -2744,8 +2852,8 @@ button[disabled],
             <div class="form-group">
               <label class="form-label">Trading Style</label>
               <select id="selStyle" class="custom-select" onchange="applyConfig()">
-                <option value="HIGH_WINRATE" selected>🎯 80%+ Win-Rate Smart Money Pullback & Breakeven</option>
-                <option value="INTRADAY">Intraday Momentum & Breakout</option>
+                <option value="HIGH_WINRATE" selected>80%+ Win-Rate Smart Money Pullback &amp; Breakeven</option>
+                <option value="INTRADAY">Intraday Momentum &amp; Breakout</option>
                 <option value="SCALPING">High-Frequency Scalping (1-5m)</option>
                 <option value="SWING">Swing Trading (Multi-Day Breakouts)</option>
                 <option value="POSITIONAL">Positional Trend Following (Weeks/Months)</option>
@@ -2760,8 +2868,8 @@ button[disabled],
             <div class="form-group">
               <label class="form-label">Holding Duration</label>
               <select id="selDuration" class="custom-select" onchange="toggleCustomDuration(this.value)">
-                <optgroup label="⚡ Intraday & Scalping (Minutes / Hours)">
-                  <option value="0.5">30 Seconds (⚡ Fast Demo - Auto Exit Test)</option>
+                <optgroup label="Intraday &amp; Scalping (Minutes / Hours)">
+                  <option value="0.5">30 Seconds (Fast Demo - Auto Exit Test)</option>
                   <option value="1">1 Minute (Quick Test)</option>
                   <option value="5">5 Minutes</option>
                   <option value="15">15 Minutes (Standard Intraday)</option>
@@ -2769,18 +2877,18 @@ button[disabled],
                   <option value="60">1 Hour (Session Trend)</option>
                   <option value="240">4 Hours (Half Day)</option>
                 </optgroup>
-                <optgroup label="📅 Swing Trading (Days)">
+                <optgroup label="Swing Trading (Days)">
                   <option value="1440" selected>1 Day (EOD Carryforward)</option>
                   <option value="2880">2 Days (Short Swing)</option>
                   <option value="4320">3 Days</option>
                   <option value="7200">5 Days (1 Trading Week)</option>
                 </optgroup>
-                <optgroup label="📆 Positional Trading (Weeks)">
+                <optgroup label="Positional Trading (Weeks)">
                   <option value="10080">1 Week (7 Days)</option>
                   <option value="20160">2 Weeks (14 Days)</option>
                   <option value="30240">3 Weeks (21 Days)</option>
                 </optgroup>
-                <optgroup label="🗓️ Medium & Long-Term (Months / Years)">
+                <optgroup label="Medium &amp; Long-Term (Months / Years)">
                   <option value="43200">1 Month (30 Days)</option>
                   <option value="86400">2 Months (60 Days)</option>
                   <option value="129600">3 Months (Quarterly Swing)</option>
@@ -2788,7 +2896,7 @@ button[disabled],
                   <option value="518400">1 Year (365 Days Long-Term)</option>
                   <option value="-1">Till Target or SL Hit (No Time Limit / Open)</option>
                 </optgroup>
-                <optgroup label="⚙️ Custom Duration">
+                <optgroup label="Custom Duration">
                   <option value="custom">Custom Duration (Seconds / Minutes / Hours / Days / Weeks / Months)...</option>
                 </optgroup>
               </select>
@@ -3005,7 +3113,7 @@ button[disabled],
   </section>
 
   <!-- 3. Active Open Paper Trades Section -->
-  <section class="panel-card" style="margin-bottom:35px;">
+  <section class="panel-card" id="secActivePositions" style="margin-bottom:35px;">
     <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div class="panel-title">
         <i class="fa-solid fa-crosshairs" style="color:var(--accent-green);"></i>
@@ -3058,7 +3166,7 @@ button[disabled],
   </section>
 
   <!-- 4. Performance & Accuracy Analytics Section -->
-  <section class="panel-card" style="margin-bottom:35px;">
+  <section class="panel-card" id="secPerformanceAnalytics" style="margin-bottom:35px;">
     <div class="panel-header">
       <div class="panel-title">
         <i class="fa-solid fa-bullseye" style="color:var(--accent-gold);"></i>
@@ -3124,7 +3232,7 @@ button[disabled],
   </section>
 
   <!-- 5. Completed Trade History & Audit Log -->
-  <section class="panel-card" style="margin-bottom:60px;">
+  <section class="panel-card" id="secTradeHistory" style="margin-bottom:35px;">
     <div class="panel-header">
       <div class="panel-title">
         <i class="fa-solid fa-list-check" style="color:var(--accent-blue);"></i>
@@ -3218,30 +3326,30 @@ button[disabled],
       </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <!-- 3-Way Execution Mode Filter: Mix, Only AI Auto, Manual Only -->
-        <div style="display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;padding:3px;gap:3px;" title="Filter leaderboard by trade execution type">
-          <button type="button" id="btnLbModeMix" class="btn btn-sm" onclick="setLeaderboardMode('mix')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(56,189,248,0.2);color:var(--accent-blue);font-weight:700;border:none;cursor:pointer;">
-            <i class="fa-solid fa-layer-group" style="margin-right:4px;"></i>Mix (AI + Manual)
+        <div class="lb-seg-group" title="Filter leaderboard by trade execution type">
+          <button type="button" id="btnLbModeMix" class="lb-seg-btn active" onclick="setLeaderboardMode('mix')">
+            <i class="fa-solid fa-layer-group"></i> Mix (AI + Manual)
           </button>
-          <button type="button" id="btnLbModeAi" class="btn btn-sm" onclick="setLeaderboardMode('ai_only')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.85;cursor:pointer;">
-            <i class="fa-solid fa-robot" style="margin-right:4px;"></i>Only AI Auto
+          <button type="button" id="btnLbModeAi" class="lb-seg-btn" onclick="setLeaderboardMode('ai_only')">
+            <i class="fa-solid fa-robot"></i> Only AI Auto
           </button>
-          <button type="button" id="btnLbModeManual" class="btn btn-sm" onclick="setLeaderboardMode('manual_only')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.85;cursor:pointer;">
-            <i class="fa-solid fa-hand-holding-dollar" style="margin-right:4px;"></i>Manual Only
+          <button type="button" id="btnLbModeManual" class="lb-seg-btn" onclick="setLeaderboardMode('manual_only')">
+            <i class="fa-solid fa-hand-holding-dollar"></i> Manual Only
           </button>
         </div>
 
-        <div style="display:inline-flex;background:var(--bg-surface);border:1px solid var(--border-card);border-radius:8px;padding:3px;gap:3px;">
-          <button type="button" id="btnLbFilterActive" class="btn btn-sm" onclick="setLeaderboardFilter('active')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(16,185,129,0.2);color:var(--accent-green);font-weight:700;border:none;cursor:pointer;">
-            <i class="fa-solid fa-bolt" style="margin-right:4px;"></i>Active Only
+        <div class="lb-seg-group">
+          <button type="button" id="btnLbFilterActive" class="lb-seg-btn active-green" onclick="setLeaderboardFilter('active')">
+            <i class="fa-solid fa-bolt"></i> Active Only
           </button>
-          <button type="button" id="btnLbFilterAll" class="btn btn-sm" onclick="setLeaderboardFilter('all')" style="padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.75;cursor:pointer;">
+          <button type="button" id="btnLbFilterAll" class="lb-seg-btn" onclick="setLeaderboardFilter('all')">
             All Profiles
           </button>
         </div>
         <button type="button" id="btnRefreshLeaderboard" class="btn btn-sm btn-outline" onclick="refreshLeaderboard(this)" title="Refresh Rankings">
           <i class="fa-solid fa-rotate"></i> Refresh Rankings
         </button>
-        <button type="button" class="btn btn-sm btn-primary" onclick="openCreateProfileModal()">
+        <button type="button" id="btnLbCreateProfile" class="btn btn-sm btn-primary" onclick="openCreateProfileModal()">
           <i class="fa-solid fa-user-plus"></i> Create New Profile
         </button>
       </div>
@@ -3251,7 +3359,7 @@ button[disabled],
     <div class="leaderboard-kpi-grid">
       <div class="lead-kpi-card top-performer">
         <div class="lead-kpi-header">
-          <span class="lead-kpi-lbl">🥇 TOP PROFIT PERFORMER</span>
+          <span class="lead-kpi-lbl">TOP PROFIT PERFORMER</span>
           <i class="fa-solid fa-crown" style="color:var(--accent-gold);font-size:16px;"></i>
         </div>
         <div class="lead-kpi-title" id="leadTopPerformerName">Loading...</div>
@@ -3261,7 +3369,7 @@ button[disabled],
 
       <div class="lead-kpi-card">
         <div class="lead-kpi-header">
-          <span class="lead-kpi-lbl">🎯 HIGHEST WIN RATE</span>
+          <span class="lead-kpi-lbl">HIGHEST WIN RATE</span>
           <i class="fa-solid fa-bullseye" style="color:var(--accent-green);font-size:16px;"></i>
         </div>
         <div class="lead-kpi-title" id="leadTopWinRateName">Loading...</div>
@@ -3271,7 +3379,7 @@ button[disabled],
 
       <div class="lead-kpi-card">
         <div class="lead-kpi-header">
-          <span class="lead-kpi-lbl">💼 TOTAL CAPITAL MANAGED</span>
+          <span class="lead-kpi-lbl">TOTAL CAPITAL MANAGED</span>
           <i class="fa-solid fa-vault" style="color:var(--accent-blue);font-size:16px;"></i>
         </div>
         <div class="lead-kpi-val" id="leadTotalCapital">₹0.00</div>
@@ -3280,7 +3388,7 @@ button[disabled],
 
       <div class="lead-kpi-card">
         <div class="lead-kpi-header">
-          <span class="lead-kpi-lbl">⚡ ACTIVE RUNNING ENGINES</span>
+          <span class="lead-kpi-lbl">ACTIVE RUNNING ENGINES</span>
           <i class="fa-solid fa-robot" style="color:var(--accent-purple);font-size:16px;"></i>
         </div>
         <div class="lead-kpi-val" id="leadRunningEnginesCount" style="color:var(--accent-blue);">0</div>
@@ -3394,7 +3502,7 @@ button[disabled],
       <div style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; margin-bottom:24px; max-width:880px; margin-left:auto; margin-right:auto;">
         <div style="position:relative; flex:1; min-width:260px;">
           <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text-dim); font-size:13px;"></i>
-          <input type="text" id="inpSearchBrokers" placeholder="Search broker (Zerodha, Angel, Groww, Kotak, Fyers...)" oninput="filterBrokersList()" style="width:100%; padding:9px 14px 9px 38px; border-radius:24px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:#fff; font-size:13px; outline:none; transition:all 0.2s ease;">
+          <input type="text" id="inpSearchBrokers" placeholder="Search broker (Zerodha, Angel, Groww, Kotak, Fyers...)" oninput="filterBrokersList()" style="width:100%; padding:9px 14px 9px 38px; border-radius:24px; background:var(--bg-surface); border:1px solid var(--border-card); color:var(--text-main); font-size:13px; outline:none; transition:all 0.2s ease;">
         </div>
         <div class="broker-filter-pills" style="margin-bottom:0;">
           <button type="button" class="broker-filter-btn active" data-filter="all" onclick="setBrokerCategoryFilter('all', this)">All (14)</button>
@@ -3413,7 +3521,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(239,68,68,0.18); color:#f87171; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(239,68,68,0.3);">Z</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Zerodha Kite</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Zerodha Kite</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(239,68,68,0.18); color: #f87171; font-weight: 700;">Kite Connect v3</span>
             </div>
@@ -3432,7 +3540,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(16,185,129,0.18); color:#34d399; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(16,185,129,0.3);">A</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Angel One</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Angel One</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(16,185,129,0.18); color: #34d399; font-weight: 700;">SmartAPI</span>
             </div>
@@ -3451,7 +3559,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(245,158,11,0.18); color:#fbbf24; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(245,158,11,0.3);">D</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">DhanHQ</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">DhanHQ</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.18); color: #fbbf24; font-weight: 700;">DhanHQ API v2</span>
             </div>
@@ -3470,7 +3578,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(168,85,247,0.18); color:#c084fc; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(168,85,247,0.3);">U</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Upstox</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Upstox</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(168,85,247,0.18); color: #c084fc; font-weight: 700;">API v2</span>
             </div>
@@ -3489,7 +3597,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(6,182,212,0.18); color:#22d3ee; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(6,182,212,0.3);">G</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Groww</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Groww</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(6,182,212,0.18); color: #22d3ee; font-weight: 700;">Groww API</span>
             </div>
@@ -3508,7 +3616,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(99,102,241,0.18); color:#818cf8; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(99,102,241,0.3);">KN</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Kotak Neo</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Kotak Neo</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(99,102,241,0.18); color: #818cf8; font-weight: 700;">Zero ₹0 Intraday</span>
             </div>
@@ -3527,7 +3635,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(249,115,22,0.18); color:#fb923c; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(249,115,22,0.3);">F</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Fyers</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Fyers</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(249,115,22,0.18); color: #fb923c; font-weight: 700;">API v3</span>
             </div>
@@ -3546,7 +3654,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(132,204,22,0.18); color:#a3e635; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(132,204,22,0.3);">SH</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Shoonya (Finvasia)</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Shoonya (Finvasia)</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(132,204,22,0.18); color: #a3e635; font-weight: 700;">100% Zero ₹0</span>
             </div>
@@ -3565,7 +3673,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(244,63,94,0.18); color:#fb7185; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(244,63,94,0.3);">IC</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">ICICI Direct</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">ICICI Direct</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(244,63,94,0.18); color: #fb7185; font-weight: 700;">Breeze API</span>
             </div>
@@ -3584,7 +3692,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(14,165,233,0.18); color:#38bdf8; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(14,165,233,0.3);">HD</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">HDFC Sky</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">HDFC Sky</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(14,165,233,0.18); color: #38bdf8; font-weight: 700;">Sky Connect</span>
             </div>
@@ -3603,7 +3711,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(59,130,246,0.18); color:#60a5fa; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(59,130,246,0.3);">PM</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Paytm Money</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Paytm Money</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(59,130,246,0.18); color: #60a5fa; font-weight: 700;">PM Open API</span>
             </div>
@@ -3622,7 +3730,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(234,179,8,0.18); color:#facc15; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(234,179,8,0.3);">5P</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">5Paisa</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">5Paisa</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(234,179,8,0.18); color: #facc15; font-weight: 700;">Developer API</span>
             </div>
@@ -3641,7 +3749,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(20,184,166,0.18); color:#2dd4bf; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(20,184,166,0.3);">AB</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Alice Blue</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Alice Blue</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(20,184,166,0.18); color: #2dd4bf; font-weight: 700;">ANT API</span>
             </div>
@@ -3660,7 +3768,7 @@ button[disabled],
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="width:30px; height:30px; border-radius:8px; background:rgba(234,179,8,0.18); color:#fbbf24; display:inline-flex; align-items:center; justify-content:center; font-weight:900; font-size:14px; border:1px solid rgba(234,179,8,0.3);">MO</span>
-                <span style="font-weight: 800; font-size: 15px; color: #fff;">Motilal Oswal</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-main);">Motilal Oswal</span>
               </div>
               <span style="font-size: 10px; padding: 2px 8px; border-radius: 4px; background: rgba(234,179,8,0.18); color: #fbbf24; font-weight: 700;">MO Open API</span>
             </div>
@@ -3690,22 +3798,22 @@ button[disabled],
     <div id="brokerConnectedTerminal" style="display:none; margin-top:24px;">
       <!-- Real Broker Funds & Margins HUD Strip -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
-        <div class="kpi-card" style="border-left: 3px solid #10b981;">
+        <div class="kpi-card">
           <div class="kpi-label">Available Cash Margin</div>
-          <div class="kpi-value" id="lblRealBrokerCash" style="color:#10b981; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-value" id="lblRealBrokerCash" style="color:var(--accent-green); font-family:var(--font-mono);">₹0.00</div>
           <div class="kpi-sub">Ready for live trades</div>
         </div>
-        <div class="kpi-card" style="border-left: 3px solid #f59e0b;">
+        <div class="kpi-card">
           <div class="kpi-label">Used / Allocated Margin</div>
-          <div class="kpi-value" id="lblRealBrokerUsedMargin" style="color:#f59e0b; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-value" id="lblRealBrokerUsedMargin" style="color:var(--accent-gold); font-family:var(--font-mono);">₹0.00</div>
           <div class="kpi-sub">Committed in active orders</div>
         </div>
-        <div class="kpi-card" style="border-left: 3px solid #38bdf8;">
+        <div class="kpi-card">
           <div class="kpi-label">Total Account Balance</div>
-          <div class="kpi-value" id="lblRealBrokerTotalBalance" style="color:#38bdf8; font-family:var(--font-mono);">₹0.00</div>
+          <div class="kpi-value" id="lblRealBrokerTotalBalance" style="color:var(--accent-blue); font-family:var(--font-mono);">₹0.00</div>
           <div class="kpi-sub">Cash + Collateral</div>
         </div>
-        <div class="kpi-card" style="border-left: 3px solid #a855f7;">
+        <div class="kpi-card">
           <div class="kpi-label">Real MTM P&amp;L</div>
           <div class="kpi-value" id="lblRealBrokerPnl" style="color:var(--text-main); font-family:var(--font-mono);">₹0.00</div>
           <div class="kpi-sub" id="lblRealBrokerPositionsCount">0 Open Positions</div>
@@ -3727,8 +3835,8 @@ button[disabled],
           <button type="button" class="btn btn-sm btn-primary" onclick="openManualOrderModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none; font-weight: 700;">
             <i class="fa-solid fa-hand-holding-dollar"></i> Place Real Manual Trade
           </button>
-          <button type="button" class="btn btn-sm btn-outline" onclick="panicSquareOffRealBroker()" style="color: #ef4444; border-color: rgba(239,68,68,0.4); font-weight: 800;" title="Instantly close all open real broker positions">
-            <i class="fa-solid fa-triangle-exclamation"></i> 🚨 Panic Square-Off All
+          <button type="button" class="btn btn-sm btn-outline" onclick="panicSquareOffRealBroker()" style="color: var(--accent-red); border-color: rgba(244,63,94,0.4); font-weight: 800;" title="Instantly close all open real broker positions">
+            <i class="fa-solid fa-triangle-exclamation"></i> Panic Square-Off All
           </button>
           <button type="button" class="btn btn-sm btn-outline" onclick="disconnectBroker()" style="font-size: 11px; padding: 4px 10px;">
             <i class="fa-solid fa-arrow-right-from-bracket"></i> Disconnect
@@ -4232,7 +4340,7 @@ button[disabled],
     </div>
 
     <div class="modal-actions">
-      <a href="backtest.html" class="btn btn-sm btn-outline" style="color:var(--accent-blue);border-color:var(--accent-blue);font-weight:700;"><i class="fa-solid fa-chart-line"></i> Open Full 5-Year Lab</a>
+      <!-- <a href="backtest.html" class="btn btn-sm btn-outline" style="color:var(--accent-blue);border-color:var(--accent-blue);font-weight:700;"><i class="fa-solid fa-chart-line"></i> Open Full 5-Year Lab</a> -->
       <button type="button" class="btn btn-sm btn-outline" onclick="closeModal('modalBacktest')">Close</button>
       <button type="button" id="btnRunBt" class="btn btn-sm btn-primary" onclick="runStrategyBacktest()">
         <i class="fa-solid fa-play"></i> Run Simulation
@@ -4638,58 +4746,62 @@ button[disabled],
 
 <!-- Footer -->
 <!-- Global Master Footer -->
-<footer class="site-footer">
+<footer class="site-footer" id="mainFooter">
   <div class="container">
     <div class="footer-grid">
       <div class="footer-brand">
         <a href="index.html" class="brand" style="margin-bottom:12px;">
           <div class="brand-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
           <div>
-            <div class="brand-name" style="font-size:1.3rem;">Fin<span>Groww</span></div>
+            <div class="brand-name">Fin<span>Groww</span></div>
             <div class="brand-meta">
               <span class="live-feed-dot"></span>
               <span class="brand-badge">Trading Intelligence</span>
             </div>
           </div>
         </a>
-        <p style="margin-top:12px;font-size:13px;color:var(--text-muted);line-height:1.6;max-width:320px;">
-          India's leading zero-risk AI paper trading app and 15m Fibonacci Golden Zone options terminal.
+        <p>
+          India's institutional-grade quantitative AI trading intelligence platform, free risk-isolated paper trading terminal, and multi-agent autonomous algo swarm for NSE stocks and derivatives.
         </p>
       </div>
 
       <div class="footer-col">
-        <h5>Core Tools</h5>
+        <h5>Core Terminals</h5>
         <ul>
+          <li><a href="fingroww_trading_intelligence_NSE.html"><i class="fa-solid fa-chart-line" style="font-size:11px;color:var(--accent-blue);"></i> Live NSE Trading Arena</a></li>
           <li><a href="ai-auto-paper-trading.html"><i class="fa-solid fa-robot" style="font-size:11px;color:var(--accent-green);"></i> AI Paper Terminal (₹1L Free)</a></li>
           <li><a href="today-options.html"><i class="fa-solid fa-bolt" style="font-size:11px;color:var(--accent-gold);"></i> Today's Options (15m Radar)</a></li>
-          <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li>
-          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple,#c084fc);"></i> Options Chain & Greeks</a></li>
+          <!-- <li><a href="backtest.html"><i class="fa-solid fa-clock-rotate-left" style="font-size:11px;color:var(--accent-blue);"></i> 5Y Strategy Backtest</a></li> -->
+          <li><a href="options.html"><i class="fa-solid fa-layer-group" style="font-size:11px;color:var(--accent-purple);"></i> Options Chain &amp; Greeks</a></li>
           <li><a href="trades.html"><i class="fa-solid fa-crosshairs" style="font-size:11px;"></i> Stock Radar (500+ Scanned)</a></li>
         </ul>
       </div>
 
       <div class="footer-col">
-        <h5>Platform & Support</h5>
+        <h5>Platform &amp; Support</h5>
         <ul>
-          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions & Plans</a></li>
+          <li><a href="ai-agents.html"><i class="fa-solid fa-network-wired" style="font-size:11px;color:var(--accent-purple);"></i> 4-Agent Algo Swarm</a></li>
+          <li><a href="accuracy.html"><i class="fa-solid fa-bullseye" style="font-size:11px;color:var(--accent-green);"></i> Verified Accuracy &amp; Audit</a></li>
+          <li><a href="pricing.html"><i class="fa-solid fa-gem" style="font-size:11px;"></i> Subscriptions &amp; Plans</a></li>
           <li><a href="about.html"><i class="fa-solid fa-compass" style="font-size:11px;"></i> About FinGroww</a></li>
           <li><a href="contact.html"><i class="fa-solid fa-headset" style="font-size:11px;color:var(--accent-blue);"></i> Helpline: +91 79841 16859 (Akshay)</a></li>
-          <li><a href="https://wa.me/917984116859" target="_blank"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="https://wa.me/917984116859" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" style="font-size:12px;color:#25d366;"></i> WhatsApp Support</a></li>
+          <li><a href="disclaimer.html"><i class="fa-solid fa-file-contract" style="font-size:11px;"></i> Regulatory Compliance</a></li>
         </ul>
       </div>
     </div>
 
-    <!-- Statutory SEBI Regulatory Disclosure -->
-    <div class="sebi-disclaimer-box" style="margin-top:24px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 18px;font-size:11.5px;color:var(--text-dim);line-height:1.6;">
-      <strong style="color:var(--text-muted);display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&O):</strong>
-      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures & Options (F&O), 9 out of 10 traders incur net financial losses. FinGroww is a quantitative decision-support and algorithmic screening intelligence engine created strictly for educational, analytical, and research purposes. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
+    <div class="sebi-disclaimer-box">
+      <strong style="display:block;margin-bottom:4px;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-gold);margin-right:6px;"></i>Statutory SEBI Regulatory Disclosure on Derivatives (F&amp;O):</strong>
+      Securities and derivatives trading in Indian stock markets involves substantial risk of capital loss. As per SEBI's official study on individual traders in Equity Futures &amp; Options (F&amp;O), 9 out of 10 traders incur net financial losses. FinGroww is an educational, analytical, and quantitative decision-support terminal created strictly for research and simulated practice. We do not provide guaranteed returns, PMS, or SEBI-registered personal financial advisory.
     </div>
 
-    <div class="footer-bottom" style="border-top:1px solid var(--border-subtle);padding-top:18px;margin-top:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text-dim);">
+    <div class="footer-bottom">
       <div>© 2026 FinGroww Technologies Pvt Ltd. All rights reserved. Level 8, Cyber City FinTech Towers, Ahmedabad.</div>
-      <div style="display:flex;gap:14px;">
-        <a href="disclaimer.html">Terms & Compliance</a>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="disclaimer.html">Terms &amp; Compliance</a>
         <a href="contact.html">Support Desk</a>
+        <a href="auth.html">Trader Account</a>
       </div>
     </div>
   </div>
@@ -4707,17 +4819,75 @@ button[disabled],
 // AI AUTO PAPER TRADING CONTROLLER (MULTI-USER & LEADERBOARD SYSTEM)
 // =========================================================================
 
-const __fgLoggedInUser = (() => {
+function getLoggedInUser() {
   try { return JSON.parse(localStorage.getItem("fg_auth_user") || "null"); } catch(_) { return null; }
-})();
+}
+function isAdminCanSwitch() {
+  const u = getLoggedInUser();
+  return Boolean(u && ["super_admin", "admin"].includes((u.role || "").toLowerCase()));
+}
+let __fgLoggedInUser = getLoggedInUser();
 let currentUserName = (__fgLoggedInUser && (__fgLoggedInUser.trading_profile_name || __fgLoggedInUser.full_name || __fgLoggedInUser.username))
   || localStorage.getItem("fingroww_paper_user")
   || "Trader";
+function applyRoleSwitchLockUI() {
+  const allowed = isAdminCanSwitch();
+  const u = getLoggedInUser();
+  ["btnNewPaperProfile", "btnLbCreateProfile"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = allowed ? "" : "none";
+  });
+  const __sel = document.getElementById("selUserProfile");
+  if (__sel) {
+    __sel.disabled = !allowed;
+    __sel.title = allowed ? "Switch active trader profile" : "View Only — Only Super Admin & Admin can switch users";
+  }
+  const __lbl = document.getElementById("lblSessionUser");
+  if (__lbl) __lbl.textContent = (u && u.full_name) || currentUserName;
+  const __editBtn = document.getElementById("btnEditMyNameHud");
+  if (__editBtn) __editBtn.style.display = u ? "inline-flex" : "none";
+}
+function openInlineNameEdit() {
+  const row = document.getElementById("inlineNameEditRow");
+  const inp = document.getElementById("inpInlineMyName");
+  const u = getLoggedInUser();
+  if (inp) inp.value = (u && u.full_name) || currentUserName || "";
+  if (row) row.style.display = "flex";
+  if (inp) inp.focus();
+}
+function closeInlineNameEdit() {
+  const row = document.getElementById("inlineNameEditRow");
+  if (row) row.style.display = "none";
+}
+async function saveInlineMyName() {
+  const inp = document.getElementById("inpInlineMyName");
+  const nextName = (inp ? inp.value : "").trim();
+  if (nextName.length < 2) {
+    showToast("Please enter at least 2 characters.", "error");
+    return;
+  }
+  try {
+    const res = await fetchPaperApi("/api/v2/users/me", {
+      method: "PUT",
+      body: JSON.stringify({ full_name: nextName }),
+    });
+    if (res && res.user) {
+      localStorage.setItem("fg_auth_user", JSON.stringify(res.user));
+      __fgLoggedInUser = res.user;
+      applyRoleSwitchLockUI();
+      if (typeof window.syncFinGrowwAuthHeader === "function") window.syncFinGrowwAuthHeader();
+      loadProfilesList();
+      closeInlineNameEdit();
+      showToast("Name updated successfully!", "success");
+    }
+  } catch (err) {
+    showToast("Could not update name.", "error");
+  }
+}
 if (currentUserName) {
   localStorage.setItem("fingroww_paper_user", currentUserName);
-  const __lbl = document.getElementById("lblSessionUser");
-  if (__lbl) __lbl.textContent = currentUserName;
 }
+applyRoleSwitchLockUI();
 let sessionState = null;
 let pollTimer = null;
 let currentHistoryFilter = "ALL";
@@ -5676,12 +5846,9 @@ function setLeaderboardMode(mode) {
   const btnAi = document.getElementById("btnLbModeAi");
   const btnMan = document.getElementById("btnLbModeManual");
 
-  const activeStyle = "padding:4px 10px;font-size:11.5px;border-radius:4px;background:rgba(56,189,248,0.2);color:var(--accent-blue);font-weight:700;border:none;cursor:pointer;";
-  const inactiveStyle = "padding:4px 10px;font-size:11.5px;border-radius:4px;background:transparent;color:var(--text-muted);font-weight:500;border:none;opacity:0.85;cursor:pointer;";
-
-  if (btnMix) btnMix.style.cssText = currentLbMode === "mix" ? activeStyle : inactiveStyle;
-  if (btnAi) btnAi.style.cssText = currentLbMode === "ai_only" ? activeStyle : inactiveStyle;
-  if (btnMan) btnMan.style.cssText = currentLbMode === "manual_only" ? activeStyle : inactiveStyle;
+  if (btnMix) btnMix.classList.toggle("active", currentLbMode === "mix");
+  if (btnAi) btnAi.classList.toggle("active", currentLbMode === "ai_only");
+  if (btnMan) btnMan.classList.toggle("active", currentLbMode === "manual_only");
 
   refreshLeaderboard();
 }
@@ -5769,7 +5936,12 @@ async function loadProfilesList() {
 
     const rawList = Array.isArray(data) ? data : (Array.isArray(data.profiles) ? data.profiles : []);
     const current = currentUserName;
-    const profiles = [...rawList];
+    const allowed = isAdminCanSwitch();
+    const u = getLoggedInUser();
+    let profiles = [...rawList];
+    if (!allowed) {
+      profiles = profiles.filter(p => p.user_name === current);
+    }
     if (current && !profiles.some(p => p.user_name === current)) {
       profiles.unshift({ user_name: current, trading_style: "HIGH_WINRATE", instruments: [] });
     }
@@ -5777,15 +5949,23 @@ async function loadProfilesList() {
       const isSel = p.user_name === current ? "selected" : "";
       const styleLabel = p.trading_style || "PORTFOLIO";
       const instShort = (p.instruments || []).map(formatInstrumentLabel).join(", ");
-      return `<option value="${p.user_name}" ${isSel}>${p.user_name} (${styleLabel} • ${instShort || 'All'})</option>`;
+      const displayLabel = (!allowed && u && u.full_name) ? u.full_name : p.user_name;
+      return `<option value="${p.user_name}" ${isSel}>${displayLabel} (${styleLabel} • ${instShort || 'All'})</option>`;
     }).join("");
     if (current) sel.value = current;
+    applyRoleSwitchLockUI();
   } finally {
     isProfilesFetching = false;
   }
 }
 
 async function onProfileDropdownChange(newVal) {
+  if (!isAdminCanSwitch()) {
+    const sel = document.getElementById("selUserProfile");
+    if (sel) sel.value = currentUserName;
+    showToast("View Only: Only Super Admin & Admin can switch users.", "warning");
+    return;
+  }
   if (newVal && newVal !== currentUserName) {
     await switchUserProfile(newVal);
   }
@@ -5793,6 +5973,10 @@ async function onProfileDropdownChange(newVal) {
 
 async function switchUserProfile(newUserName, btnEl = null) {
   if (!newUserName) return;
+  if (!isAdminCanSwitch() && newUserName !== currentUserName) {
+    showToast("View Only: Only Super Admin & Admin can switch users.", "warning");
+    return;
+  }
   const sel = document.getElementById("selUserProfile");
   const spinner = document.getElementById("profileLoadingSpinner");
 
@@ -5924,25 +6108,8 @@ function setLeaderboardFilter(mode) {
   const btnActive = document.getElementById("btnLbFilterActive");
   const btnAll = document.getElementById("btnLbFilterAll");
   if (btnActive && btnAll) {
-    if (mode === "active") {
-      btnActive.style.background = "rgba(16, 185, 129, 0.2)";
-      btnActive.style.color = "var(--accent-green, #10b981)";
-      btnActive.style.fontWeight = "700";
-      btnActive.style.opacity = "1";
-      btnAll.style.background = "transparent";
-      btnAll.style.color = "var(--text-muted, #94a3b8)";
-      btnAll.style.fontWeight = "500";
-      btnAll.style.opacity = "0.75";
-    } else {
-      btnAll.style.background = "rgba(255, 255, 255, 0.12)";
-      btnAll.style.color = "var(--text-main, #f8fafc)";
-      btnAll.style.fontWeight = "700";
-      btnAll.style.opacity = "1";
-      btnActive.style.background = "transparent";
-      btnActive.style.color = "var(--text-muted, #94a3b8)";
-      btnActive.style.fontWeight = "500";
-      btnActive.style.opacity = "0.75";
-    }
+    btnActive.classList.toggle("active-green", mode === "active");
+    btnAll.classList.toggle("active", mode !== "active");
   }
   refreshLeaderboard();
 }
@@ -6130,9 +6297,11 @@ function renderLeaderboardCurrentPage() {
       <td style="text-align:center;">
         ${isCurrent ? 
           '<span style="font-size:11px;color:var(--accent-blue);font-weight:700;">Active</span>' : 
-          `<button type="button" class="btn btn-sm btn-outline" onclick="switchUserProfile('${p.user_name}', this)" style="padding:3px 10px;font-size:11px;">
-            <i class="fa-solid fa-arrow-right-arrow-left"></i> Switch
-          </button>`
+          (isAdminCanSwitch()
+            ? `<button type="button" class="btn btn-sm btn-outline" onclick="switchUserProfile('${p.user_name}', this)" style="padding:3px 10px;font-size:11px;">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> Switch
+              </button>`
+            : '<span style="font-size:11px;color:var(--text-dim);font-weight:600;"><i class="fa-solid fa-eye"></i> View Only</span>')
         }
       </td>
     </tr>`;
@@ -6373,8 +6542,11 @@ function renderExpiryBadgeHtml(item, marginLeft = "5px") {
 
 let lastRenderedPositionsHash = "";
 function renderActivePositions(positions) {
+  const posLen = (positions || []).length;
   const badge = document.getElementById("activePositionsBadge");
-  if (badge) badge.textContent = `${(positions || []).length} Open`;
+  if (badge) badge.textContent = `${posLen} Open`;
+  const tabBadge = document.getElementById("tabOpenPosBadge");
+  if (tabBadge) tabBadge.textContent = String(posLen);
   const tbody = document.getElementById("activeTradesBody");
   if (!tbody) return;
 
@@ -7243,7 +7415,9 @@ function initSSEConnection() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(err => {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      if (reg && reg.update) reg.update();
+    }).catch(err => {
       console.debug('Service Worker register error:', err);
     });
   });
@@ -7430,7 +7604,50 @@ async function runStrategyBacktest() {
 // DUAL MODE TRADING CONTROLLER: PAPER SIMULATION VS REAL LIVE BROKER
 // =========================================================================
 let currentTradingMode = localStorage.getItem("fingroww_trading_mode") || "paper";
+let currentPaperWsTab = localStorage.getItem("fingroww_paper_ws_tab") || "desk";
 let activeBrokerData = null;
+
+function switchPaperWorkspaceTab(tabKey, btnEl, scrollToTabs) {
+  const validTabs = ["desk", "positions", "analytics", "history", "leaderboard", "all"];
+  const target = validTabs.includes(tabKey) ? tabKey : "desk";
+  currentPaperWsTab = target;
+  try { localStorage.setItem("fingroww_paper_ws_tab", target); } catch (_) {}
+
+  document.querySelectorAll("#paperWorkspaceTabs .paper-ws-tab").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-ws-tab") === target);
+  });
+
+  const secDesk = document.getElementById("secWorkspaceDesk");
+  const secPos = document.getElementById("secActivePositions");
+  const secAna = document.getElementById("secPerformanceAnalytics");
+  const secHist = document.getElementById("secTradeHistory");
+  const secLb = document.getElementById("leaderboardSection");
+
+  const map = {
+    desk: [secDesk, secPos],
+    positions: [secPos],
+    analytics: [secAna],
+    history: [secHist],
+    leaderboard: [secLb],
+    all: [secDesk, secPos, secAna, secHist, secLb],
+  };
+  const visibleSet = new Set(map[target] || [secDesk, secPos]);
+  [secDesk, secPos, secAna, secHist, secLb].forEach(el => {
+    if (!el) return;
+    el.classList.toggle("ws-tab-hidden", !visibleSet.has(el));
+  });
+
+  if (target === "analytics" || target === "all") {
+    setTimeout(() => {
+      try { if (typeof stratChart !== "undefined" && stratChart) stratChart.resize(); } catch (_) {}
+      try { if (typeof instChart !== "undefined" && instChart) instChart.resize(); } catch (_) {}
+    }, 60);
+  }
+  if (scrollToTabs) {
+    const navEl = document.getElementById("paperWorkspaceTabs");
+    if (navEl) navEl.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
 
 function switchTradingMode(mode) {
   const normMode = String(mode || "paper").toLowerCase().trim();
@@ -7944,7 +8161,15 @@ window.addEventListener("DOMContentLoaded", async () => {
     refreshBrokerStatus();
   }
 
-  // Explicit click listeners for dual-mode navigation tabs
+  // Initialize active Trading Mode & Paper Workspace Section Tabs
+  if (typeof switchTradingMode === "function") {
+    switchTradingMode(currentTradingMode);
+  }
+  if (typeof switchPaperWorkspaceTab === "function") {
+    switchPaperWorkspaceTab(currentPaperWsTab, null, false);
+  }
+
+  // Click listeners for dual-mode navigation tabs
   const tabPaperBtn = document.getElementById("tabModePaper");
   const tabRealBtn = document.getElementById("tabModeReal");
   if (tabPaperBtn) {
@@ -7980,7 +8205,20 @@ window.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // 2. Fetch market status and profiles concurrently
+  // 2. Sync authenticated user role live, fetch market status and profiles concurrently
+  if (localStorage.getItem("fg_access_token")) {
+    fetchPaperApi("/api/v2/users/me").then(meRes => {
+      if (meRes && meRes.user) {
+        localStorage.setItem("fg_auth_user", JSON.stringify(meRes.user));
+        __fgLoggedInUser = meRes.user;
+        applyRoleSwitchLockUI();
+        if (typeof window.syncFinGrowwAuthHeader === "function") window.syncFinGrowwAuthHeader();
+        if (cachedLeaderboardList && cachedLeaderboardList.length > 0) {
+          renderLeaderboardCurrentPage();
+        }
+      }
+    }).catch(() => {});
+  }
   fetchMarketStatus();
   loadProfilesList();
 

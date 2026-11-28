@@ -832,6 +832,16 @@ def paper_list_profiles():
 @paper_bp.post("/api/paper/profiles/create")
 def paper_create_profile():
     """Creates a new user profile with custom name, initial capital, and instrument configuration."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            from backend.services.auth_service import get_user_from_access_token
+            auth_user = get_user_from_access_token(auth_header.split(" ", 1)[1].strip())
+            if auth_user and (auth_user.get("role") or "trader").lower() not in ("admin", "super_admin"):
+                return jsonify({"ok": False, "error": "Only Admin or Super Admin can create or switch extra trading profiles."}), 403
+        except Exception:
+            pass
+
     data = request.get_json(silent=True) or {}
     user_name = (data.get("user_name") or "").strip()
     if not user_name:

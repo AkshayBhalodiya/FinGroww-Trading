@@ -231,6 +231,141 @@ class TestFullPlatformE2EAuthFlow(unittest.TestCase):
         self.assertEqual(self.client.get("/api/paper/session/state", headers=hdr).status_code, 401)
         self.assertEqual(self.client.get("/api/v2/dashboard/overview", headers=hdr).status_code, 401)
 
+    def test_super_admin_user_management_crud_and_sessions(self):
+        # 1. Public registration cannot elevate role even if payload passes role="super_admin"
+        pub_email = f"pub_{uuid.uuid4().hex[:6]}@fingroww.tech"
+        r_pub = self.client.post("/api/v2/auth/register", json={
+            "email": pub_email,
+            "password": "UserPass123",
+            "full_name": "Public Normal User",
+            "role": "super_admin",
+        })
+        self.assertEqual(r_pub.status_code, 201)
+        pub_body = r_pub.get_json()
+        self.assertEqual(pub_body["user"]["role"], "trader")
+        pub_tok = pub_body["access_token"]
+        pub_hdr = {"Authorization": f"Bearer {pub_tok}"}
+        pub_tname = pub_body["user"]["trading_profile_name"]
+
+        # Unified Paper & Real Broker identity for logged-in user (normal user CANNOT switch even with ?user=SpoofTarget)
+        self.assertEqual(self.client.get("/api/paper/session/state?user=CRUD%20Trader%20Desk", headers=pub_hdr).get_json()["user_name"], pub_tname)
+        self.assertEqual(self.client.get("/api/broker/status?user=CRUD%20Trader%20Desk", headers=pub_hdr).get_json()["user_name"], pub_tname)
+        self.assertEqual(
+            self.client.post("/api/paper/profiles/create", headers=pub_hdr, json={"user_name": "UnauthorizedSwitch"}).status_code,
+            403,
+        )
+
+        # 2. Bootstrap Super Admin (admin@fingroww.tech) & login
+        from backend.create_admin import bootstrap_super_admin
+        bootstrap_super_admin("admin@fingroww.tech", "FinGroww@Admin2026", "Akshay Super Admin")
+        sa_login = self.client.post("/api/v2/auth/login", json={
+            "email": "admin@fingroww.tech",
+            "password": "FinGroww@Admin2026",
+        })
+        self.assertEqual(sa_login.status_code, 200)
+        sa_body = sa_login.get_json()
+        self.assertEqual(sa_body["user"]["role"], "super_admin")
+        sa_hdr = {"Authorization": f"Bearer {sa_body['access_token']}"}
+
+        # 3. Super Admin creates a normal trader AND an admin via CRUD endpoint
+        cr_trader_email = f"crud_tr_{uuid.uuid4().hex[:5]}@fingroww.tech"
+        r_cr_tr = self.client.post("/api/v2/admin/users", headers=sa_hdr, json={
+            "email": cr_trader_email,
+            "password": "TraderPass123",
+            "full_name": "CRUD Trader",
+            "trading_profile_name": "CRUD Trader Desk",
+            "role": "trader",
+            "subscription_plan": "pro_algo_swarm",
+            "virtual_capital": 750000,
+            "is_email_verified": True,
+        })
+        self.assertEqual(r_cr_tr.status_code, 201)
+        cr_tr_uid = r_cr_tr.get_json()["user"]["user_id"]
+        self.assertEqual(r_cr_tr.get_json()["user"]["role"], "trader")
+
+        cr_admin_email = f"crud_adm_{uuid.uuid4().hex[:5]}@fingroww.tech"
+        r_cr_adm = self.client.post("/api/v2/admin/users", headers=sa_hdr, json={
+            "email": cr_admin_email,
+            "password": "AdminPass123",
+            "full_name": "Ops Admin",
+            "role": "admin",
+        })
+        self.assertEqual(r_cr_adm.status_code, 201)
+        cr_adm_uid = r_cr_adm.get_json()["user"]["user_id"]
+        self.assertEqual(r_cr_adm.get_json()["user"]["role"], "admin")
+
+        # 4. Users directory shows online count & paper_balance
+        r_dir = self.client.get(f"/api/v2/admin/users?search={pub_email}", headers=sa_hdr)
+        self.assertEqual(r_dir.status_code, 200)
+        dir_users = r_dir.get_json()["users"]
+        self.assertEqual(len(dir_users), 1)
+        self.assertTrue(dir_users[0]["is_online"])
+        self.assertGreaterEqual(dir_users[0]["active_sessions_count"], 1)
+        self.assertIn("paper_balance", dir_users[0])
+
+        # 5. Live logged-in sessions endpoint lists active users + sessions
+        r_sess = self.client.get("/api/v2/admin/sessions", headers=sa_hdr)
+        self.assertEqual(r_sess.status_code, 200)
+        sess_data = r_sess.get_json()
+        self.assertGreaterEqual(sess_data["logged_in_users_count"], 2)
+        self.assertGreaterEqual(sess_data["active_sessions_count"], 2)
+        pub_sessions = [s for s in sess_data["sessions"] if s["email"] == pub_email]
+        self.assertGreaterEqual(len(pub_sessions), 1)
+        pub_sid = pub_sessions[0]["session_id"]
+
+        # 6. Super Admin updates trader profile, role, and trading_profile_name
+        r_upd = self.client.put(f"/api/v2/admin/users/{cr_tr_uid}", headers=sa_hdr, json={
+            "full_name": "CRUD Trader Updated",
+            "trading_profile_name": "CRUD Updated Desk",
+            "subscription_plan": "enterprise",
+            "role": "trader",
+        })
+        self.assertEqual(r_upd.status_code, 200)
+        self.assertEqual(r_upd.get_json()["user"]["full_name"], "CRUD Trader Updated")
+        self.assertEqual(r_upd.get_json()["user"]["trading_profile_name"], "CRUD Updated Desk")
+
+        # 7. Normal Admin cannot create admins, promote to admin, or delete users (403)
+        adm_login = self.client.post("/api/v2/auth/login", json={
+            "email": cr_admin_email,
+            "password": "AdminPass123",
+        })
+        self.assertEqual(adm_login.status_code, 200)
+        ops_hdr = {"Authorization": f"Bearer {adm_login.get_json()['access_token']}"}
+        self.assertEqual(
+            self.client.post("/api/v2/admin/users", headers=ops_hdr, json={
+                "email": f"fail_{uuid.uuid4().hex[:5]}@fingroww.tech",
+                "password": "FailPass123",
+                "full_name": "Should Fail",
+                "role": "admin",
+            }).status_code,
+            403,
+        )
+        self.assertEqual(
+            self.client.put(f"/api/v2/admin/users/{cr_tr_uid}", headers=ops_hdr, json={"role": "admin"}).status_code,
+            403,
+        )
+        self.assertEqual(self.client.delete(f"/api/v2/admin/users/{cr_tr_uid}", headers=ops_hdr).status_code, 403)
+
+        # 7b. Only Super Admin and Admin CAN switch into another user's Paper & Broker workspace
+        self.assertEqual(
+            self.client.get("/api/paper/session/state?user=CRUD%20Updated%20Desk", headers=sa_hdr).get_json()["user_name"],
+            "CRUD Updated Desk",
+        )
+        self.assertEqual(
+            self.client.get("/api/broker/status?user=CRUD%20Updated%20Desk", headers=ops_hdr).get_json()["user_name"],
+            "CRUD Updated Desk",
+        )
+
+        # 8. Super Admin revokes public user's live session -> user token becomes 401
+        r_rev = self.client.delete(f"/api/v2/admin/sessions/{pub_sid}", headers=sa_hdr)
+        self.assertEqual(r_rev.status_code, 200)
+        self.assertEqual(self.client.get("/api/paper/session/state", headers=pub_hdr).status_code, 401)
+
+        # 9. Super Admin deletes created test users -> removed cleanly
+        self.assertEqual(self.client.delete(f"/api/v2/admin/users/{cr_tr_uid}", headers=sa_hdr).status_code, 200)
+        self.assertEqual(self.client.delete(f"/api/v2/admin/users/{cr_adm_uid}", headers=sa_hdr).status_code, 200)
+        self.assertEqual(self.client.get(f"/api/v2/admin/users/{cr_tr_uid}", headers=sa_hdr).status_code, 404)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

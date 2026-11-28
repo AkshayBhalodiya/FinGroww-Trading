@@ -1,12 +1,14 @@
-// FinGroww PWA Service Worker v1.0
-const CACHE_NAME = 'fingroww-v1.0';
+// FinGroww PWA Service Worker v2.0 (Network-First for HTML/CSS/JS)
+const CACHE_NAME = 'fingroww-v2.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/ai-auto-paper-trading.html',
   '/options.html',
   '/today-options.html',
-  '/backtest.html',
+  '/pricing.html',
+  '/theme.css',
+  '/theme.js',
   '/manifest.json',
   '/static/js/lightweight-charts.standalone.production.js'
 ];
@@ -24,15 +26,9 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : Promise.resolve())))
+    )
   );
   self.clients.claim();
 });
@@ -45,15 +41,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate for static files
+  // Network-first for HTML/CSS/JS so UI updates appear immediately
+  const isCodeOrDoc =
+    event.request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js');
+
+  if (isCodeOrDoc) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for static assets (images/fonts)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
         }
         return networkResponse;
       }).catch(() => cachedResponse);

@@ -7,9 +7,11 @@ from flask import Blueprint, jsonify, request
 from pydantic import ValidationError
 
 from backend.schemas import (
+    AdminCreateUserRequest,
     AdminSubscriptionUpdateRequest,
     AdminUserRoleUpdateRequest,
     AdminUserStatusUpdateRequest,
+    AdminUserUpdateRequest,
     FeatureFlagUpdateRequest,
     SupportTicketCreateRequest,
     SupportTicketReplyRequest,
@@ -73,6 +75,59 @@ def v2_admin_list_users(user):
 def v2_admin_get_user(user, target_user_id):
     try:
         return jsonify(admin_service.get_user_detail(target_user_id))
+    except admin_service.AdminServiceError as exc:
+        return jsonify({"ok": False, "error": exc.message}), exc.status_code
+
+
+@admin_v2_bp.post("/api/v2/admin/users")
+@require_perm("users:write")
+def v2_admin_create_user(user):
+    try:
+        payload = AdminCreateUserRequest.model_validate(request.get_json(silent=True) or {})
+        res = admin_service.admin_create_user(user, payload.model_dump(), _client_ip())
+        return jsonify(res), 201
+    except ValidationError as exc:
+        return _validation_error_response(exc)
+    except admin_service.AdminServiceError as exc:
+        return jsonify({"ok": False, "error": exc.message}), exc.status_code
+
+
+@admin_v2_bp.put("/api/v2/admin/users/<target_user_id>")
+@require_perm("users:write")
+def v2_admin_update_user(user, target_user_id):
+    try:
+        payload = AdminUserUpdateRequest.model_validate(request.get_json(silent=True) or {})
+        return jsonify(
+            admin_service.admin_update_user(
+                user, target_user_id, payload.model_dump(exclude_none=True), _client_ip()
+            )
+        )
+    except ValidationError as exc:
+        return _validation_error_response(exc)
+    except admin_service.AdminServiceError as exc:
+        return jsonify({"ok": False, "error": exc.message}), exc.status_code
+
+
+@admin_v2_bp.delete("/api/v2/admin/users/<target_user_id>")
+@require_perm("users:delete")
+def v2_admin_delete_user(user, target_user_id):
+    try:
+        return jsonify(admin_service.admin_delete_user(user, target_user_id, _client_ip()))
+    except admin_service.AdminServiceError as exc:
+        return jsonify({"ok": False, "error": exc.message}), exc.status_code
+
+
+@admin_v2_bp.get("/api/v2/admin/sessions")
+@require_perm("users:read")
+def v2_admin_list_sessions(user):
+    return jsonify(admin_service.list_active_sessions())
+
+
+@admin_v2_bp.delete("/api/v2/admin/sessions/<session_id>")
+@require_perm("users:suspend")
+def v2_admin_revoke_session(user, session_id):
+    try:
+        return jsonify(admin_service.revoke_session_by_id(user, session_id, _client_ip()))
     except admin_service.AdminServiceError as exc:
         return jsonify({"ok": False, "error": exc.message}), exc.status_code
 

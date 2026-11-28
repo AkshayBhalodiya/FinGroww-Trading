@@ -30,7 +30,7 @@
 
   function redirectToLogin() {
     const nextUrl = window.location.pathname + window.location.search + window.location.hash;
-    window.location.replace('auth.html?next=' + encodeURIComponent(nextUrl || 'dashboard.html'));
+    window.location.replace('auth.html?next=' + encodeURIComponent(nextUrl || 'auth.html'));
   }
 
   // Enforce strict login gate immediately on protected application pages
@@ -138,7 +138,9 @@
       btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
       const icon = btn.querySelector('.theme-icon');
       if (icon) {
-        icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        icon.innerHTML = theme === 'dark'
+          ? '<i class="fa-solid fa-sun" aria-hidden="true"></i>'
+          : '<i class="fa-solid fa-moon" aria-hidden="true"></i>';
       }
       const label = btn.querySelector('.theme-label');
       if (label) {
@@ -161,26 +163,223 @@
   document.addEventListener('DOMContentLoaded', () => {
     applyTheme(getPreferredTheme());
 
+    // Accessibility Skip Link & main landmark hook
+    const mainLandmark = document.querySelector('main') || document.querySelector('.container');
+    if (mainLandmark && !mainLandmark.id) {
+      mainLandmark.id = 'main-content';
+    }
+    if (mainLandmark && !document.querySelector('.fg-skip-link')) {
+      const skip = document.createElement('a');
+      skip.href = '#' + mainLandmark.id;
+      skip.className = 'fg-skip-link';
+      skip.textContent = 'Skip to main content';
+      document.body.insertBefore(skip, document.body.firstChild);
+    }
+
+    // Header elevation on scroll + active link + Account / Super Admin sync
+    try {
+      if ('caches' in window) {
+        caches.keys().then(keys => keys.forEach(k => { if (k.startsWith('fingroww-') && k !== 'fingroww-v2.0') caches.delete(k); })).catch(() => {});
+      }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.update())).catch(() => {});
+      }
+    } catch (_) {}
+
+    const currentSlug = getCurrentRouteSlug() || 'index.html';
+    document.querySelectorAll('header.site-header .nav-links li, #mobileDrawer a').forEach(el => {
+      const link = el.tagName === 'A' ? el : el.querySelector('a');
+      const href = ((link && link.getAttribute('href')) || '').split('#')[0].split('?')[0].toLowerCase();
+      if (href === 'backtest.html') {
+        el.remove();
+      }
+    });
+    document.querySelectorAll('header.site-header .nav-links a, #mobileDrawer a').forEach(a => {
+      const href = (a.getAttribute('href') || '').split('#')[0].split('?')[0].toLowerCase();
+      if (!href) return;
+      if (href === currentSlug) {
+        a.classList.add('active');
+      } else {
+        a.classList.remove('active');
+      }
+    });
+
+    // Canonical Before-Login / After-Login Header & Mobile Drawer Auth Sync
+    window.fgGlobalSignOut = async function() {
+      const tok = localStorage.getItem(ACCESS_TOKEN_KEY);
+      if (tok) {
+        try {
+          await fetch('/api/v2/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+          });
+        } catch (_) {}
+      }
+      try {
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        localStorage.removeItem('fg_auth_user');
+        localStorage.removeItem('fingroww_paper_user');
+      } catch (_) {}
+      if (typeof window.syncFinGrowwAuthHeader === 'function') {
+        window.syncFinGrowwAuthHeader();
+      }
+      window.location.href = 'auth.html';
+    };
+
+    window.syncFinGrowwAuthHeader = function() {
+      const siteHdr = document.querySelector('header.site-header');
+      const mobileDrawerEl = document.getElementById('mobileDrawer');
+      let u = null;
+      let tok = '';
+      try {
+        tok = localStorage.getItem(ACCESS_TOKEN_KEY) || '';
+        const rawUser = localStorage.getItem('fg_auth_user');
+        u = rawUser ? JSON.parse(rawUser) : null;
+      } catch (_) {
+        u = null;
+      }
+      const isLoggedIn = Boolean(u && tok);
+      const role = isLoggedIn ? String(u.role || 'trader').toLowerCase() : '';
+      const isAdm = isLoggedIn && ['super_admin', 'admin', 'support', 'analyst', 'content_manager'].includes(role);
+      const firstName = isLoggedIn
+        ? String(u.full_name || u.trading_profile_name || u.username || 'Trader').trim().split(/\s+/)[0]
+        : '';
+
+      if (siteHdr) {
+        const navActs = siteHdr.querySelector('.nav-actions');
+        const hasMainLinks = Boolean(siteHdr.querySelector('.nav-links'));
+        if (navActs && hasMainLinks) {
+          let authLink = document.getElementById('headerAuthBtn');
+          if (!authLink) {
+            authLink = document.createElement('a');
+            authLink.id = 'headerAuthBtn';
+            authLink.href = 'auth.html';
+            authLink.className = 'btn btn-sm btn-outline';
+            navActs.insertBefore(authLink, navActs.querySelector('.btn-launch') || navActs.querySelector('.mobile-toggle'));
+          }
+
+          let existingAdm = document.getElementById('headerAdminLinkBtn');
+          if (isAdm) {
+            if (!existingAdm) {
+              existingAdm = document.createElement('a');
+              existingAdm.id = 'headerAdminLinkBtn';
+              existingAdm.href = 'admin.html';
+              existingAdm.className = 'btn btn-sm btn-primary';
+              navActs.insertBefore(existingAdm, authLink);
+            }
+            existingAdm.innerHTML = `<i class="fa-solid fa-shield-halved"></i> <span>${role === 'super_admin' ? 'Super Admin' : 'Admin'}</span>`;
+            existingAdm.title = 'Open Admin Control Centre';
+          } else if (existingAdm) {
+            existingAdm.remove();
+          }
+
+          if (isLoggedIn) {
+            authLink.href = 'auth.html';
+            authLink.innerHTML = `<i class="fa-solid fa-user-pen" style="color:var(--accent-green);"></i> <span></span>`;
+            authLink.querySelector('span').textContent = firstName;
+            authLink.title = `Account & Profile (${u.email || ''})`;
+          } else {
+            authLink.href = 'auth.html';
+            authLink.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>';
+            authLink.title = 'Sign In or Create FinGroww Account';
+          }
+        }
+      }
+
+      if (mobileDrawerEl) {
+        const drawerList = mobileDrawerEl.querySelector('.mobile-nav-list');
+        const drawerActs = mobileDrawerEl.querySelector('.mobile-drawer-actions');
+        const drawerAuth = document.getElementById('drawerAuthBtn');
+
+        // Hide dashboard.html link for guest & normal traders; keep visible for Admins
+        const dashDrawerLink = drawerList ? drawerList.querySelector('a[href="dashboard.html"]') : null;
+        if (dashDrawerLink) {
+          dashDrawerLink.style.display = isAdm ? '' : 'none';
+        }
+
+        let drawerAdmLink = document.getElementById('drawerAdminLink');
+        if (isAdm && drawerList) {
+          if (!drawerAdmLink) {
+            drawerAdmLink = document.createElement('a');
+            drawerAdmLink.id = 'drawerAdminLink';
+            drawerAdmLink.href = 'admin.html';
+            drawerAdmLink.style.cssText = 'color:var(--accent-blue);font-weight:800;';
+            drawerList.insertBefore(drawerAdmLink, drawerList.firstChild);
+          }
+          drawerAdmLink.innerHTML = `<i class="fa-solid fa-shield-halved"></i> ${role === 'super_admin' ? 'Super Admin Console' : 'Admin Console'}`;
+        } else if (drawerAdmLink) {
+          drawerAdmLink.remove();
+        }
+
+        if (drawerAuth) {
+          if (isLoggedIn) {
+            drawerAuth.href = 'auth.html';
+            drawerAuth.innerHTML = '<i class="fa-solid fa-user-pen" style="color:var(--accent-green);"></i> <span></span>';
+            drawerAuth.querySelector('span').textContent = firstName;
+          } else {
+            drawerAuth.href = 'auth.html';
+            drawerAuth.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> <span>Sign In</span>';
+          }
+        }
+
+        let drawerSignOut = document.getElementById('drawerSignOutBtn');
+        if (isLoggedIn && drawerActs) {
+          if (!drawerSignOut) {
+            drawerSignOut = document.createElement('button');
+            drawerSignOut.type = 'button';
+            drawerSignOut.id = 'drawerSignOutBtn';
+            drawerSignOut.className = 'btn btn-sm btn-outline mobile-drawer-signout';
+            drawerSignOut.innerHTML = '<i class="fa-solid fa-right-from-bracket"></i> Sign Out';
+            drawerSignOut.addEventListener('click', window.fgGlobalSignOut);
+            drawerActs.appendChild(drawerSignOut);
+          }
+        } else if (drawerSignOut) {
+          drawerSignOut.remove();
+        }
+      }
+    };
+
+    const siteHdr = document.querySelector('header.site-header');
+    if (siteHdr) {
+      const onScroll = () => siteHdr.classList.toggle('is-scrolled', window.scrollY > 12);
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+    window.syncFinGrowwAuthHeader();
+    window.addEventListener('storage', (ev) => {
+      if (!ev.key || ev.key === ACCESS_TOKEN_KEY || ev.key === 'fg_auth_user') {
+        window.syncFinGrowwAuthHeader();
+      }
+    });
+
     // Mobile menu drawer toggle
     const mobileBtn = document.getElementById('mobileMenuBtn');
     const mobileDrawer = document.getElementById('mobileDrawer');
     if (mobileBtn && mobileDrawer) {
+      const closeDrawer = () => {
+        mobileDrawer.classList.remove('open');
+        mobileDrawer.setAttribute('aria-hidden', 'true');
+        mobileBtn.setAttribute('aria-expanded', 'false');
+        mobileBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+      };
       mobileBtn.addEventListener('click', () => {
         const isOpen = mobileDrawer.classList.contains('open');
         if (isOpen) {
-          mobileDrawer.classList.remove('open');
-          mobileBtn.textContent = '☰';
+          closeDrawer();
         } else {
           mobileDrawer.classList.add('open');
-          mobileBtn.textContent = '✕';
+          mobileDrawer.setAttribute('aria-hidden', 'false');
+          mobileBtn.setAttribute('aria-expanded', 'true');
+          mobileBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
         }
       });
-      // Close on drawer link click
-      mobileDrawer.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', () => {
-          mobileDrawer.classList.remove('open');
-          if (mobileBtn) mobileBtn.textContent = '☰';
-        });
+      mobileDrawer.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+      window.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && mobileDrawer.classList.contains('open')) closeDrawer();
+      });
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 1120 && mobileDrawer.classList.contains('open')) closeDrawer();
       });
     }
 
@@ -678,7 +877,8 @@
       alertBtn.id = 'navAlertSettingsBtn';
       alertBtn.className = 'nav-alert-btn active-pulse';
       alertBtn.title = 'Live Signal Notification Alerts (Sound & Push)';
-      alertBtn.innerHTML = '<i class="fa-solid fa-bell"></i>';
+      alertBtn.setAttribute('aria-label', 'Live Signal Notification Alerts');
+      alertBtn.innerHTML = '<i class="fa-solid fa-bell" aria-hidden="true"></i>';
       alertBtn.addEventListener('click', (e) => {
         e.preventDefault();
         window.FinGrowwAlerts.openSettings();

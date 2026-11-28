@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from backend.dependencies import get_client_ip, get_current_user, require_permission, require_roles
 from backend.schemas import (
+    AdminCreateUserRequest,
     AdminSubscriptionUpdateRequest,
     AdminUserRoleUpdateRequest,
     AdminUserStatusUpdateRequest,
+    AdminUserUpdateRequest,
     FeatureFlagUpdateRequest,
     SupportTicketCreateRequest,
     SupportTicketReplyRequest,
@@ -42,6 +44,18 @@ def admin_list_users(
     return admin_service.list_users_directory(search=search, role=role, status=status, page=page, page_size=page_size)
 
 
+@router.post("/admin/users", status_code=201)
+def admin_create_user(
+    payload: AdminCreateUserRequest,
+    request: Request,
+    actor: Dict[str, Any] = Depends(require_permission("users:write")),
+) -> Dict[str, Any]:
+    try:
+        return admin_service.admin_create_user(actor, payload.model_dump(), get_client_ip(request))
+    except admin_service.AdminServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
 @router.get("/admin/users/{target_user_id}")
 def admin_get_user_detail(
     target_user_id: str,
@@ -49,6 +63,52 @@ def admin_get_user_detail(
 ) -> Dict[str, Any]:
     try:
         return admin_service.get_user_detail(target_user_id)
+    except admin_service.AdminServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
+@router.put("/admin/users/{target_user_id}")
+def admin_update_user(
+    target_user_id: str,
+    payload: AdminUserUpdateRequest,
+    request: Request,
+    actor: Dict[str, Any] = Depends(require_permission("users:write")),
+) -> Dict[str, Any]:
+    try:
+        return admin_service.admin_update_user(
+            actor, target_user_id, payload.model_dump(exclude_unset=True), get_client_ip(request)
+        )
+    except admin_service.AdminServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
+@router.delete("/admin/users/{target_user_id}")
+def admin_delete_user(
+    target_user_id: str,
+    request: Request,
+    actor: Dict[str, Any] = Depends(require_permission("users:delete")),
+) -> Dict[str, Any]:
+    try:
+        return admin_service.admin_delete_user(actor, target_user_id, get_client_ip(request))
+    except admin_service.AdminServiceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
+@router.get("/admin/sessions")
+def admin_list_sessions(
+    actor: Dict[str, Any] = Depends(require_permission("users:read")),
+) -> Dict[str, Any]:
+    return admin_service.list_active_sessions()
+
+
+@router.delete("/admin/sessions/{session_id}")
+def admin_revoke_session(
+    session_id: str,
+    request: Request,
+    actor: Dict[str, Any] = Depends(require_permission("users:suspend")),
+) -> Dict[str, Any]:
+    try:
+        return admin_service.revoke_session_by_id(actor, session_id, get_client_ip(request))
     except admin_service.AdminServiceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message)
 
